@@ -1,0 +1,14 @@
+{% extends "wrf_hydro_forecasts/base.html" %}
+
+{% load tethys_gizmos %}
+{% load staticfiles %}
+
+{% block app_content %}
+  <div id="map-view"></div>
+  <div id="info" class="hidden"></div>
+  <br />
+  <div id="nc-chart" class="hidden"></div>
+{% endblock %}
+
+{% block app_actions %}
+{% endblock %}
