@@ -1,11 +1,12 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
-from tethys_sdk.gizmos import MapView, MVView
+from tethys_sdk.gizmos import SelectInput, MapView, MVView
 
 import os
 import netCDF4 as nc
 import json
+import datetime
 
 #######GLOBAL VARIABLES#########
 temp_dir = None
@@ -24,7 +25,39 @@ def home(request):
     Controller for the app home page.
     """
 
-    context = {}
+    select_input = SelectInput(display_text='Select Configuration',
+                               name='config',
+                               multiple=False,
+                               options=[('Short Range (Test)', '1'), ('Medium Range (Test)', '2'),
+                                        ('Long Range (Test)', '3')],
+                               initial=['Short Range (Test)'],
+                               original=False)
+
+    start = datetime.datetime.today() - datetime.timedelta(days=1)
+
+    start_date = {'display_text': 'Choose a Beginning Date',
+        'name': 'startDate',
+        'autoclose': True,
+        'format': 'yyyy-mm-dd',
+        'start_date': '2015-05-01',
+        'today_button': True,
+        'initial': start.strftime("%Y-%m-%d")
+    }
+
+    end_date = {'display_text': 'Choose an ending Date',
+        'name': 'endDate',
+        'autoclose': True,
+        'format': 'yyyy-mm-dd',
+        'start_date': '2016-05-01',
+        'today_button': True,
+        'initial': datetime.datetime.today().strftime("%Y-%m-%d")
+    }
+
+    context = {
+        'select_input': select_input,
+        'start_date': start_date,
+        'end_date': end_date
+    }
 
     return render(request, 'wrf_hydro_forecasts/home.html', context)
 

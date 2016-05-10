@@ -1,6 +1,6 @@
-//turns navigation bar and toggle navigation icon off
-$(".toggle-nav").removeClass('toggle-nav');
-$("#app-content-wrapper").removeClass('show-nav');
+////turns navigation bar and toggle navigation icon off
+//$(".toggle-nav").removeClass('toggle-nav');
+//$("#app-content-wrapper").removeClass('show-nav');
 
 //variables related to identifying source of redirection
 var params, prmstr, prmarr, tmparr;
