@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
+from django.shortcuts import render_to_response
 from tethys_sdk.gizmos import SelectInput, Button
 
 import os
@@ -63,14 +64,55 @@ def home(request):
                            attributes='id="submitBtn" form=paramForm value="Success"',
                            submit=True)
 
-    context = {
-        'select_input': select_input,
-        'start_date': start_date,
-        # 'end_date': end_date,
-        'submit_button': submit_button
-    }
 
-    return render(request, 'nwm_forecasts/home.html', context)
+
+    if request.GET:
+        print request.GET, '###########################################'
+        #Make the waterml url query string
+        config = request.GET['config']
+        comid = request.GET['COMID']
+        lon = request.GET['longitude']
+        lat = request.GET['latitude']
+        startDate = request.GET['startDate']
+        # time2 = '00:00:00'
+        waterml_url = '?config=%s&COMID=%s&lon=%s&lat=%s&date=%s' % (config, comid, lon, lat, startDate)
+
+        # waterML_button = Button(display_text='Get WaterML',
+        #                    name='waterMLBtn',
+        #                    attributes='target="_blank" href="/apps/nwm-forecasts/waterml{{waterml_url}}',
+        #                    submit=False)
+
+        HS_button = Button(display_text='Add to HydroShare',
+                           name='HSBtn',
+                           attributes='',
+                           submit=False)
+
+        HSGIS_button = Button(display_text='Add to HydroShare GIS',
+                              name='HSGISBtn',
+                              attributes='',
+                              submit=False)
+
+        context = {
+            'select_input': select_input,
+            'start_date': start_date,
+            # 'end_date': end_date,
+            'submit_button': submit_button,
+            # 'waterML_button': waterML_button,
+            'HS_button': HS_button,
+            'HSGIS_button': HSGIS_button,
+            'waterml_url': waterml_url
+        }
+
+        return render(request, 'nwm_forecasts/home.html', context)
+
+    else:
+        context = {
+            'select_input': select_input,
+            'start_date': start_date,
+            # 'end_date': end_date,
+            'submit_button': submit_button
+        }
+        return render(request, 'nwm_forecasts/home.html', context)
 
 
 def get_netcdf_data(request):
@@ -132,3 +174,73 @@ def get_netcdf_data(request):
             return JsonResponse({'error': 'No data found for the selected reach.'})
     else:
         return JsonResponse({'error': "Bad request. Must be a GET request."})
+
+
+# ***----------------------------------------------------------------------------------------*** #
+# ***                                                                                        *** #
+# ***                                     REST API                                           *** #
+# ***                                                                                        *** #
+# ***----------------------------------------------------------------------------------------*** #
+
+def getTimeSeries(beginDate):
+    nDays = 15 # (endDate - beginDate).days
+    datelist = [dt.datetime.strptime(beginDate, "%Y-%m-%d") + dt.timedelta(days=x) for x in range(0,nDays)]
+
+    ts = [range(0,16)]
+    # for d in datelist:
+    #
+    #     ts.append()
+    return ts
+
+
+def format_time_series(startDate, ts, nodata_value):
+    nDays = len(ts)
+    datelist = [dt.datetime.strptime(startDate, "%Y-%m-%d") + dt.timedelta(days=x) for x in range(0,nDays)]
+    formatted_ts = []
+    for i in range(0, nDays):
+        formatted_val = ts[i]
+        if (formatted_val is None):
+            formatted_val = nodata_value
+        formatted_date = datelist[i].strftime('%Y-%m-%dT%H:%M:%S')
+        formatted_ts.append({'date':formatted_date, 'val':formatted_val})
+
+    return formatted_ts
+
+
+def get_site_name(lat, lon):
+    lat_name = "Lat: %s" % lat
+    lon_name = "Lon: %s" % lon
+
+
+    return lat_name + ' ' +  lon_name
+
+
+def get_data_waterml(request):
+    """
+	Controller that will show the data in WaterML 1.1 format
+	"""
+    if request.GET:
+        config = request.GET["config"]
+        comid = request.GET["COMID"]
+        lat = request.GET["lat"]
+        lon = request.GET["lon"]
+        start = request.GET["date"]
+
+        nodata_value = -9999
+        ts = getTimeSeries(start)
+        time_series = format_time_series(start, ts, nodata_value)
+        site_name = get_site_name(float(lat), float(lon))
+        context = {
+            'config': config,
+            'comid': comid,
+            'lat': lat,
+            'lon': lon,
+            'startdate': start,
+            'site_name': site_name,
+            'time_series': time_series
+        }
+
+        xmlResponse = render_to_response('nwm_forecasts/waterml.xml', context)
+        xmlResponse['Content-Type'] = 'application/xml'
+        xmlResponse['content-disposition'] = "attachment; filename=output-time-series.xml"
+        return xmlResponse

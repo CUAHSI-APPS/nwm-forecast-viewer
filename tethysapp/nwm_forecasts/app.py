@@ -28,7 +28,10 @@ class nwmForecasts(TethysAppBase):
                            controller='nwm_forecasts.controllers.home'),
                     UrlMap(name='get_netcdf_data_ajax',
                            url='nwm-forecasts/get-netcdf-data',
-                           controller='nwm_forecasts.controllers.get_netcdf_data')
+                           controller='nwm_forecasts.controllers.get_netcdf_data'),
+                    UrlMap(name='waterml',
+                           url='nwm-forecasts/waterml',
+                           controller='nwm_forecasts.controllers.get_data_waterml'),
                     )
 
         return url_maps

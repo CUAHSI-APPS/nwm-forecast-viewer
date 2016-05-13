@@ -11,4 +11,11 @@
 {% endblock %}
 
 {% block app_actions %}
+  <div id="actionBtns" class="hidden">
+    {% if HS_button %}
+      {% gizmo button HSGIS_button %}
+      {% gizmo button HS_button %}
+      <a target="_blank" href="{% url 'nwm_forecasts:waterml' %}{{waterml_url}}" class="btn btn-default">Get WaterML</a>
+    {% endif %}
+  </div>
 {% endblock %}

@@ -11,6 +11,7 @@ var defaultChartSettings, nc_chart, plotCounter = 1, chartShowingBmks = false;
 //jQuery handles
 var infoDiv = $('#info');
 var chartDiv =  $('#nc-chart');
+var actionBtnsDiv = $('#actionBtns');
 
 // Global data variables
 var tsPairsData = {};
@@ -418,6 +419,7 @@ function get_netcdf_chart_data(config, comid, startDate) {
 }
 
 var plotData = function(data, startDate) {
+    actionBtnsDiv.removeClass('hidden');
     var data_series = {
         type: 'area',
         name: 'Streamflow (cms)',
