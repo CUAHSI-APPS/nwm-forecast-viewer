@@ -202,12 +202,14 @@ $(function () {
         var qLat = Number(query.substring(query.lastIndexOf("latitude=")+9,query.lastIndexOf("&startDate")));
         var qConfig = query.substring(query.lastIndexOf("config=") + 7, query.lastIndexOf("&COMID"));
         var qCOMID = Number(query.substring(query.lastIndexOf("COMID=") + 6, query.lastIndexOf("&longitude")));
-        var qDate = query.substring(query.lastIndexOf("startDate=") + 10, query.lastIndexOf("&submit"));
+        var qDate = query.substring(query.lastIndexOf("startDate=") + 10, query.lastIndexOf("&time"));
+        var qTime = query.substring(query.lastIndexOf("time=") + 5, query.lastIndexOf("&submit"));
 
         $('#comidInput').val(qCOMID);
         $('#longInput').val(qLong);
         $('#latInput').val(qLat);
         $('#startDate').val(qDate);
+        $('#timeInput').val(qTime);
 
         var wktval = "POINT(" + qLong + " " + qLat + ")";
         var options = {

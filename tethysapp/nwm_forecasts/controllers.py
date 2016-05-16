@@ -10,16 +10,6 @@ import json
 import datetime as dt
 import numpy as np
 
-#######GLOBAL VARIABLES#########
-temp_dir = None
-prediction_data = None
-rp_data = None
-total_prediction_comids = 0
-total_rp_comids = 0
-sorted_prediction_comids = None
-sorted_rp_comids = None
-time = None
-################################
 
 @login_required()
 def home(request):
@@ -49,6 +39,25 @@ def home(request):
         'initial': dt.datetime.today().strftime("%Y-%m-%d")
     }
 
+    start_time = SelectInput(display_text='Choose a Beginning Time',
+                             name='time',
+                             multiple=False,
+                             options=[('12:00 am', '00'), ('01:00 am', '01'),
+                                      ('02:00 am', '02'), ('03:00 am', '03'),
+                                      ('04:00 am', '04'), ('05:00 am', '05'),
+                                      ('06:00 am', '06'), ('07:00 am', '07'),
+                                      ('08:00 am', '08'), ('09:00 am', '09'),
+                                      ('10:00 am', '10'), ('11:00 am', '11'),
+                                      ('12:00 pm', '12'), ('01:00 pm', '13'),
+                                      ('02:00 pm', '14'), ('03:00 pm', '15'),
+                                      ('04:00 pm', '16'), ('05:00 pm', '17'),
+                                      ('06:00 pm', '18'), ('07:00 pm', '19'),
+                                      ('08:00 pm', '20'), ('09:00 pm', '21'),
+                                      ('10:00 pm', '22'), ('11:00 pm', '23')],
+                             initial=['12:00 am'],
+                             attributes='id="timeInput"',
+                             original=False)
+
     # end_date = {
     #     'display_text': 'Choose an Ending Date',
     #     'name': 'endDate',
@@ -67,39 +76,40 @@ def home(request):
 
 
     if request.GET:
-        print request.GET, '###########################################'
         #Make the waterml url query string
         config = request.GET['config']
         comid = request.GET['COMID']
         lon = request.GET['longitude']
         lat = request.GET['latitude']
         startDate = request.GET['startDate']
+        time = request.GET['time']
         # time2 = '00:00:00'
-        waterml_url = '?config=%s&COMID=%s&lon=%s&lat=%s&date=%s' % (config, comid, lon, lat, startDate)
+        waterml_url = '?config=%s&COMID=%s&lon=%s&lat=%s&date=%s&time=%s' % (config, comid, lon, lat, startDate, time)
 
         # waterML_button = Button(display_text='Get WaterML',
         #                    name='waterMLBtn',
         #                    attributes='target="_blank" href="/apps/nwm-forecasts/waterml{{waterml_url}}',
         #                    submit=False)
 
-        HS_button = Button(display_text='Add to HydroShare',
-                           name='HSBtn',
-                           attributes='',
-                           submit=False)
+        # HS_button = Button(display_text='Add to HydroShare',
+        #                    name='HSBtn',
+        #                    attributes='id="HSBtn" data-toggle="modal" data-target="#hydroshare-modal"',
+        #                    submit=False)
 
-        HSGIS_button = Button(display_text='Add to HydroShare GIS',
-                              name='HSGISBtn',
-                              attributes='',
-                              submit=False)
+        # HSGIS_button = Button(display_text='Add to HydroShare GIS',
+        #                       name='HSGISBtn',
+        #                       attributes='',
+        #                       submit=False)
 
         context = {
             'select_input': select_input,
             'start_date': start_date,
+            'start_time': start_time,
             # 'end_date': end_date,
             'submit_button': submit_button,
             # 'waterML_button': waterML_button,
-            'HS_button': HS_button,
-            'HSGIS_button': HSGIS_button,
+            # 'HS_button': HS_button,
+            # 'HSGIS_button': HSGIS_button,
             'waterml_url': waterml_url
         }
 
@@ -109,6 +119,7 @@ def home(request):
         context = {
             'select_input': select_input,
             'start_date': start_date,
+            'start_time': start_time,
             # 'end_date': end_date,
             'submit_button': submit_button
         }
@@ -125,11 +136,15 @@ def get_netcdf_data(request):
             config = get_data['config']
             comid = int(get_data['comid'])
             startDate = get_data['startDate']
+            time = get_data['time']
 
-            app_dir = os.path.dirname(__file__)
+            timeCheck = ''.join(['t', time, 'z'])
+            print timeCheck, '4444444444444444444444'
+
+            app_dir = '/projects/water/nwm/' # os.path.dirname(__file__)
             dateDir = ''.join(['nwm.', startDate.replace('-', '')])
             localFileDir = os.path.join(app_dir, 'data', dateDir, config)
-            nc_files = sorted([x for x in os.listdir(localFileDir) if 'channel_rt' in x and 'georeferenced' not in x])
+            nc_files = sorted([x for x in os.listdir(localFileDir) if 'channel_rt' in x and timeCheck in x and 'georeferenced' not in x])
             print nc_files
 
             # ***----------------------------------------------------------------------------------------------*** #
@@ -159,7 +174,6 @@ def get_netcdf_data(request):
                 local_file_path = os.path.join(localFileDir, ncf)
                 prediction_dataTemp = nc.Dataset(local_file_path, mode="r")
                 q_outT = prediction_dataTemp.variables['streamflow'][comidIndex].tolist()
-                print q_outT
                 q_out.append(round(q_outT, 6))
 
             ts_pairs_data[str(comid)] = [time, q_out]
@@ -182,14 +196,26 @@ def get_netcdf_data(request):
 # ***                                                                                        *** #
 # ***----------------------------------------------------------------------------------------*** #
 
-def getTimeSeries(beginDate):
-    nDays = 15 # (endDate - beginDate).days
-    datelist = [dt.datetime.strptime(beginDate, "%Y-%m-%d") + dt.timedelta(days=x) for x in range(0,nDays)]
+def getTimeSeries(comid, date, config):
+    # nDays = 15 # (endDate - beginDate).days
+    # datelist = [dt.datetime.strptime(date, "%Y-%m-%d") + dt.timedelta(days=x) for x in range(0,nDays)]
 
-    ts = [range(0,16)]
-    # for d in datelist:
-    #
-    #     ts.append()
+    ts = []
+
+    app_dir = '/projects/water/nwm/' # os.path.dirname(__file__)
+    dateDir = ''.join(['nwm.', date.replace('-', '')])
+    localFileDir = os.path.join(app_dir, 'data', dateDir, config)
+    nc_files = sorted([x for x in os.listdir(localFileDir) if 'channel_rt' in x and timeCheck in x and 'georeferenced' not in x])
+    ncFile = nc.Dataset(os.path.join(localFileDir, nc_files[0]), mode="r")
+    comidList = ncFile.variables['station_id'][:]
+    comidIndex = int(np.where(comidList == int(comid))[0])
+
+
+    for ncf in nc_files:
+        local_file_path = os.path.join(localFileDir, ncf)
+        prediction_dataTemp = nc.Dataset(local_file_path, mode="r")
+        q_out = prediction_dataTemp.variables['streamflow'][comidIndex].tolist()
+        ts.append(round(q_out, 6))
     return ts
 
 
@@ -227,7 +253,7 @@ def get_data_waterml(request):
         start = request.GET["date"]
 
         nodata_value = -9999
-        ts = getTimeSeries(start)
+        ts = getTimeSeries(comid, start, config)
         time_series = format_time_series(start, ts, nodata_value)
         site_name = get_site_name(float(lat), float(lon))
         context = {

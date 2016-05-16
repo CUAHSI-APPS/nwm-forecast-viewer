@@ -21,6 +21,7 @@
     <input id="longInput" name="longitude" type="text" value="-98" class="hidden">
     <input id="latInput" name="latitude" type="text" value="38.5" class="hidden">
     {% gizmo date_picker start_date %}
+    {% gizmo select_input start_time %}
     <!--{% gizmo date_picker end_date %}-->
   </form>
   {% gizmo button submit_button %}
@@ -44,8 +45,6 @@
   <script src="{% static 'nwm_forecasts/js/main.js' %}" type="text/javascript"></script>
   <script src="{% static 'nwm_forecasts/vendor/openlayers3.8.2/ol.js' %}" type="text/javascript"></script>
   <script src="{% static 'nwm_forecasts/vendor/highcharts4.1.7/hc.js' %}" type="text/javascript"></script>
-  <script src="{% static 'nwm_forecasts/vendor/highcharts4.1.7/hc-more.js' %}" type="text/javascript"></script>
-  <script src="{% static 'nwm_forecasts/vendor/highcharts4.1.7/exp.js' %}" type="text/javascript"></script>
   <script src="{% static 'nwm_forecasts/vendor/highcharts4.1.7/exporting.js' %}" type="text/javascript"></script>
   <script src="{% static 'nwm_forecasts/vendor/highcharts4.1.7/export-csv.js' %}" type="text/javascript"></script>
   <script src="{% static 'nwm_forecasts/vendor/WATERS/WATERSServices-1.0.0-min.js' %}"></script>
