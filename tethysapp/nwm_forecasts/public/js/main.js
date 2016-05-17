@@ -85,7 +85,7 @@ $(function () {
         style: createLineStyleFunction()
     });
 
-    var serviceUrl = 'http://watersgeo.epa.gov/arcgis/rest/services/NHDPlus_NP21/NHDSnapshot_NP21_Labeled/MapServer/0';
+    var serviceUrl = 'https://watersgeo.epa.gov/arcgis/rest/services/NHDPlus_NP21/NHDSnapshot_NP21_Labeled/MapServer/0';
     var esrijsonFormat = new ol.format.EsriJSON();
     var vectorSource = new ol.source.Vector({
         loader: function(extent, resolution, projection) {
