@@ -195,9 +195,11 @@ def get_netcdf_data(request):
 # ***                                                                                        *** #
 # ***----------------------------------------------------------------------------------------*** #
 
-def getTimeSeries(comid, date, config):
+def getTimeSeries(comid, date, time, config):
     # nDays = 15 # (endDate - beginDate).days
     # datelist = [dt.datetime.strptime(date, "%Y-%m-%d") + dt.timedelta(days=x) for x in range(0,nDays)]
+
+    timeCheck = ''.join(['t', time, 'z'])
 
     ts = []
 
@@ -250,9 +252,10 @@ def get_data_waterml(request):
         lat = request.GET["lat"]
         lon = request.GET["lon"]
         start = request.GET["date"]
+        time = request.GET['time']
 
         nodata_value = -9999
-        ts = getTimeSeries(comid, start, config)
+        ts = getTimeSeries(comid, start, time, config)
         time_series = format_time_series(start, ts, nodata_value)
         site_name = get_site_name(float(lat), float(lon))
         context = {
