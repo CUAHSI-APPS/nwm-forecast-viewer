@@ -13,12 +13,94 @@ var infoDiv = $('#info');
 var chartDiv =  $('#nc-chart');
 var actionBtnsDiv = $('#actionBtns');
 
-// Global data variables
-var tsPairsData = {};
-var rpClsData = {};
-var rpBmkData = {};
+$('#config'). on('change', function () {
+    if ($('#config').val() === 'medium_range') {
+        $('#time').parent().addClass('hidden');
+        $('#time').val('06')
+
+    } else if ($('#config').val() === 'long_range_mem1' || $('#config').val() === 'long_range_mem2' ||
+        $('#config').val() === 'long_range_mem3' || $('#config').val() === 'long_range_mem4') {
+        $('#time').val('00')
+        $('#time').parent().removeClass('hidden');
+
+        $('#time option:contains("01")').prop("hidden", true);
+        $('#time option:contains("02")').prop("hidden", true);
+        $('#time option:contains("03")').prop("hidden", true);
+        $('#time option:contains("04")').prop("hidden", true);
+        $('#time option:contains("05")').prop("hidden", true);
+        $('#time option:contains("07")').prop("hidden", true);
+        $('#time option:contains("08")').prop("hidden", true);
+        $('#time option:contains("09")').prop("hidden", true);
+        $('#time option:contains("10")').prop("hidden", true);
+        $('#time option:contains("11")').prop("hidden", true);
+        $('#time option:contains("13")').prop("hidden", true);
+        $('#time option:contains("14")').prop("hidden", true);
+        $('#time option:contains("15")').prop("hidden", true);
+        $('#time option:contains("16")').prop("hidden", true);
+        $('#time option:contains("17")').prop("hidden", true);
+        $('#time option:contains("19")').prop("hidden", true);
+        $('#time option:contains("20")').prop("hidden", true);
+        $('#time option:contains("21")').prop("hidden", true);
+        $('#time option:contains("22")').prop("hidden", true);
+        $('#time option:contains("23")').prop("hidden", true);
+
+    } else if ($('#config').val() === 'short_range') {
+        $('#time').val('00')
+        $('#time').parent().removeClass('hidden');
+        $('#time option:contains("01")').prop("hidden", false);
+        $('#time option:contains("02")').prop("hidden", false);
+        $('#time option:contains("03")').prop("hidden", false);
+        $('#time option:contains("04")').prop("hidden", false);
+        $('#time option:contains("05")').prop("hidden", false);
+        $('#time option:contains("07")').prop("hidden", false);
+        $('#time option:contains("08")').prop("hidden", false);
+        $('#time option:contains("09")').prop("hidden", false);
+        $('#time option:contains("10")').prop("hidden", false);
+        $('#time option:contains("11")').prop("hidden", false);
+        $('#time option:contains("13")').prop("hidden", false);
+        $('#time option:contains("14")').prop("hidden", false);
+        $('#time option:contains("15")').prop("hidden", false);
+        $('#time option:contains("16")').prop("hidden", false);
+        $('#time option:contains("17")').prop("hidden", false);
+        $('#time option:contains("19")').prop("hidden", false);
+        $('#time option:contains("20")').prop("hidden", false);
+        $('#time option:contains("21")').prop("hidden", false);
+        $('#time option:contains("22")').prop("hidden", false);
+        $('#time option:contains("23")').prop("hidden", false);
+    }
+});
 
 $(function () {
+    if ($('#config').val() === 'medium_range') {
+        $('#time').parent().addClass('hidden');
+    } else if ($('#config').val() === 'long_range_mem1' || $('#config').val() === 'long_range_mem2' ||
+        $('#config').val() === 'long_range_mem3' || $('#config').val() === 'long_range_mem4') {
+        $('#time').val('00')
+        $('#time').parent().removeClass('hidden');
+
+        $('#time option:contains("01")').prop("hidden", true);
+        $('#time option:contains("02")').prop("hidden", true);
+        $('#time option:contains("03")').prop("hidden", true);
+        $('#time option:contains("04")').prop("hidden", true);
+        $('#time option:contains("05")').prop("hidden", true);
+        $('#time option:contains("07")').prop("hidden", true);
+        $('#time option:contains("08")').prop("hidden", true);
+        $('#time option:contains("09")').prop("hidden", true);
+        $('#time option:contains("10")').prop("hidden", true);
+        $('#time option:contains("11")').prop("hidden", true);
+        $('#time option:contains("13")').prop("hidden", true);
+        $('#time option:contains("14")').prop("hidden", true);
+        $('#time option:contains("15")').prop("hidden", true);
+        $('#time option:contains("16")').prop("hidden", true);
+        $('#time option:contains("17")').prop("hidden", true);
+        $('#time option:contains("19")').prop("hidden", true);
+        $('#time option:contains("20")').prop("hidden", true);
+        $('#time option:contains("21")').prop("hidden", true);
+        $('#time option:contains("22")').prop("hidden", true);
+        $('#time option:contains("23")').prop("hidden", true);
+
+    };
+
     /**********************************
      ****INITIALIZE MAP AND LAYERS*****
      **********************************/
@@ -187,16 +269,6 @@ $(function () {
 
     if (window.location.search.includes('?')) {
         var query = window.location.search;
-        var numSeries = nc_chart.series.length;
-        if (numSeries > 0) {
-            nc_chart.series[numSeries - 1].remove(); //remove cms series
-            plotCounter--;
-        }
-        var numFeatures = selected_streams_layer.getSource().getFeatures().length;
-        if (numFeatures > 0) {
-            var lastFeature = selected_streams_layer.getSource().getFeatures()[numFeatures - 1];
-            selected_streams_layer.getSource().removeFeature(lastFeature);
-        }
 
         var qLong = Number(query.substring(query.lastIndexOf("longitude=")+10,query.lastIndexOf("&latitude")));
         var qLat = Number(query.substring(query.lastIndexOf("latitude=")+9,query.lastIndexOf("&startDate")));
@@ -205,11 +277,12 @@ $(function () {
         var qDate = query.substring(query.lastIndexOf("startDate=") + 10, query.lastIndexOf("&time"));
         var qTime = query.substring(query.lastIndexOf("time=") + 5, query.lastIndexOf("&submit"));
 
+        $('#config').val(qConfig);
         $('#comidInput').val(qCOMID);
         $('#longInput').val(qLong);
         $('#latInput').val(qLat);
         $('#startDate').val(qDate);
-        $('#timeInput').val(qTime);
+        $('#time').val(qTime);
 
         var wktval = "POINT(" + qLong + " " + qLat + ")";
         var options = {
@@ -376,29 +449,16 @@ function get_netcdf_chart_data(config, comid, startDate, time) {
         },
         success: function (data) {
             if ("success" in data) {
-                if ("rp_cls_data" in data) {
-                    var returned_rpClsData = JSON.parse(data.rp_cls_data);
-                    for (var key in returned_rpClsData) {
-                        rpClsData[key] = returned_rpClsData[key];
-                    }
-                }
-                if ("rp_bmk_data" in data) {
-                    var returned_rpBmkData = JSON.parse(data.rp_bmk_data);
-                    for (var key in returned_rpBmkData) {
-                        rpBmkData[key] = returned_rpBmkData[key];
-                    }
-                }
                 if ("ts_pairs_data" in data) {
                     var returned_tsPairsData = JSON.parse(data.ts_pairs_data);
                     var actualIndexTracker = 0;
                     for (var key in returned_tsPairsData) {
-                        tsPairsData[key] = returned_tsPairsData[key];
                         if (returned_tsPairsData[key][0][1] != -9999) {
                             var d = new Date(0);
                             var startDate = d.setUTCSeconds(returned_tsPairsData[key][0]);
                             var seriesData = returned_tsPairsData[key][1];
                             nc_chart.yAxis[0].setExtremes(null, null);
-                            plotData(seriesData, startDate);
+                            plotData(config, seriesData, startDate);
                         }
                         actualIndexTracker += 1
                     }
@@ -421,14 +481,27 @@ function get_netcdf_chart_data(config, comid, startDate, time) {
     });
 }
 
-var plotData = function(data, startDate) {
+var plotData = function(config, data, startDate) {
     actionBtnsDiv.removeClass('hidden');
+    var interval;
+    var start;
+    if (config == 'short_range') {
+        interval = 3600 * 1000; // one hour
+        start = startDate;
+        console.log(start);
+    } else if (config == 'medium_range') {
+        interval = 3600 * 1000 * 3; // three hours
+        start = startDate + (3600 * 1000 * 3); // calibrates medium range model
+    } else {
+        interval = 3600 * 1000 * 6; // six hours
+        start = startDate;
+    };
     var data_series = {
         type: 'area',
         name: 'Streamflow (cms)',
         data: data,
-        pointStart: startDate,
-        pointInterval: 3600 * 1000, // one day
+        pointStart: start,
+        pointInterval: interval,
     };
     nc_chart.addSeries(data_series);
     if (chartDiv.hasClass('hidden')) {

@@ -22,9 +22,12 @@ def home(request):
                                multiple=False,
                                options=[('Short Range', 'short_range'),
                                         ('Medium Range', 'medium_range'),
-                                        ('Long Range', 'long_range_mem1')],
+                                        ('Long Range 1', 'long_range_mem1'),
+                                        ('Long Range 2', 'long_range_mem2'),
+                                        ('Long Range 3', 'long_range_mem3'),
+                                        ('Long Range 4', 'long_range_mem4')],
                                initial=['Short Range'],
-                               original=False)
+                               original=True)
 
     # start = dt.datetime.today() - dt.timedelta(days=1)
 
@@ -55,8 +58,7 @@ def home(request):
                                       ('08:00 pm', '20'), ('09:00 pm', '21'),
                                       ('10:00 pm', '22'), ('11:00 pm', '23')],
                              initial=['12:00 am'],
-                             attributes='id="timeInput"',
-                             original=False)
+                             original=True)
 
     # end_date = {
     #     'display_text': 'Choose an Ending Date',
@@ -130,7 +132,6 @@ def get_netcdf_data(request):
     if request.method == 'GET':
         get_data = request.GET
         ts_pairs_data = {}  # For time series pairs data
-        rp_cls_data = {}  # For return period classification data
 
         try:
             config = get_data['config']
@@ -144,11 +145,6 @@ def get_netcdf_data(request):
             dateDir = ''.join(['nwm.', startDate.replace('-', '')])
             localFileDir = os.path.join(app_dir, 'data', dateDir, config)
             nc_files = sorted([x for x in os.listdir(localFileDir) if 'channel_rt' in x and timeCheck in x and 'georeferenced' not in x])
-            print nc_files
-
-            # ***----------------------------------------------------------------------------------------------*** #
-            # *** This part needs to be modified so it takes a start date and time to calculate the local path *** #
-            # ***----------------------------------------------------------------------------------------------*** #
 
             local_file_path = os.path.join(localFileDir, nc_files[0])
             prediction_data = nc.Dataset(local_file_path, mode="r")
@@ -162,7 +158,6 @@ def get_netcdf_data(request):
                 return JsonResponse({'error': "Invalid netCDF file"})
 
             variables = prediction_data.variables.keys()
-            print variables, '******************'
             if 'time' in variables:
                 time = [int(nc.num2date(0, prediction_data.variables['time'].units).strftime('%s'))]
             else:
@@ -210,7 +205,6 @@ def getTimeSeries(comid, date, time, config):
     ncFile = nc.Dataset(os.path.join(localFileDir, nc_files[0]), mode="r")
     comidList = ncFile.variables['station_id'][:]
     comidIndex = int(np.where(comidList == int(comid))[0])
-
 
     for ncf in nc_files:
         local_file_path = os.path.join(localFileDir, ncf)
