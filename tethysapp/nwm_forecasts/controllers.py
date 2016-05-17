@@ -139,7 +139,6 @@ def get_netcdf_data(request):
             time = get_data['time']
 
             timeCheck = ''.join(['t', time, 'z'])
-            print timeCheck, '4444444444444444444444'
 
             app_dir = '/projects/water/nwm/' # os.path.dirname(__file__)
             dateDir = ''.join(['nwm.', startDate.replace('-', '')])

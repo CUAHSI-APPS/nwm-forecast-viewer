@@ -233,7 +233,7 @@ $(function () {
         CenterMap(qLat, qLong);
         map.getView().setZoom(12);
 
-        get_netcdf_chart_data(qConfig, qCOMID, qDate);
+        get_netcdf_chart_data(qConfig, qCOMID, qDate, qTime);
     }
 });
 
@@ -359,7 +359,7 @@ function geojson2feature(myGeoJSON) {
  *******BUILD CHART FUNCTIONALITY********
  ****************************************/
 
-function get_netcdf_chart_data(config, comid, startDate) {
+function get_netcdf_chart_data(config, comid, startDate, time) {
     $.ajax({
         type: 'GET',
         url: 'get-netcdf-data',
@@ -367,7 +367,8 @@ function get_netcdf_chart_data(config, comid, startDate) {
         data: {
             'config': config,
             'comid': comid,
-            'startDate': startDate
+            'startDate': startDate,
+            'time': time
         },
         error: function (jqXHR, textStatus, errorThrown) {
             infoDiv.html('<p><strong>An unknown error occurred while retrieving the data</strong></p>');
