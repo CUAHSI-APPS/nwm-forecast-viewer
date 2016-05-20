@@ -156,7 +156,7 @@ $(function () {
      ******INITIALIZE CHART******
      ****************************/
     default_chart_settings = {
-        title: {text: "NWM Foracast"},
+        title: {text: "NWM Forecast"},
         chart: {
             zoomType: 'x'
         },
