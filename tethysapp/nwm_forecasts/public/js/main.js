@@ -109,8 +109,8 @@ $(function () {
         style: createLineStyleFunction()
     });
 
-    // var serviceUrl = 'https://watersgeo.epa.gov/arcgis/rest/services/NHDPlus_NP21/NHDSnapshot_NP21_Labeled/MapServer/0';
-    var serviceUrl = 'http://geoserver.byu.edu/arcgis/rest/services/NWC/NWM_Geofabric/MapServer/1';
+    var serviceUrl = 'https://watersgeo.epa.gov/arcgis/rest/services/NHDPlus_NP21/NHDSnapshot_NP21_Labeled/MapServer/0';
+    // var serviceUrl = 'http://geoserver.byu.edu/arcgis/rest/services/NWC/NWM_Geofabric/MapServer/1';
     var esrijsonFormat = new ol.format.EsriJSON();
     var vectorSource = new ol.source.Vector({
         loader: function(extent, resolution, projection) {
