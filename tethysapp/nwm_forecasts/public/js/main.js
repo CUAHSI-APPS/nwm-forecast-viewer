@@ -5,7 +5,7 @@ var map, base_layer, all_streams_layer, selected_streams_layer;
 var comid;
 
 //Chart variables
-var nc_chart
+var nc_chart, seriesData, startDate
 
 var hideList = ['01', '02', '03', '04', '05', '07', '08', '09', '10', '11', '13', '14', '15', '16', '17', '19', '20',
                 '21', '22', '23'];
@@ -31,6 +31,8 @@ $('#config'). on('change', function () {
 });
 
 $(function () {
+    $('[data-toggle="tooltip"]').tooltip();
+
     if ($('#config').val() === 'medium_range') {
         $('#time').parent().addClass('hidden');
     } else if ($('#config').val() === 'long_range_mem1' || $('#config').val() === 'long_range_mem2' ||
@@ -201,9 +203,23 @@ $(function () {
         },
         yAxis: {
             title: {
-                text: 'Streamflows (cms)'
+                text: 'Streamflows (cfs)'
             },
             min: 0
+        },
+        lang: {
+            unitsKey: 'Switch between english and metric units'
+        },
+        exporting: {
+            buttons: {
+                customButton: {
+                    text: 'Change Units',
+                    _titleKey: "unitsKey",
+                    onclick: function () {
+                        changeUnits(qConfig, startDate, seriesData)
+                    }
+                }
+            }
         }
     };
 
@@ -310,6 +326,7 @@ function pis_success(result) {
 
     //build output results text block for display
     var srv_fl = result.output.ary_flowlines;
+    // console.log(srv_fl[0].shape.coordinates[0]);
     comid = srv_fl[0].comid.toString();
     $('#comidInput').val(comid);
 
@@ -374,7 +391,7 @@ function geojson2feature(myGeoJSON) {
  *******BUILD CHART FUNCTIONALITY********
  ****************************************/
 
-function get_netcdf_chart_data(config, comid, startDate, time) {
+function get_netcdf_chart_data(config, comid, date, time) {
     $.ajax({
         type: 'GET',
         url: 'get-netcdf-data',
@@ -382,7 +399,7 @@ function get_netcdf_chart_data(config, comid, startDate, time) {
         data: {
             'config': config,
             'comid': comid,
-            'startDate': startDate,
+            'startDate': date,
             'time': time
         },
         error: function (jqXHR, textStatus, errorThrown) {
@@ -397,8 +414,8 @@ function get_netcdf_chart_data(config, comid, startDate, time) {
                     for (var key in returned_tsPairsData) {
                         if (returned_tsPairsData[key][0][1] != -9999) {
                             var d = new Date(0);
-                            var startDate = d.setUTCSeconds(returned_tsPairsData[key][0]);
-                            var seriesData = returned_tsPairsData[key][1];
+                            startDate = d.setUTCSeconds(returned_tsPairsData[key][0]);
+                            seriesData = returned_tsPairsData[key][1];
                             nc_chart.yAxis[0].setExtremes(null, null);
                             plotData(config, seriesData, startDate);
                         }
@@ -425,24 +442,13 @@ function get_netcdf_chart_data(config, comid, startDate, time) {
 
 var plotData = function(config, data, startDate) {
     $('#actionBtns').removeClass('hidden');
-    var interval;
-    var start;
-    if (config == 'short_range') {
-        interval = 3600 * 1000; // one hour
-        start = startDate;
-    } else if (config == 'medium_range') {
-        interval = 3600 * 1000 * 3; // three hours
-        start = startDate + (3600 * 1000 * 3); // calibrates medium range model
-    } else {
-        interval = 3600 * 1000 * 6; // six hours
-        start = startDate;
-    };
+    var calib = calibrateModel(config, startDate)
     var data_series = {
         type: 'area',
-        name: 'Streamflow (cms)',
+        name: 'Streamflow (cfs)',
         data: data,
-        pointStart: start,
-        pointInterval: interval,
+        pointStart: calib['start'],
+        pointInterval: calib['interval']
     };
     nc_chart.addSeries(data_series);
     if ($('#nc-chart').hasClass('hidden')) {
@@ -456,3 +462,55 @@ function clearErrorSelection() {
     var lastFeature = selected_streams_layer.getSource().getFeatures()[numFeatures-1];
     selected_streams_layer.getSource().removeFeature(lastFeature);
 }
+
+function changeUnits(config, startDate, series) {
+    if (nc_chart.yAxis[0].axisTitle.textStr === 'Streamflows (cfs)') {
+        var newSeries = [];
+        series.forEach(function (i) {
+            newSeries.push(i * 0.0283168);
+        });
+        var calib = calibrateModel(config, startDate)
+        nc_chart.series[0].remove()
+        nc_chart.yAxis[0].setTitle({
+            text: 'Streamflows (cms)'
+        });
+        var data_series = {
+            type: 'area',
+            name: 'Streamflow (cms)',
+            data: newSeries,
+            pointStart: calib['start'],
+            pointInterval: calib['interval']
+        };
+        nc_chart.addSeries(data_series);
+    } else {
+        var calib = calibrateModel(config, startDate)
+        nc_chart.series[0].remove()
+        nc_chart.yAxis[0].setTitle({
+            text: 'Streamflows (cfs)'
+        });
+        var data_series = {
+            type: 'area',
+            name: 'Streamflow (cfs)',
+            data: series,
+            pointStart: calib['start'],
+            pointInterval: calib['interval']
+        };
+        nc_chart.addSeries(data_series);
+    };
+};
+
+function calibrateModel(config, startDate) {
+    var interval;
+    var start;
+    if (config == 'short_range') {
+        interval = 3600 * 1000; // one hour
+        start = startDate;
+    } else if (config == 'medium_range') {
+        interval = 3600 * 1000 * 3; // three hours
+        start = startDate + (3600 * 1000 * 3); // calibrates medium range model
+    } else {
+        interval = 3600 * 1000 * 6; // six hours
+        start = startDate;
+    };
+    return {'interval': interval, 'start': start}
+};

@@ -17,7 +17,7 @@ def home(request):
     Controller for the app home page.
     """
 
-    select_input = SelectInput(display_text='Select Configuration',
+    select_input = SelectInput(display_text='Enter Configuration',
                                name='config',
                                multiple=False,
                                options=[('Short Range', 'short_range'),
@@ -32,7 +32,7 @@ def home(request):
     # start = dt.datetime.today() - dt.timedelta(days=1)
 
     start_date = {
-        'display_text': 'Choose a Beginning Date',
+        'display_text': 'Enter Beginning Date',
         'name': 'startDate',
         'autoclose': True,
         'format': 'yyyy-mm-dd',
@@ -42,7 +42,7 @@ def home(request):
         'initial': dt.datetime.today().strftime("%Y-%m-%d")
     }
 
-    start_time = SelectInput(display_text='Choose a Beginning Time',
+    start_time = SelectInput(display_text='Enter Beginning Time',
                              name='time',
                              multiple=False,
                              options=[('12:00 am', '00'), ('01:00 am', '01'),
@@ -168,7 +168,7 @@ def get_netcdf_data(request):
                 local_file_path = os.path.join(localFileDir, ncf)
                 prediction_dataTemp = nc.Dataset(local_file_path, mode="r")
                 q_outT = prediction_dataTemp.variables['streamflow'][comidIndex].tolist()
-                q_out.append(round(q_outT, 6))
+                q_out.append(round(q_outT * 35.3147, 4))
 
             ts_pairs_data[str(comid)] = [time, q_out]
 
@@ -210,7 +210,7 @@ def getTimeSeries(comid, date, time, config):
         local_file_path = os.path.join(localFileDir, ncf)
         prediction_dataTemp = nc.Dataset(local_file_path, mode="r")
         q_out = prediction_dataTemp.variables['streamflow'][comidIndex].tolist()
-        ts.append(round(q_out, 6))
+        ts.append(round(q_out * 35.3147, 4))
     return ts
 
 

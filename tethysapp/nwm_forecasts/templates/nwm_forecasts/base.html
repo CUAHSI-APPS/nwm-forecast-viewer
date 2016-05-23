@@ -17,9 +17,12 @@
 {% block app_navigation_items %}
   <form id="paramForm" method="get" action="{% url 'nwm_forecasts:home' %}">
     {% gizmo select_input select_input %}
-    <input id="comidInput" name="COMID" type="text" class="hidden">
+    <label class="control-label" for="comidInput">Enter COMID</label>
+    <input id="comidInput" name="COMID" type="text" class="form-control form-group" data-toggle="tooltip" data-placement="top"
+           title="Select Stream reach from map or enter manually">
     <input id="longInput" name="longitude" type="text" value="-98" class="hidden">
     <input id="latInput" name="latitude" type="text" value="38.5" class="hidden">
+
     {% gizmo date_picker start_date %}
     {% gizmo select_input start_time %}
     <!--{% gizmo date_picker end_date %}-->
