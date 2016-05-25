@@ -10,6 +10,50 @@
   <div id="nc-chart" class="hidden"></div>
 {% endblock %}
 
+{% block app_content_wrapper_override %}
+<!-- Modal  -->
+<style>
+  #desc {
+    color: black;
+    font-size:12pt;
+    margin-left:10px;
+  }
+  .sub {
+    font-size:12pt;
+  }
+  .modalNote {
+    color: gray;
+    margin-left:10px;
+  }
+  .modalList {
+    margin:10px;
+    font-size:16pt;
+  }
+</style>
+<div class="modal fade" id="watershed-popup" role="dialog">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <h4 class="modal-title">Load a watershed from HydroShare</h4>
+      </div>
+      <div class="modal-body">
+
+      </div>
+      <div class="modal-footer">
+        <div id="byu-logo-container">
+          <span><i>Developed at the BYU Environmental Research Modelling Lab</i></span>
+          <img src="{% static 'storage_capacity/images/byu-logo.png' %}"/>
+        </div>
+        <button type="button" class="btn btn-default" id="close-popup" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- End Modal -->
+{{block.super}}
+{% endblock %}
+
 {% block app_actions %}
   <div id="actionBtns" class="hidden">
     {% if waterml_url %}

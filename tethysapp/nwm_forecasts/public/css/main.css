@@ -1,17 +1,13 @@
-#app-content-wrapper #app-content #app-actions {
-    /*display: none;*/
-}
-
 #inner-app-content {
-    /*position: absolute;*/
-    /*height: 100%;*/
-    /*width: 100%;*/
     padding: 20px;
 }
 
-/*#app-content-wrapper {*/
-    /*overflow: hidden;*/
-/*}*/
+p {
+    font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+    font-size: 14px;
+    line-height: 1.42857143;
+    color: #333;
+}
 
 #submitBtn {
     width: 270px;
@@ -24,4 +20,8 @@
 
 .tooltip-inner {
     font-size: 11pt;
+}
+
+.row label {
+
 }

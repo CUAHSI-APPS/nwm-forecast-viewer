@@ -5,47 +5,29 @@ var map, base_layer, all_streams_layer, selected_streams_layer;
 var comid;
 
 //Chart variables
-var nc_chart, seriesData, startDate
-
-var hideList = ['01', '02', '03', '04', '05', '07', '08', '09', '10', '11', '13', '14', '15', '16', '17', '19', '20',
-                '21', '22', '23'];
+var nc_chart, seriesData, startDate, seriesDataGroup = [];
 
 $('#config'). on('change', function () {
     if ($('#config').val() === 'medium_range') {
         $('#time').parent().addClass('hidden');
         $('#time').val('06')
-    } else if ($('#config').val() === 'long_range_mem1' || $('#config').val() === 'long_range_mem2' ||
-        $('#config').val() === 'long_range_mem3' || $('#config').val() === 'long_range_mem4') {
-        $('#time').val('00')
-        $('#time').parent().removeClass('hidden');
-        for (i = 0; i < 20; i++) {
-            $("#time option:contains(" + hideList[i] + ")").prop("hidden", true);
-        };
+        $('#timeLag').addClass('hidden');
+    } else if ($('#config').val() === 'long_range') {
+        $('#time').parent().addClass('hidden');
+        $('#time').val('00');
+        $('#timeLag').removeClass('hidden');
     } else if ($('#config').val() === 'short_range') {
         $('#time').val('00')
         $('#time').parent().removeClass('hidden');
-        for (i = 0; i < 20; i++) {
-            $("#time option:contains(" + hideList[i] + ")").prop("hidden", false);
-        };
+        $('#timeLag').addClass('hidden');
     };
 });
 
 $(function () {
     $('[data-toggle="tooltip"]').tooltip();
 
-    if ($('#config').val() === 'medium_range') {
-        $('#time').parent().addClass('hidden');
-    } else if ($('#config').val() === 'long_range_mem1' || $('#config').val() === 'long_range_mem2' ||
-        $('#config').val() === 'long_range_mem3' || $('#config').val() === 'long_range_mem4') {
-        $('#time').val('00')
-        $('#time').parent().removeClass('hidden');
-        for (i = 0; i < 20; i++) {
-            $("#time option:contains(" + hideList[i] + ")").prop("hidden", true);
-        };
-    };
-
     /**********************************
-     ****INITIALIZE MAP AND LAYERS*****
+     **********INITIALIZE MAP *********
      **********************************/
     map = new ol.Map({
         target: 'map-view',
@@ -57,6 +39,78 @@ $(function () {
         })
     });
 
+    if (window.location.search.includes('?')) {
+        var query = window.location.search.split("&");
+
+        var qLong = Number(query[2].substring(query[2].lastIndexOf("longitude=")+10));
+        var qLat = Number(query[3].substring(query[3].lastIndexOf("latitude=")+9));
+        var qConfig = query[0].substring(query[0].lastIndexOf("config=") + 7);
+        var qCOMID = Number(query[1].substring(query[1].lastIndexOf("COMID=") + 6));
+        var qDate = query[4].substring(query[4].lastIndexOf("startDate=") + 10);
+        var qTime = query[5].substring(query[5].lastIndexOf("time=") + 5);
+        var qLag = ['00z'];
+
+        if (window.location.search.indexOf('06z') > -1) {
+            qLag.push('06z');
+        };
+        if (window.location.search.indexOf('12z') > -1) {
+            qLag.push('12z');
+        };
+        if (window.location.search.indexOf('18z') > -1) {
+            qLag.push('18z');
+        };
+
+        $('#config').val(qConfig);
+        $('#comidInput').val(qCOMID);
+        $('#longInput').val(qLong);
+        $('#latInput').val(qLat);
+        $('#startDate').val(qDate);
+        $('#time').val(qTime);
+        
+        if ($('#longInput').val() !== '-98' && $('#latInput').val() !== '38.5') {
+            CenterMap(qLat, qLong);
+            map.getView().setZoom(12);
+
+            var wktval = "POINT(" + qLong + " " + qLat + ")";
+            var options = {
+                "success": "pis_success2",
+                "error": "pis_error",
+                "timeout": 60 * 1000
+            };
+            var data = {
+                "pGeometry": wktval,
+                "pGeometryMod": "WKT,SRSNAME=urn:ogc:def:crs:OGC::CRS84",
+                "pPointIndexingMethod": "DISTANCE",
+                "pPointIndexingMaxDist": 10,
+                "pOutputPathFlag": "TRUE",
+                "pReturnFlowlineGeomFlag": "FULL",
+                "optOutCS": "SRSNAME=urn:ogc:def:crs:OGC::CRS84",
+                "optOutPrettyPrint": 0,
+                "optClientRef": "CodePen"
+            };
+            WATERS.Services.PointIndexingService(data, options);
+        };
+
+        get_netcdf_chart_data(qConfig, qCOMID, qDate, qTime, qLag);
+    }
+
+    if ($('#config').val() === 'medium_range') {
+        $('#time').parent().addClass('hidden');
+        $('#timeLag').addClass('hidden');
+    } else if ($('#config').val() === 'long_range') {
+        $('#time').parent().addClass('hidden');
+        $('#time').val('00');
+        $('#timeLag').removeClass('hidden');
+    }else if ($('#config').val() === 'short_range') {
+        $('#time').val('00')
+        $('#time').parent().removeClass('hidden');
+        $('#timeLag').addClass('hidden');
+    };
+
+    /**********************************
+     ********INITIALIZE LAYERS*********
+     **********************************/
+
     var lonlat;
     map.on('click', function(evt) {
         var coordinate = evt.coordinate;
@@ -65,8 +119,7 @@ $(function () {
             map.getView().setZoom(12);
             CenterMap(lonlat[1],lonlat[0]);
         }
-        // var test = vectorSource.getClosestFeatureToCoordinate(lonlat);
-        // selected_streams_layer.getSource().addFeature(test);
+
         run_point_indexing_service(lonlat);
     });
 
@@ -225,48 +278,6 @@ $(function () {
 
     $('#nc-chart').highcharts(default_chart_settings);
     nc_chart = $('#nc-chart').highcharts();
-
-    if (window.location.search.includes('?')) {
-        var query = window.location.search;
-
-        var qLong = Number(query.substring(query.lastIndexOf("longitude=")+10,query.lastIndexOf("&latitude")));
-        var qLat = Number(query.substring(query.lastIndexOf("latitude=")+9,query.lastIndexOf("&startDate")));
-        var qConfig = query.substring(query.lastIndexOf("config=") + 7, query.lastIndexOf("&COMID"));
-        var qCOMID = Number(query.substring(query.lastIndexOf("COMID=") + 6, query.lastIndexOf("&longitude")));
-        var qDate = query.substring(query.lastIndexOf("startDate=") + 10, query.lastIndexOf("&time"));
-        var qTime = query.substring(query.lastIndexOf("time=") + 5, query.lastIndexOf("&submit"));
-
-        $('#config').val(qConfig);
-        $('#comidInput').val(qCOMID);
-        $('#longInput').val(qLong);
-        $('#latInput').val(qLat);
-        $('#startDate').val(qDate);
-        $('#time').val(qTime);
-
-        var wktval = "POINT(" + qLong + " " + qLat + ")";
-        var options = {
-            "success" : "pis_success2",
-            "error"   : "pis_error",
-            "timeout" : 60 * 1000
-        };
-        var data = {
-            "pGeometry": wktval,
-            "pGeometryMod": "WKT,SRSNAME=urn:ogc:def:crs:OGC::CRS84",
-            "pPointIndexingMethod": "DISTANCE",
-            "pPointIndexingMaxDist": 10,
-            "pOutputPathFlag": "TRUE",
-            "pReturnFlowlineGeomFlag": "FULL",
-            "optOutCS": "SRSNAME=urn:ogc:def:crs:OGC::CRS84",
-            "optOutPrettyPrint": 0,
-            "optClientRef": "CodePen"
-        };
-        WATERS.Services.PointIndexingService(data, options);
-
-        CenterMap(qLat, qLong);
-        map.getView().setZoom(12);
-
-        get_netcdf_chart_data(qConfig, qCOMID, qDate, qTime);
-    }
 });
 
 /****************************
@@ -289,8 +300,6 @@ function CenterMap(lat,lon){
 function run_point_indexing_service(lonlat) {
     var inputLon = lonlat[0];
     var inputLat = lonlat[1];
-    $('#longInput').val(inputLon);
-    $('#latInput').val(inputLat);
     var wktval = "POINT(" + inputLon + " " + inputLat + ")";
 
     var options = {
@@ -324,10 +333,12 @@ function pis_success(result) {
         return;
     }
 
-    //build output results text block for display
     var srv_fl = result.output.ary_flowlines;
-    // console.log(srv_fl[0].shape.coordinates[0]);
+    var newLon = srv_fl[0].shape.coordinates[Math.floor(srv_fl[0].shape.coordinates.length/2)][0];
+    var newLat = srv_fl[0].shape.coordinates[Math.floor(srv_fl[0].shape.coordinates.length/2)][1];
     comid = srv_fl[0].comid.toString();
+    $('#longInput').val(newLon);
+    $('#latInput').val(newLat);
     $('#comidInput').val(comid);
 
     //add the selected flow line to the map
@@ -338,18 +349,9 @@ function pis_success(result) {
 }
 
 function pis_success2(result) {
-    var srv_rez = result.output;
-    if (srv_rez == null) {
-        if ( result.status.status_message !== null ) {
-            report_failed_search(result.status.status_message);
-        } else {
-            report_failed_search("No reach located near your click point.");
-        }
-        return;
-    }
-
-    //build output results text block for display
     var srv_fl = result.output.ary_flowlines;
+    var newLon = srv_fl[0].shape.coordinates[Math.floor(srv_fl[0].shape.coordinates.length/2)][0];
+    var newLat = srv_fl[0].shape.coordinates[Math.floor(srv_fl[0].shape.coordinates.length/2)][1];
     comid = srv_fl[0].comid.toString();
 
     //add the selected flow line to the map
@@ -391,7 +393,7 @@ function geojson2feature(myGeoJSON) {
  *******BUILD CHART FUNCTIONALITY********
  ****************************************/
 
-function get_netcdf_chart_data(config, comid, date, time) {
+function get_netcdf_chart_data(config, comid, date, time, lag) {
     $.ajax({
         type: 'GET',
         url: 'get-netcdf-data',
@@ -400,7 +402,8 @@ function get_netcdf_chart_data(config, comid, date, time) {
             'config': config,
             'comid': comid,
             'startDate': date,
-            'time': time
+            'time': time,
+            'lag': lag.toString()
         },
         error: function (jqXHR, textStatus, errorThrown) {
             $('#info').html('<p><strong>An unknown error occurred while retrieving the data</strong></p>');
@@ -410,20 +413,27 @@ function get_netcdf_chart_data(config, comid, date, time) {
             if ("success" in data) {
                 if ("ts_pairs_data" in data) {
                     var returned_tsPairsData = JSON.parse(data.ts_pairs_data);
-                    var actualIndexTracker = 0;
                     for (var key in returned_tsPairsData) {
-                        if (returned_tsPairsData[key][0][1] != -9999) {
+                        if (returned_tsPairsData[key].length === 2) {
                             var d = new Date(0);
                             startDate = d.setUTCSeconds(returned_tsPairsData[key][0]);
                             seriesData = returned_tsPairsData[key][1];
                             nc_chart.yAxis[0].setExtremes(null, null);
                             plotData(config, seriesData, startDate);
-                        }
-                        actualIndexTracker += 1
-                    }
-                }
-            }
-            else if ("error" in data) {
+                        } else {
+                            var d = new Date(0);
+                            startDate = d.setUTCSeconds(returned_tsPairsData[key][0]);
+                            for (i = 1; i < returned_tsPairsData[key].length; i++) {
+                                seriesData = returned_tsPairsData[key][i];
+                                seriesDataGroup.push(seriesData);
+                                nc_chart.yAxis[0].setExtremes(null, null);
+                                plotData(config, seriesData, startDate);
+                            }
+
+                        };
+                    };
+                };
+            } else if ("error" in data) {
                 $('#nc-chart').addClass('hidden')
                 $('#info').html('<p class="alert alert-danger" style="text-align: center"><strong>' + data['error'] + '</strong></p>').removeClass('hidden').addClass('error');
 
@@ -431,8 +441,7 @@ function get_netcdf_chart_data(config, comid, date, time) {
                 setTimeout(function () {
                     $('#info').addClass('hidden')
                 }, 5000);
-            }
-            else {
+            } else {
                 viewer.entities.resumeEvents();
                 $('#info').html('<p><strong>An unexplainable error occurred. Why? Who knows...</strong></p>').removeClass('hidden');
             }

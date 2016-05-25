@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import render_to_response
-from tethys_sdk.gizmos import SelectInput, Button
+from tethys_sdk.gizmos import SelectInput, ToggleSwitch, Button
 
 import os
 import netCDF4 as nc
@@ -22,10 +22,7 @@ def home(request):
                                multiple=False,
                                options=[('Short Range', 'short_range'),
                                         ('Medium Range', 'medium_range'),
-                                        ('Long Range 1', 'long_range_mem1'),
-                                        ('Long Range 2', 'long_range_mem2'),
-                                        ('Long Range 3', 'long_range_mem3'),
-                                        ('Long Range 4', 'long_range_mem4')],
+                                        ('Long Range', 'long_range')],
                                initial=['Short Range'],
                                original=True)
 
@@ -70,6 +67,11 @@ def home(request):
     #     'initial': dt.datetime.today().strftime("%Y-%m-%d")
     # }
 
+    longRangeLag00 = ToggleSwitch(display_text='', name='00z', size='mini', initial=True)
+    longRangeLag06 = ToggleSwitch(display_text='', name='06z', size='mini')
+    longRangeLag12 = ToggleSwitch(display_text='', name='12z', size='mini')
+    longRangeLag18 = ToggleSwitch(display_text='', name='18z', size='mini')
+
     submit_button = Button(display_text='Submit',
                            name='submit',
                            attributes='id="submitBtn" form=paramForm value="Success"',
@@ -108,6 +110,10 @@ def home(request):
             'start_date': start_date,
             'start_time': start_time,
             # 'end_date': end_date,
+            'longRangeLag00': longRangeLag00,
+            'longRangeLag06': longRangeLag06,
+            'longRangeLag12': longRangeLag12,
+            'longRangeLag18': longRangeLag18,
             'submit_button': submit_button,
             # 'waterML_button': waterML_button,
             # 'HS_button': HS_button,
@@ -123,6 +129,10 @@ def home(request):
             'start_date': start_date,
             'start_time': start_time,
             # 'end_date': end_date,
+            'longRangeLag00': longRangeLag00,
+            'longRangeLag06': longRangeLag06,
+            'longRangeLag12': longRangeLag12,
+            'longRangeLag18': longRangeLag18,
             'submit_button': submit_button
         }
         return render(request, 'nwm_forecasts/home.html', context)
@@ -138,44 +148,113 @@ def get_netcdf_data(request):
             comid = int(get_data['comid'])
             startDate = get_data['startDate']
             time = get_data['time']
+            lag = get_data['lag'].split(',')
 
-            timeCheck = ''.join(['t', time, 'z'])
+            if config != 'long_range':
 
-            app_dir = '/projects/water/nwm/' # os.path.dirname(__file__)
-            dateDir = ''.join(['nwm.', startDate.replace('-', '')])
-            localFileDir = os.path.join(app_dir, 'data', dateDir, config)
-            nc_files = sorted([x for x in os.listdir(localFileDir) if 'channel_rt' in x and timeCheck in x and 'georeferenced' not in x])
+                timeCheck = ''.join(['t', time, 'z'])
 
-            local_file_path = os.path.join(localFileDir, nc_files[0])
-            prediction_data = nc.Dataset(local_file_path, mode="r")
+                app_dir = '/projects/water/nwm/' # os.path.dirname(__file__)
+                dateDir = ''.join(['nwm.', startDate.replace('-', '')])
+                localFileDir = os.path.join(app_dir, 'data', dateDir, config)
+                nc_files = sorted([x for x in os.listdir(localFileDir) if 'channel_rt' in x and timeCheck in x and 'georeferenced' not in x])
 
-            qout_dimensions = prediction_data.variables['station_id'].dimensions
+                local_file_path = os.path.join(localFileDir, nc_files[0])
+                prediction_data = nc.Dataset(local_file_path, mode="r")
 
-            if qout_dimensions[0] == 'station':
-                comidList = prediction_data.variables['station_id'][:]
-                comidIndex = int(np.where(comidList == comid)[0])
-            else:
-                return JsonResponse({'error': "Invalid netCDF file"})
+                qout_dimensions = prediction_data.variables['station_id'].dimensions
 
-            variables = prediction_data.variables.keys()
-            if 'time' in variables:
-                time = [int(nc.num2date(0, prediction_data.variables['time'].units).strftime('%s'))]
-            else:
-                return JsonResponse({'error': "Invalid netCDF file"})
+                if qout_dimensions[0] == 'station':
+                    comidList = prediction_data.variables['station_id'][:]
+                    comidIndex = int(np.where(comidList == comid)[0])
+                else:
+                    return JsonResponse({'error': "Invalid netCDF file"})
 
-            q_out = []
-            for ncf in nc_files:
-                local_file_path = os.path.join(localFileDir, ncf)
-                prediction_dataTemp = nc.Dataset(local_file_path, mode="r")
-                q_outT = prediction_dataTemp.variables['streamflow'][comidIndex].tolist()
-                q_out.append(round(q_outT * 35.3147, 4))
+                variables = prediction_data.variables.keys()
+                if 'time' in variables:
+                    time = [int(nc.num2date(0, prediction_data.variables['time'].units).strftime('%s'))]
+                else:
+                    return JsonResponse({'error': "Invalid netCDF file"})
 
-            ts_pairs_data[str(comid)] = [time, q_out]
+                q_out = []
+                for ncf in nc_files:
+                    local_file_path = os.path.join(localFileDir, ncf)
+                    prediction_dataTemp = nc.Dataset(local_file_path, mode="r")
+                    q_outT = prediction_dataTemp.variables['streamflow'][comidIndex].tolist()
+                    q_out.append(round(q_outT * 35.3147, 4))
 
-            return JsonResponse({
-                "success": "Data analysis complete!",
-                "ts_pairs_data": json.dumps(ts_pairs_data)
-            })
+                ts_pairs_data[str(comid)] = [time, q_out]
+
+                return JsonResponse({
+                    "success": "Data analysis complete!",
+                    "ts_pairs_data": json.dumps(ts_pairs_data)
+                })
+
+            elif config == 'long_range':
+                for lg in lag:
+                    timeCheck = ''.join(['t', lg])
+
+                    app_dir = '/projects/water/nwm/'  # os.path.dirname(__file__)
+                    dateDir = ''.join(['nwm.', startDate.replace('-', '')])
+                    localFileDir = os.path.join(app_dir, 'data', dateDir, config)
+                    nc_files_1 = sorted([x for x in os.listdir(localFileDir) if
+                                            'channel_rt_1' in x and timeCheck in x and 'georeferenced' not in x])
+                    nc_files_2 = sorted([x for x in os.listdir(localFileDir) if
+                                            'channel_rt_2' in x and timeCheck in x and 'georeferenced' in x])
+                    nc_files_3 = sorted([x for x in os.listdir(localFileDir) if
+                                            'channel_rt_3' in x and timeCheck in x and 'georeferenced' in x])
+                    nc_files_4 = sorted([x for x in os.listdir(localFileDir) if
+                                            'channel_rt_4' in x and timeCheck in x and 'georeferenced' in x])
+
+                    local_file_path = os.path.join(localFileDir, nc_files_1[0])
+                    prediction_data = nc.Dataset(local_file_path, mode="r")
+
+                    qout_dimensions = prediction_data.variables['station_id'].dimensions
+
+                    if qout_dimensions[0] == 'station':
+                        comidList = prediction_data.variables['station_id'][:]
+                        comidIndex = int(np.where(comidList == comid)[0])
+                    else:
+                        return JsonResponse({'error': "Invalid netCDF file"})
+
+                    variables = prediction_data.variables.keys()
+                    if 'time' in variables:
+                        time = [int(nc.num2date(0, prediction_data.variables['time'].units).strftime('%s'))]
+                    else:
+                        return JsonResponse({'error': "Invalid netCDF file"})
+
+                    q_out_1 = []
+                    for ncf in nc_files_1:
+                        local_file_path = os.path.join(localFileDir, ncf)
+                        prediction_dataTemp = nc.Dataset(local_file_path, mode="r")
+                        q_outT = prediction_dataTemp.variables['streamflow'][comidIndex].tolist()
+                        q_out_1.append(round(q_outT * 35.3147, 4))
+                    q_out_2 = []
+                    for ncf in nc_files_1:
+                        local_file_path = os.path.join(localFileDir, ncf)
+                        prediction_dataTemp = nc.Dataset(local_file_path, mode="r")
+                        q_outT = prediction_dataTemp.variables['streamflow'][comidIndex].tolist()
+                        q_out_2.append(round(q_outT * 35.3147, 4))
+                    q_out_3 = []
+                    for ncf in nc_files_1:
+                        local_file_path = os.path.join(localFileDir, ncf)
+                        prediction_dataTemp = nc.Dataset(local_file_path, mode="r")
+                        q_outT = prediction_dataTemp.variables['streamflow'][comidIndex].tolist()
+                        q_out_3.append(round(q_outT * 35.3147, 4))
+                    q_out_4 = []
+                    for ncf in nc_files_1:
+                        local_file_path = os.path.join(localFileDir, ncf)
+                        prediction_dataTemp = nc.Dataset(local_file_path, mode="r")
+                        q_outT = prediction_dataTemp.variables['streamflow'][comidIndex].tolist()
+                        q_out_4.append(round(q_outT * 35.3147, 4))
+
+
+                    ts_pairs_data[str(comid)] = [time, q_out_1, q_out_2, q_out_3, q_out_4, timeCheck]
+
+                    return JsonResponse({
+                        "success": "Data analysis complete!",
+                        "ts_pairs_data": json.dumps(ts_pairs_data)
+                    })
 
         except Exception as e:
             print str(e)

@@ -15,19 +15,54 @@
 {% block app_title %}{{ tethys_app.name }}{% endblock %}
 
 {% block app_navigation_items %}
+{#  <button type="button" class="btn btn-default" data-toggle="modal" data-target="#watershed-popup">Load Watershed</button>#}
   <form id="paramForm" method="get" action="{% url 'nwm_forecasts:home' %}">
     {% gizmo select_input select_input %}
     <label class="control-label" for="comidInput">Enter COMID</label>
     <input id="comidInput" name="COMID" type="text" class="form-control form-group" data-toggle="tooltip" data-placement="top"
-           title="Select Stream reach from map or enter manually">
+           title="Select stream reach from map or enter manually">
     <input id="longInput" name="longitude" type="text" value="-98" class="hidden">
     <input id="latInput" name="latitude" type="text" value="38.5" class="hidden">
 
     {% gizmo date_picker start_date %}
     {% gizmo select_input start_time %}
     <!--{% gizmo date_picker end_date %}-->
+
+  <div id="timeLag" class="hidden">
+    <label>Time lag</label>
+    <div class="row">
+      <div class="col-md-1">
+        <p>00z</p>
+      </div>
+      <div class="col-md-4">
+        {% gizmo toggle_switch longRangeLag00 %}
+      </div>
+      <div class="col-md-1">
+        <p>06z</p>
+      </div>
+      <div class="col-md-4">
+        {% gizmo toggle_switch longRangeLag06 %}
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-1">
+        <p>12z</p>
+      </div>
+      <div class="col-md-4">
+        {% gizmo toggle_switch longRangeLag12 %}
+      </div>
+      <div class="col-md-1">
+        <p>18z</p>
+      </div>
+      <div class="col-md-4">
+        {% gizmo toggle_switch longRangeLag18 %}
+      </div>
+    </div>
+  </div>
   </form>
   {% gizmo button submit_button %}
+
+
 
 {% endblock %}
 
