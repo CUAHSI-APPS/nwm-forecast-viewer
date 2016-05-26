@@ -91,6 +91,8 @@ $(function () {
             WATERS.Services.PointIndexingService(data, options);
         };
 
+        initChart(qConfig, startDate, seriesData);
+
         get_netcdf_chart_data(qConfig, qCOMID, qDate, qTime, qLag);
     }
 
@@ -206,78 +208,6 @@ $(function () {
     map.addLayer(base_layer);
     map.addLayer(all_streams_layer);
     map.addLayer(selected_streams_layer);
-
-    /****************************
-     ******INITIALIZE CHART******
-     ****************************/
-    default_chart_settings = {
-        title: {text: "NWM Forecast"},
-        chart: {
-            zoomType: 'x'
-        },
-        plotOptions: {
-            series: {
-                color: '#0066ff',
-                marker: {
-                    enabled: false
-                }
-            },
-            area: {
-                fillColor: {
-                    linearGradient: {
-                        x1: 0,
-                        y1: 0,
-                        x2: 0,
-                        y2: 1
-                    },
-                    stops: [
-                        [0, Highcharts.getOptions().colors[0]],
-                        [1, Highcharts.Color(Highcharts.getOptions().colors[0]).setOpacity(0).get('rgba')]
-                    ]
-                },
-                marker: {
-                    radius: 2
-                },
-                lineWidth: 1,
-                states: {
-                    hover: {
-                        lineWidth: 1
-                    }
-                },
-                threshold: null
-            }
-        },
-        xAxis: {
-            type: 'datetime',
-            title: {
-                text: 'Time'
-            },
-            minRange: 14 * 3600000 // one day
-        },
-        yAxis: {
-            title: {
-                text: 'Streamflows (cfs)'
-            },
-            min: 0
-        },
-        lang: {
-            unitsKey: 'Switch between english and metric units'
-        },
-        exporting: {
-            buttons: {
-                customButton: {
-                    text: 'Change Units',
-                    _titleKey: "unitsKey",
-                    onclick: function () {
-                        changeUnits(qConfig, startDate, seriesData)
-                    }
-                }
-            }
-        }
-    };
-
-    $('#nc-chart').highcharts(default_chart_settings);
-    nc_chart = $('#nc-chart').highcharts();
 });
 
 /****************************
@@ -421,15 +351,18 @@ function get_netcdf_chart_data(config, comid, date, time, lag) {
                             nc_chart.yAxis[0].setExtremes(null, null);
                             plotData(config, seriesData, startDate);
                         } else {
-                            var d = new Date(0);
-                            startDate = d.setUTCSeconds(returned_tsPairsData[key][0]);
-                            for (i = 1; i < returned_tsPairsData[key].length; i++) {
-                                seriesData = returned_tsPairsData[key][i];
-                                seriesDataGroup.push(seriesData);
-                                nc_chart.yAxis[0].setExtremes(null, null);
-                                plotData(config, seriesData, startDate);
-                            }
-
+                            for (j = 0; j < returned_tsPairsData[key].length; j++) {
+                                var d = new Date(0);
+                                startDate = d.setUTCSeconds(returned_tsPairsData[key][j][0]);
+                                for (i = 1; i < returned_tsPairsData[key][j].length - 1; i++) {
+                                    var seriesDataTemp = returned_tsPairsData[key][j][i];
+                                    var seriesDesc = 'Member 0' + String(i) + ' ' +
+                                        returned_tsPairsData[key][j][returned_tsPairsData[key][j].length - 1];
+                                    seriesDataGroup.push([seriesDataTemp, seriesDesc, startDate]);
+                                    nc_chart.yAxis[0].setExtremes(null, null);
+                                    plotData(config, seriesDataTemp, startDate, i - 1, seriesDesc);
+                                };
+                            };
                         };
                     };
                 };
@@ -444,26 +377,141 @@ function get_netcdf_chart_data(config, comid, date, time, lag) {
             } else {
                 viewer.entities.resumeEvents();
                 $('#info').html('<p><strong>An unexplainable error occurred. Why? Who knows...</strong></p>').removeClass('hidden');
-            }
+            };
         }
     });
+};
+
+function initChart(config, startDate) {
+    /****************************
+     ******INITIALIZE CHART******
+     ****************************/
+    if (config !== 'long_range') {
+        default_chart_settings = {
+            title: {text: "NWM Forecast"},
+            chart: {zoomType: 'x'},
+            plotOptions: {
+                series: {
+                    color: '#0066ff',
+                    marker: {
+                        enabled: false
+                    }
+                },
+                area: {
+                    fillColor: {
+                        linearGradient: {x1: 0, y1: 0, x2: 0, y2: 1},
+                        stops: [[0, Highcharts.getOptions().colors[0]],
+                            [1, Highcharts.Color(Highcharts.getOptions().colors[0]).setOpacity(0).get('rgba')]]
+                    },
+                    marker: {radius: 2},
+                    lineWidth: 1,
+                    states: {
+                        hover: {lineWidth: 1}
+                    },
+                    threshold: null
+                }
+            },
+            xAxis: {
+                type: 'datetime',
+                title: {text: 'Time'},
+                minRange: 14 * 3600000 // one day
+            },
+            yAxis: {
+                title: {text: 'Streamflows (cfs)'},
+                min: 0
+            },
+            lang: {
+                unitsKey: 'Switch between english and metric units'
+            },
+            exporting: {
+                buttons: {
+                    customButton: {
+                        text: 'Change Units',
+                        _titleKey: "unitsKey",
+                        onclick: function () {
+                            changeUnits(config, startDate)
+                        }
+                    }
+                }
+            }
+        };
+
+        $('#nc-chart').highcharts(default_chart_settings);
+        nc_chart = $('#nc-chart').highcharts();
+    } else {
+        default_chart_settings = {
+            title: {text: "NWM Forecast"},
+            chart: {zoomType: 'x'},
+            plotOptions: {
+                series: {
+                    // color: '#0066ff',
+                    marker: {
+                        enabled: false
+                    }
+                }
+            },
+            xAxis: {
+                type: 'datetime',
+                title: {text: 'Time'},
+                minRange: 14 * 3600000 // one day
+            },
+            yAxis: {
+                title: {text: 'Streamflows (cfs)'},
+                min: 0
+            },
+            lang: {
+                unitsKey: 'Switch between english and metric units'
+            },
+            exporting: {
+                buttons: {
+                    customButton: {
+                        text: 'Change Units',
+                        _titleKey: "unitsKey",
+                        onclick: function () {
+                            changeUnits(config, startDate)
+                        }
+                    }
+                }
+            }
+        };
+
+        $('#nc-chart').highcharts(default_chart_settings);
+        nc_chart = $('#nc-chart').highcharts();
+    };
 }
 
-var plotData = function(config, data, startDate) {
+var plotData = function(config, data, startDate, colorIndex, seriesDesc) {
     $('#actionBtns').removeClass('hidden');
     var calib = calibrateModel(config, startDate)
-    var data_series = {
-        type: 'area',
-        name: 'Streamflow (cfs)',
-        data: data,
-        pointStart: calib['start'],
-        pointInterval: calib['interval']
+    if (config !== 'long_range') {
+        var data_series = {
+            type: 'area',
+            name: 'Streamflow (cfs)',
+            data: data,
+            pointStart: calib['start'],
+            pointInterval: calib['interval']
+        };
+        nc_chart.addSeries(data_series);
+        if ($('#nc-chart').hasClass('hidden')) {
+            $('#nc-chart').removeClass('hidden');
+            $(window).resize();
+        };
+    } else {
+        var data_series = {
+            type: 'area',
+            color: Highcharts.getOptions().colors[colorIndex],
+            fillOpacity: 0.3,
+            name: seriesDesc + ' Streamflow (cfs)',
+            data: data,
+            pointStart: calib['start'],
+            pointInterval: calib['interval']
+        };
+        nc_chart.addSeries(data_series);
+        if ($('#nc-chart').hasClass('hidden')) {
+            $('#nc-chart').removeClass('hidden');
+            $(window).resize();
+        };
     };
-    nc_chart.addSeries(data_series);
-    if ($('#nc-chart').hasClass('hidden')) {
-        $('#nc-chart').removeClass('hidden');
-        $(window).resize();
-    }
 };
 
 function clearErrorSelection() {
@@ -472,39 +520,81 @@ function clearErrorSelection() {
     selected_streams_layer.getSource().removeFeature(lastFeature);
 }
 
-function changeUnits(config, startDate, series) {
-    if (nc_chart.yAxis[0].axisTitle.textStr === 'Streamflows (cfs)') {
-        var newSeries = [];
-        series.forEach(function (i) {
-            newSeries.push(i * 0.0283168);
-        });
-        var calib = calibrateModel(config, startDate)
-        nc_chart.series[0].remove()
-        nc_chart.yAxis[0].setTitle({
-            text: 'Streamflows (cms)'
-        });
-        var data_series = {
-            type: 'area',
-            name: 'Streamflow (cms)',
-            data: newSeries,
-            pointStart: calib['start'],
-            pointInterval: calib['interval']
+function changeUnits(config, startDate) {
+    if (config !== 'long_range') {
+        if (nc_chart.yAxis[0].axisTitle.textStr === 'Streamflows (cfs)') {
+            var newSeries = [];
+            seriesData.forEach(function (i) {
+                newSeries.push(i * 0.0283168);
+            });
+            var calib = calibrateModel(config, startDate)
+            nc_chart.series[0].remove();
+            nc_chart.yAxis[0].setTitle({
+                text: 'Streamflows (cms)'
+            });
+            var data_series = {
+                type: 'area',
+                name: 'Streamflow (cms)',
+                data: newSeries,
+                pointStart: calib['start'],
+                pointInterval: calib['interval']
+            };
+            nc_chart.addSeries(data_series);
+        } else {
+            var calib = calibrateModel(config, startDate)
+            nc_chart.series[0].remove();
+            nc_chart.yAxis[0].setTitle({
+                text: 'Streamflows (cfs)'
+            });
+            var data_series = {
+                type: 'area',
+                name: 'Streamflow (cfs)',
+                data: seriesData,
+                pointStart: calib['start'],
+                pointInterval: calib['interval']
+            };
+            nc_chart.addSeries(data_series);
         };
-        nc_chart.addSeries(data_series);
     } else {
-        var calib = calibrateModel(config, startDate)
-        nc_chart.series[0].remove()
-        nc_chart.yAxis[0].setTitle({
-            text: 'Streamflows (cfs)'
-        });
-        var data_series = {
-            type: 'area',
-            name: 'Streamflow (cfs)',
-            data: series,
-            pointStart: calib['start'],
-            pointInterval: calib['interval']
+        if (nc_chart.yAxis[0].axisTitle.textStr === 'Streamflows (cfs)') {
+            while(nc_chart.series.length > 0) {
+                nc_chart.series[0].remove(true);
+            }
+            nc_chart.yAxis[0].setTitle({text: 'Streamflows (cms)'});
+
+            for (i = 0; i < seriesDataGroup.length; i++) {
+                var newSeries = [];
+                seriesDataGroup[i][0].forEach(function (j) {
+                    newSeries.push(j * 0.0283168);
+                });
+                var calib = calibrateModel(config, seriesDataGroup[i][2])
+                var data_series = {
+                    type: 'area',
+                    name: seriesDataGroup[i][1] + ' Streamflow (cms)',
+                    data: newSeries,
+                    pointStart: calib['start'],
+                    pointInterval: calib['interval']
+                };
+                nc_chart.addSeries(data_series);
+            };
+        } else {
+            while(nc_chart.series.length > 0) {
+                nc_chart.series[0].remove(true);
+            }
+            nc_chart.yAxis[0].setTitle({text: 'Streamflows (cfs)'});
+
+            for (i = 0; i < seriesDataGroup.length; i++) {
+                var calib = calibrateModel(config, seriesDataGroup[i][2])
+                var data_series = {
+                    type: 'area',
+                    name: seriesDataGroup[i][1] + ' Streamflow (cfs)',
+                    data: seriesDataGroup[i][0],
+                    pointStart: calib['start'],
+                    pointInterval: calib['interval']
+                };
+                nc_chart.addSeries(data_series);
+            };
         };
-        nc_chart.addSeries(data_series);
     };
 };
 
