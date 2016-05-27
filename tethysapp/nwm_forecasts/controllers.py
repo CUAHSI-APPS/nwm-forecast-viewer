@@ -215,7 +215,7 @@ def get_netcdf_data(request):
                 dateDir = startDate.replace('-', '')
                 localFileDir = os.path.join(app_dir, config)
                 nc_files = sorted([x for x in os.listdir(localFileDir) if 'channel_rt' in x and
-                                   int(x.split('.')[1]) >= int(dateDir) and int(x.split('.')[1]) < int(endDate) in x and
+                                   int(x.split('.')[1]) >= int(dateDir) and int(x.split('.')[1]) < int(endDate) and
                                    'georeferenced' in x])
 
                 print nc_files, '**********************'
@@ -313,6 +313,8 @@ def get_netcdf_data(request):
                     q_out_group.append([time, q_out_1, q_out_2, q_out_3, q_out_4, timeCheck])
 
                 ts_pairs_data[str(comid)] = q_out_group
+                print ts_pairs_data
+                print '&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&'
 
                 return JsonResponse({
                     "success": "Data analysis complete!",
