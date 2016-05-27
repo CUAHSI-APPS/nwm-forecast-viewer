@@ -20,7 +20,8 @@ def home(request):
     select_input = SelectInput(display_text='Enter Configuration',
                                name='config',
                                multiple=False,
-                               options=[('Short Range', 'short_range'),
+                               options=[('Analysis and Assimilation', 'analysis_assim'),
+                                        ('Short Range', 'short_range'),
                                         ('Medium Range', 'medium_range'),
                                         ('Long Range', 'long_range')],
                                initial=['Short Range'],
@@ -31,12 +32,23 @@ def home(request):
     start_date = {
         'display_text': 'Enter Beginning Date',
         'name': 'startDate',
+        'end_date': '0d',
         'autoclose': True,
         'format': 'yyyy-mm-dd',
         'start_date': '2016-05-01',
         'today_button': True,
-        # 'initial': start.strftime("%Y-%m-%d")
-        'initial': dt.datetime.today().strftime("%Y-%m-%d")
+        'initial': dt.datetime.utcnow().strftime("%Y-%m-%d")
+    }
+
+    end_date = {
+        'name': 'endDate',
+        'end_date': '0d',
+        'autoclose': True,
+        'format': 'yyyy-mm-dd',
+        'start_date': '2016-05-01',
+        'today_button': True,
+        'classes': 'hidden',
+        'initial': dt.datetime.utcnow().strftime("%Y-%m-%d")
     }
 
     start_time = SelectInput(display_text='Enter Beginning Time',
@@ -57,16 +69,6 @@ def home(request):
                              initial=['12:00 am'],
                              original=True)
 
-    # end_date = {
-    #     'display_text': 'Choose an Ending Date',
-    #     'name': 'endDate',
-    #     'autoclose': True,
-    #     'format': 'yyyy-mm-dd',
-    #     'start_date': '2016-05-01',
-    #     'today_button': True,
-    #     'initial': dt.datetime.today().strftime("%Y-%m-%d")
-    # }
-
     longRangeLag00 = ToggleSwitch(display_text='', name='00z', size='mini', initial=True)
     longRangeLag06 = ToggleSwitch(display_text='', name='06z', size='mini')
     longRangeLag12 = ToggleSwitch(display_text='', name='12z', size='mini')
@@ -86,6 +88,7 @@ def home(request):
         lon = request.GET['longitude']
         lat = request.GET['latitude']
         startDate = request.GET['startDate']
+        endDate = request.GET['endDate']
         time = request.GET['time']
         lagList = ['t00z']
 
@@ -119,6 +122,7 @@ def home(request):
         context = {
             'select_input': select_input,
             'start_date': start_date,
+            'end_date': end_date,
             'start_time': start_time,
             # 'end_date': end_date,
             'longRangeLag00': longRangeLag00,
@@ -139,7 +143,7 @@ def home(request):
             'select_input': select_input,
             'start_date': start_date,
             'start_time': start_time,
-            # 'end_date': end_date,
+            'end_date': end_date,
             'longRangeLag00': longRangeLag00,
             'longRangeLag06': longRangeLag06,
             'longRangeLag12': longRangeLag12,
@@ -161,14 +165,56 @@ def get_netcdf_data(request):
             time = get_data['time']
             lag = get_data['lag'].split(',')
 
-            if config != 'long_range':
+            if config == 'short_range' or config == 'medium_range':
 
                 timeCheck = ''.join(['t', time, 'z'])
 
-                app_dir = '/projects/water/nwm/'
-                dateDir = ''.join(['nwm.', startDate.replace('-', '')])
-                localFileDir = os.path.join(app_dir, 'data', dateDir, config)
+                app_dir = '/projects/water/nwm/data/'
+                dateDir = startDate.replace('-', '')
+                localFileDir = os.path.join(app_dir, config, dateDir)
                 nc_files = sorted([x for x in os.listdir(localFileDir) if 'channel_rt' in x and timeCheck in x and 'georeferenced' in x])
+
+                local_file_path = os.path.join(localFileDir, nc_files[0])
+                prediction_data = nc.Dataset(local_file_path, mode="r")
+
+                qout_dimensions = prediction_data.variables['station_id'].dimensions
+
+                if qout_dimensions[0] == 'station':
+                    comidList = prediction_data.variables['station_id'][:]
+                    comidIndex = int(np.where(comidList == comid)[0])
+                else:
+                    return JsonResponse({'error': "Invalid netCDF file"})
+
+                variables = prediction_data.variables.keys()
+                if 'time' in variables:
+                    time = [int(nc.num2date(0, prediction_data.variables['time'].units).strftime('%s'))]
+                else:
+                    return JsonResponse({'error': "Invalid netCDF file"})
+
+                q_out = []
+                for ncf in nc_files:
+                    local_file_path = os.path.join(localFileDir, ncf)
+                    prediction_dataTemp = nc.Dataset(local_file_path, mode="r")
+                    q_outT = prediction_dataTemp.variables['streamflow'][comidIndex].tolist()
+                    q_out.append(round(q_outT * 35.3147, 4))
+
+                ts_pairs_data[str(comid)] = [time, q_out]
+
+                return JsonResponse({
+                    "success": "Data analysis complete!",
+                    "ts_pairs_data": json.dumps(ts_pairs_data)
+                })
+
+            elif config == 'analysis_assim':
+
+                endDate = get_data['endDate'].replace('-', '')
+
+                app_dir = '/projects/water/nwm/data/'
+                dateDir = startDate.replace('-', '')
+                localFileDir = os.path.join(app_dir, config, dateDir)
+                nc_files = sorted([x for x in os.listdir(localFileDir) if 'channel_rt' in x and
+                                   int(x.split('.')[1]) >= int(dateDir) and int(x.split('.')[1]) < int(endDate) in x and
+                                   'georeferenced' in x])
 
                 local_file_path = os.path.join(localFileDir, nc_files[0])
                 prediction_data = nc.Dataset(local_file_path, mode="r")
@@ -206,9 +252,9 @@ def get_netcdf_data(request):
                 for lg in lag:
                     timeCheck = ''.join(['t', lg])
 
-                    app_dir = '/projects/water/nwm/'  # os.path.dirname(__file__)
-                    dateDir = ''.join(['nwm.', startDate.replace('-', '')])
-                    localFileDir = os.path.join(app_dir, 'data', dateDir, config)
+                    app_dir = '/projects/water/nwm/data/'
+                    dateDir = startDate.replace('-', '')
+                    localFileDir = os.path.join(app_dir, config, dateDir)
                     nc_files_1 = sorted([x for x in os.listdir(localFileDir) if
                                          'channel_rt_1' in x and timeCheck in x and 'georeferenced' in x])
                     nc_files_2 = sorted([x for x in os.listdir(localFileDir) if
@@ -288,9 +334,9 @@ def getTimeSeries(comid, date, time, config, lag=''):
 
         ts = []
 
-        app_dir = '/projects/water/nwm/'
-        dateDir = ''.join(['nwm.', date.replace('-', '')])
-        localFileDir = os.path.join(app_dir, 'data', dateDir, config)
+        app_dir = '/projects/water/nwm/data/'
+        dateDir = date.replace('-', '')
+        localFileDir = os.path.join(app_dir, config, dateDir)
         nc_files = sorted([x for x in os.listdir(localFileDir) if
                            'channel_rt' in x and timeCheck in x and 'georeferenced' in x])
         ncFile = nc.Dataset(os.path.join(localFileDir, nc_files[0]), mode="r")
@@ -305,9 +351,9 @@ def getTimeSeries(comid, date, time, config, lag=''):
         return ts
     elif config == 'long_range':
         ts_group = []
-        app_dir = '/projects/water/nwm/'
-        dateDir = ''.join(['nwm.', startDate.replace('-', '')])
-        localFileDir = os.path.join(app_dir, 'data', dateDir, config)
+        app_dir = '/projects/water/nwm/data/'
+        dateDir = startDate.replace('-', '')
+        localFileDir = os.path.join(app_dir, config, dateDir)
         nc_files_1 = sorted([x for x in os.listdir(localFileDir) if
                              'channel_rt_1' in x and lag in x and 'georeferenced' in x])
         nc_files_2 = sorted([x for x in os.listdir(localFileDir) if

@@ -9,16 +9,28 @@ var nc_chart, seriesData, startDate, seriesDataGroup = [];
 
 $('#config'). on('change', function () {
     if ($('#config').val() === 'medium_range') {
+        $('#endDate').addClass('hidden');
+        $('#endDateLabel').addClass('hidden');
         $('#time').parent().addClass('hidden');
         $('#time').val('06')
         $('#timeLag').addClass('hidden');
     } else if ($('#config').val() === 'long_range') {
+        $('#endDate').addClass('hidden');
+        $('#endDateLabel').addClass('hidden');
         $('#time').parent().addClass('hidden');
         $('#time').val('00');
         $('#timeLag').removeClass('hidden');
     } else if ($('#config').val() === 'short_range') {
+        $('#endDate').addClass('hidden');
+        $('#endDateLabel').addClass('hidden');
         $('#time').val('00')
         $('#time').parent().removeClass('hidden');
+        $('#timeLag').addClass('hidden');
+    } else if ($('#config').val() === 'analysis_assim'){
+        $('#endDate').removeClass('hidden');
+        $('#endDateLabel').removeClass('hidden');
+        $('#time').parent().addClass('hidden');
+        $('#time').val('00')
         $('#timeLag').addClass('hidden');
     };
 });
@@ -49,6 +61,7 @@ $(function () {
         var qDate = query[4].substring(query[4].lastIndexOf("startDate=") + 10);
         var qTime = query[5].substring(query[5].lastIndexOf("time=") + 5);
         var qLag = ['00z'];
+        var qDateEnd = query[query.length - 2].substring(query[query.length - 2].lastIndexOf("endDate=") + 8);
 
         if (window.location.search.indexOf('06z') > -1) {
             qLag.push('06z');
@@ -93,19 +106,31 @@ $(function () {
 
         initChart(qConfig, startDate, seriesData);
 
-        get_netcdf_chart_data(qConfig, qCOMID, qDate, qTime, qLag);
+        get_netcdf_chart_data(qConfig, qCOMID, qDate, qTime, qLag, qDateEnd);
     }
 
     if ($('#config').val() === 'medium_range') {
+        $('#endDate').addClass('hidden');
+        $('#endDateLabel').addClass('hidden');
         $('#time').parent().addClass('hidden');
         $('#timeLag').addClass('hidden');
     } else if ($('#config').val() === 'long_range') {
+        $('#endDate').addClass('hidden');
+        $('#endDateLabel').addClass('hidden');
         $('#time').parent().addClass('hidden');
         $('#time').val('00');
         $('#timeLag').removeClass('hidden');
     }else if ($('#config').val() === 'short_range') {
+        $('#endDate').addClass('hidden');
+        $('#endDateLabel').addClass('hidden');
         $('#time').val('00')
         $('#time').parent().removeClass('hidden');
+        $('#timeLag').addClass('hidden');
+    } else if ($('#config').val() === 'analysis_assim'){
+        $('#endDate').removeClass('hidden');
+        $('#endDateLabel').removeClass('hidden');
+        $('#time').parent().addClass('hidden');
+        $('#time').val('00')
         $('#timeLag').addClass('hidden');
     };
 
@@ -323,7 +348,7 @@ function geojson2feature(myGeoJSON) {
  *******BUILD CHART FUNCTIONALITY********
  ****************************************/
 
-function get_netcdf_chart_data(config, comid, date, time, lag) {
+function get_netcdf_chart_data(config, comid, date, time, lag, endDate) {
     $.ajax({
         type: 'GET',
         url: 'get-netcdf-data',
@@ -333,7 +358,8 @@ function get_netcdf_chart_data(config, comid, date, time, lag) {
             'comid': comid,
             'startDate': date,
             'time': time,
-            'lag': lag.toString()
+            'lag': lag.toString(),
+            'endDate': endDate
         },
         error: function (jqXHR, textStatus, errorThrown) {
             $('#info').html('<p><strong>An unknown error occurred while retrieving the data</strong></p>');
@@ -601,10 +627,10 @@ function changeUnits(config, startDate) {
 function calibrateModel(config, startDate) {
     var interval;
     var start;
-    if (config == 'short_range') {
+    if (config === 'short_range' || config === 'analysis_assim') {
         interval = 3600 * 1000; // one hour
         start = startDate;
-    } else if (config == 'medium_range') {
+    } else if (config === 'medium_range') {
         interval = 3600 * 1000 * 3; // three hours
         start = startDate + (3600 * 1000 * 3); // calibrates medium range model
     } else {

@@ -26,39 +26,41 @@
 
     {% gizmo date_picker start_date %}
     {% gizmo select_input start_time %}
-    <!--{% gizmo date_picker end_date %}-->
 
-  <div id="timeLag" class="hidden">
-    <label>Time lag</label>
-    <div class="row">
-      <div class="col-md-1">
-        <p>00z</p>
+    <div id="timeLag" class="hidden">
+      <label>Time lag</label>
+      <div class="row">
+        <div class="col-md-1">
+          <p>00z</p>
+        </div>
+        <div class="col-md-4">
+          {% gizmo toggle_switch longRangeLag00 %}
+        </div>
+        <div class="col-md-1">
+          <p>06z</p>
+        </div>
+        <div class="col-md-4">
+          {% gizmo toggle_switch longRangeLag06 %}
+        </div>
       </div>
-      <div class="col-md-4">
-        {% gizmo toggle_switch longRangeLag00 %}
-      </div>
-      <div class="col-md-1">
-        <p>06z</p>
-      </div>
-      <div class="col-md-4">
-        {% gizmo toggle_switch longRangeLag06 %}
+      <div class="row">
+        <div class="col-md-1">
+          <p>12z</p>
+        </div>
+        <div class="col-md-4">
+          {% gizmo toggle_switch longRangeLag12 %}
+        </div>
+        <div class="col-md-1">
+          <p>18z</p>
+        </div>
+        <div class="col-md-4">
+          {% gizmo toggle_switch longRangeLag18 %}
+        </div>
       </div>
     </div>
-    <div class="row">
-      <div class="col-md-1">
-        <p>12z</p>
-      </div>
-      <div class="col-md-4">
-        {% gizmo toggle_switch longRangeLag12 %}
-      </div>
-      <div class="col-md-1">
-        <p>18z</p>
-      </div>
-      <div class="col-md-4">
-        {% gizmo toggle_switch longRangeLag18 %}
-      </div>
-    </div>
-  </div>
+
+    <label id="endDateLabel" class="control-label hidden" for="endDate">Enter Ending Date</label>
+    {% gizmo date_picker end_date %}
   </form>
   {% gizmo button submit_button %}
 
