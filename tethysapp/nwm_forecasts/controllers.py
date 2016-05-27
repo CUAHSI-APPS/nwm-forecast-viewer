@@ -90,14 +90,16 @@ def home(request):
         startDate = request.GET['startDate']
         endDate = request.GET['endDate']
         time = request.GET['time']
-        lagList = ['t00z']
 
+        lagList = []
+        if '00z' in request.GET:
+            lagList.append('t00z')
         if '06z' in request.GET:
-            lag.append('t06z')
+            lagList.append('t06z')
         if '12z' in request.GET:
-            lag.append('t12z')
+            lagList.append('t12z')
         if'18z' in request.GET:
-            lag.append('t18z')
+            lagList.append('t18z')
 
         lag = ','.join(lagList)
         # time2 = '00:00:00'
@@ -288,19 +290,19 @@ def get_netcdf_data(request):
                         q_outT = prediction_dataTemp.variables['streamflow'][comidIndex].tolist()
                         q_out_1.append(round(q_outT * 35.3147, 4))
                     q_out_2 = []
-                    for ncf in nc_files_1:
+                    for ncf in nc_files_2:
                         local_file_path = os.path.join(localFileDir, ncf)
                         prediction_dataTemp = nc.Dataset(local_file_path, mode="r")
                         q_outT = prediction_dataTemp.variables['streamflow'][comidIndex].tolist()
                         q_out_2.append(round(q_outT * 35.3147, 4))
                     q_out_3 = []
-                    for ncf in nc_files_1:
+                    for ncf in nc_files_3:
                         local_file_path = os.path.join(localFileDir, ncf)
                         prediction_dataTemp = nc.Dataset(local_file_path, mode="r")
                         q_outT = prediction_dataTemp.variables['streamflow'][comidIndex].tolist()
                         q_out_3.append(round(q_outT * 35.3147, 4))
                     q_out_4 = []
-                    for ncf in nc_files_1:
+                    for ncf in nc_files_4:
                         local_file_path = os.path.join(localFileDir, ncf)
                         prediction_dataTemp = nc.Dataset(local_file_path, mode="r")
                         q_outT = prediction_dataTemp.variables['streamflow'][comidIndex].tolist()
@@ -376,19 +378,19 @@ def getTimeSeries(comid, date, time, config, lag=''):
             q_outT = prediction_dataTemp.variables['streamflow'][comidIndex].tolist()
             q_out_1.append(round(q_outT * 35.3147, 4))
         q_out_2 = []
-        for ncf in nc_files_1:
+        for ncf in nc_files_2:
             local_file_path = os.path.join(localFileDir, ncf)
             prediction_dataTemp = nc.Dataset(local_file_path, mode="r")
             q_outT = prediction_dataTemp.variables['streamflow'][comidIndex].tolist()
             q_out_2.append(round(q_outT * 35.3147, 4))
         q_out_3 = []
-        for ncf in nc_files_1:
+        for ncf in nc_files_3:
             local_file_path = os.path.join(localFileDir, ncf)
             prediction_dataTemp = nc.Dataset(local_file_path, mode="r")
             q_outT = prediction_dataTemp.variables['streamflow'][comidIndex].tolist()
             q_out_3.append(round(q_outT * 35.3147, 4))
         q_out_4 = []
-        for ncf in nc_files_1:
+        for ncf in nc_files_4:
             local_file_path = os.path.join(localFileDir, ncf)
             prediction_dataTemp = nc.Dataset(local_file_path, mode="r")
             q_outT = prediction_dataTemp.variables['streamflow'][comidIndex].tolist()
