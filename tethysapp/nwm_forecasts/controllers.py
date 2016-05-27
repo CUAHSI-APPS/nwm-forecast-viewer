@@ -166,7 +166,6 @@ def get_netcdf_data(request):
             startDate = get_data['startDate']
             time = get_data['time']
             lag = get_data['lag'].split(',')
-            print lag, '**********************8'
 
             if config == 'short_range' or config == 'medium_range':
 
@@ -218,6 +217,8 @@ def get_netcdf_data(request):
                 nc_files = sorted([x for x in os.listdir(localFileDir) if 'channel_rt' in x and
                                    int(x.split('.')[1]) >= int(dateDir) and int(x.split('.')[1]) < int(endDate) in x and
                                    'georeferenced' in x])
+
+                print nc_files, '**********************'
 
                 local_file_path = os.path.join(localFileDir, nc_files[0])
                 prediction_data = nc.Dataset(local_file_path, mode="r")
