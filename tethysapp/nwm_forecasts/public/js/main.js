@@ -60,9 +60,12 @@ $(function () {
         var qCOMID = Number(query[1].substring(query[1].lastIndexOf("COMID=") + 6));
         var qDate = query[4].substring(query[4].lastIndexOf("startDate=") + 10);
         var qTime = query[5].substring(query[5].lastIndexOf("time=") + 5);
-        var qLag = ['00z'];
+        var qLag = [];
         var qDateEnd = query[query.length - 2].substring(query[query.length - 2].lastIndexOf("endDate=") + 8);
 
+        if (window.location.search.indexOf('00z') > -1) {
+            qLag.push('00z');
+        };
         if (window.location.search.indexOf('06z') > -1) {
             qLag.push('06z');
         };
