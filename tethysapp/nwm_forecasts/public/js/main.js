@@ -373,7 +373,7 @@ function get_netcdf_chart_data(config, comid, date, time, lag, endDate) {
                 if ("ts_pairs_data" in data) {
                     var returned_tsPairsData = JSON.parse(data.ts_pairs_data);
                     for (var key in returned_tsPairsData) {
-                        if (typeof returned_tsPairsData[key][0] === 'string') {
+                        if (returned_tsPairsData[key][2] === 'notLong') {
                             var d = new Date(0);
                             startDate = d.setUTCSeconds(returned_tsPairsData[key][0]);
                             seriesData = returned_tsPairsData[key][1];

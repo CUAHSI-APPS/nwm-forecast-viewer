@@ -200,7 +200,7 @@ def get_netcdf_data(request):
                     q_outT = prediction_dataTemp.variables['streamflow'][comidIndex].tolist()
                     q_out.append(round(q_outT * 35.3147, 4))
 
-                ts_pairs_data[str(comid)] = [time, q_out]
+                ts_pairs_data[str(comid)] = [time, q_out, 'notLong']
 
                 return JsonResponse({
                     "success": "Data analysis complete!",
@@ -244,7 +244,7 @@ def get_netcdf_data(request):
                     q_outT = prediction_dataTemp.variables['streamflow'][comidIndex].tolist()
                     q_out.append(round(q_outT * 35.3147, 4))
 
-                ts_pairs_data[str(comid)] = [time, q_out]
+                ts_pairs_data[str(comid)] = [time, q_out, 'notLong']
 
                 return JsonResponse({
                     "success": "Data analysis complete!",
