@@ -380,16 +380,23 @@ function get_netcdf_chart_data(config, comid, date, time, lag, endDate) {
                             nc_chart.yAxis[0].setExtremes(null, null);
                             plotData(config, seriesData, startDate);
                         } else {
+                            $('#info').html('<p class="alert alert-info" style="text-align: center"><strong>' +
+                                'Loading forecasts' + '</strong></p>').removeClass('hidden').addClass('error');
+
+                            // Hide error message 5 seconds after showing it
+                            setTimeout(function () {
+                                $('#info').addClass('hidden')
+                            }, 5000);
                             for (j = 0; j < returned_tsPairsData[key].length; j++) {
                                 var d = new Date(0);
-                                startDate = d.setUTCSeconds(returned_tsPairsData[key][j][0]);
+                                var startDateG = d.setUTCSeconds(returned_tsPairsData[key][j][0]);
                                 for (i = 1; i < returned_tsPairsData[key][j].length - 1; i++) {
                                     var seriesDataTemp = returned_tsPairsData[key][j][i];
                                     var seriesDesc = 'Member 0' + String(i) + ' ' +
                                         returned_tsPairsData[key][j][returned_tsPairsData[key][j].length - 1];
-                                    seriesDataGroup.push([seriesDataTemp, seriesDesc, startDate]);
+                                    seriesDataGroup.push([seriesDataTemp, seriesDesc, startDateG]);
                                     nc_chart.yAxis[0].setExtremes(null, null);
-                                    plotData(config, seriesDataTemp, startDate, i - 1, seriesDesc);
+                                    plotData(config, seriesDataTemp, startDateG, i - 1, seriesDesc);
                                 };
                             };
                         };
@@ -458,7 +465,7 @@ function initChart(config, startDate) {
                         text: 'Change Units',
                         _titleKey: "unitsKey",
                         onclick: function () {
-                            changeUnits(config, startDate)
+                            changeUnits(config)
                         }
                     }
                 }
@@ -497,7 +504,7 @@ function initChart(config, startDate) {
                         text: 'Change Units',
                         _titleKey: "unitsKey",
                         onclick: function () {
-                            changeUnits(config, startDate)
+                            changeUnits(config)
                         }
                     }
                 }
@@ -511,13 +518,13 @@ function initChart(config, startDate) {
 
 var plotData = function(config, data, startDate, colorIndex, seriesDesc) {
     $('#actionBtns').removeClass('hidden');
-    var calib = calibrateModel(config, startDate)
+    var calib = calibrateModel(config)
     if (config !== 'long_range') {
         var data_series = {
             type: 'area',
             name: 'Streamflow (cfs)',
             data: data,
-            pointStart: calib['start'],
+            pointStart: startDate,
             pointInterval: calib['interval']
         };
         nc_chart.addSeries(data_series);
@@ -532,7 +539,7 @@ var plotData = function(config, data, startDate, colorIndex, seriesDesc) {
             fillOpacity: 0.3,
             name: seriesDesc + ' Streamflow (cfs)',
             data: data,
-            pointStart: calib['start'],
+            pointStart: startDate,
             pointInterval: calib['interval']
         };
         nc_chart.addSeries(data_series);
@@ -549,14 +556,14 @@ function clearErrorSelection() {
     selected_streams_layer.getSource().removeFeature(lastFeature);
 }
 
-function changeUnits(config, startDate) {
+function changeUnits(config) {
     if (config !== 'long_range') {
         if (nc_chart.yAxis[0].axisTitle.textStr === 'Streamflows (cfs)') {
             var newSeries = [];
             seriesData.forEach(function (i) {
                 newSeries.push(i * 0.0283168);
             });
-            var calib = calibrateModel(config, startDate)
+            var calib = calibrateModel(config)
             nc_chart.series[0].remove();
             nc_chart.yAxis[0].setTitle({
                 text: 'Streamflows (cms)'
@@ -565,12 +572,12 @@ function changeUnits(config, startDate) {
                 type: 'area',
                 name: 'Streamflow (cms)',
                 data: newSeries,
-                pointStart: calib['start'],
+                pointStart: startDate,
                 pointInterval: calib['interval']
             };
             nc_chart.addSeries(data_series);
         } else {
-            var calib = calibrateModel(config, startDate)
+            var calib = calibrateModel(config)
             nc_chart.series[0].remove();
             nc_chart.yAxis[0].setTitle({
                 text: 'Streamflows (cfs)'
@@ -579,7 +586,7 @@ function changeUnits(config, startDate) {
                 type: 'area',
                 name: 'Streamflow (cfs)',
                 data: seriesData,
-                pointStart: calib['start'],
+                pointStart: startDate,
                 pointInterval: calib['interval']
             };
             nc_chart.addSeries(data_series);
@@ -596,12 +603,12 @@ function changeUnits(config, startDate) {
                 seriesDataGroup[i][0].forEach(function (j) {
                     newSeries.push(j * 0.0283168);
                 });
-                var calib = calibrateModel(config, seriesDataGroup[i][2])
+                var calib = calibrateModel(config);
                 var data_series = {
                     type: 'area',
                     name: seriesDataGroup[i][1] + ' Streamflow (cms)',
                     data: newSeries,
-                    pointStart: calib['start'],
+                    pointStart: seriesDataGroup[i][2],
                     pointInterval: calib['interval']
                 };
                 nc_chart.addSeries(data_series);
@@ -613,12 +620,12 @@ function changeUnits(config, startDate) {
             nc_chart.yAxis[0].setTitle({text: 'Streamflows (cfs)'});
 
             for (i = 0; i < seriesDataGroup.length; i++) {
-                var calib = calibrateModel(config, seriesDataGroup[i][2])
+                var calib = calibrateModel(config)
                 var data_series = {
                     type: 'area',
                     name: seriesDataGroup[i][1] + ' Streamflow (cfs)',
                     data: seriesDataGroup[i][0],
-                    pointStart: calib['start'],
+                    pointStart: seriesDataGroup[i][2],
                     pointInterval: calib['interval']
                 };
                 nc_chart.addSeries(data_series);
@@ -627,18 +634,15 @@ function changeUnits(config, startDate) {
     };
 };
 
-function calibrateModel(config, startDate) {
+function calibrateModel(config) {
     var interval;
     var start;
     if (config === 'short_range' || config === 'analysis_assim') {
         interval = 3600 * 1000; // one hour
-        start = startDate;
     } else if (config === 'medium_range') {
         interval = 3600 * 1000 * 3; // three hours
-        start = startDate + (3600 * 1000 * 3); // calibrates medium range model
     } else {
         interval = 3600 * 1000 * 6; // six hours
-        start = startDate;
     };
-    return {'interval': interval, 'start': start}
+    return {'interval': interval}
 };
