@@ -521,15 +521,15 @@ function initChart(config, startDate) {
     };
 }
 
-var plotData = function(config, data, startDate, colorIndex, seriesDesc) {
+var plotData = function(config, data, start, colorIndex, seriesDesc) {
     $('#actionBtns').removeClass('hidden');
-    var calib = calibrateModel(config)
+    var calib = calibrateModel(config, start)
     if (config !== 'long_range') {
         var data_series = {
             type: 'area',
             name: 'Streamflow (cfs)',
             data: data,
-            pointStart: startDate,
+            pointStart: calib['start'],
             pointInterval: calib['interval']
         };
         nc_chart.addSeries(data_series);
@@ -544,7 +544,7 @@ var plotData = function(config, data, startDate, colorIndex, seriesDesc) {
             fillOpacity: 0.3,
             name: seriesDesc + ' Streamflow (cfs)',
             data: data,
-            pointStart: startDate,
+            pointStart: start,
             pointInterval: calib['interval']
         };
         nc_chart.addSeries(data_series);
@@ -568,7 +568,7 @@ function changeUnits(config) {
             seriesData.forEach(function (i) {
                 newSeries.push(i * 0.0283168);
             });
-            var calib = calibrateModel(config)
+            var calib = calibrateModel(config, startDate)
             nc_chart.series[0].remove();
             nc_chart.yAxis[0].setTitle({
                 text: 'Streamflows (cms)'
@@ -577,7 +577,7 @@ function changeUnits(config) {
                 type: 'area',
                 name: 'Streamflow (cms)',
                 data: newSeries,
-                pointStart: startDate,
+                pointStart: calib['start'],
                 pointInterval: calib['interval']
             };
             nc_chart.addSeries(data_series);
@@ -591,7 +591,7 @@ function changeUnits(config) {
                 type: 'area',
                 name: 'Streamflow (cfs)',
                 data: seriesData,
-                pointStart: startDate,
+                pointStart: calib['start'],
                 pointInterval: calib['interval']
             };
             nc_chart.addSeries(data_series);
@@ -639,15 +639,20 @@ function changeUnits(config) {
     };
 };
 
-function calibrateModel(config) {
+function calibrateModel(config, date) {
     var interval;
     var start;
-    if (config === 'short_range' || config === 'analysis_assim') {
+    if (config === 'short_range') {
         interval = 3600 * 1000; // one hour
+        start = date;
+    } else if (config === 'analysis_assim') {
+        interval = 3600 * 1000; // one hour
+        start = date + (3600 * 1000 * 3); // calibrates analysis assimilation
     } else if (config === 'medium_range') {
         interval = 3600 * 1000 * 3; // three hours
+        start = date;
     } else {
         interval = 3600 * 1000 * 6; // six hours
     };
-    return {'interval': interval}
+    return {'interval': interval, 'start': start}
 };
