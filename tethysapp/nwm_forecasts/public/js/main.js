@@ -368,6 +368,17 @@ function get_netcdf_chart_data(config, comid, date, time, lag, endDate) {
             $('#info').html('<p><strong>An unknown error occurred while retrieving the data</strong></p>');
             clearErrorSelection();
         },
+        beforeSend: function () {
+            if (config === "long_range") {
+                $('#info').html('<p class="alert alert-info" style="text-align: center"><strong>' +
+                    'Retrieving forecasts' + '</strong></p>').removeClass('hidden').addClass('error');
+
+                // Hide error message 5 seconds after showing it
+                setTimeout(function () {
+                    $('#info').addClass('hidden')
+                }, 5000);
+            };
+        },
         success: function (data) {
             if ("success" in data) {
                 if ("ts_pairs_data" in data) {
@@ -380,13 +391,7 @@ function get_netcdf_chart_data(config, comid, date, time, lag, endDate) {
                             nc_chart.yAxis[0].setExtremes(null, null);
                             plotData(config, seriesData, startDate);
                         } else {
-                            $('#info').html('<p class="alert alert-info" style="text-align: center"><strong>' +
-                                'Loading forecasts' + '</strong></p>').removeClass('hidden').addClass('error');
 
-                            // Hide error message 5 seconds after showing it
-                            setTimeout(function () {
-                                $('#info').addClass('hidden')
-                            }, 5000);
                             for (j = 0; j < returned_tsPairsData[key].length; j++) {
                                 var d = new Date(0);
                                 var startDateG = d.setUTCSeconds(returned_tsPairsData[key][j][0]);
