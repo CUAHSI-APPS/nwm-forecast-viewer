@@ -17,7 +17,7 @@ def home(request):
     Controller for the app home page.
     """
 
-    select_input = SelectInput(display_text='Enter Configuration',
+    config_input = SelectInput(display_text='Enter Configuration',
                                name='config',
                                multiple=False,
                                options=[('Analysis and Assimilation', 'analysis_assim'),
@@ -27,7 +27,14 @@ def home(request):
                                initial=['Short Range'],
                                original=True)
 
-    # start = dt.datetime.today() - dt.timedelta(days=1)
+    geom_input = SelectInput(display_text='Enter Geometry',
+                             name='geom',
+                             multiple=False,
+                             options=[('Channel', 'channel_rt'),
+                                      ('Land', 'land'),
+                                      ('Reservoir', 'reservoir')],
+                             initial=['Channel'],
+                             original=True)
 
     start_date = {
         'display_text': 'Enter Beginning Date',
@@ -122,7 +129,8 @@ def home(request):
         #                       submit=False)
 
         context = {
-            'select_input': select_input,
+            'config_input': config_input,
+            'geom_input': geom_input,
             'start_date': start_date,
             'end_date': end_date,
             'start_time': start_time,
@@ -142,7 +150,8 @@ def home(request):
 
     else:
         context = {
-            'select_input': select_input,
+            'config_input': config_input,
+            'geom_input': geom_input,
             'start_date': start_date,
             'start_time': start_time,
             'end_date': end_date,
@@ -162,6 +171,7 @@ def get_netcdf_data(request):
 
         try:
             config = get_data['config']
+            geom = get_data['geom']
             comid = int(get_data['comid'])
             startDate = get_data['startDate']
             time = get_data['time']
@@ -174,16 +184,19 @@ def get_netcdf_data(request):
                 app_dir = '/projects/water/nwm/data/'
                 dateDir = startDate.replace('-', '')
                 localFileDir = os.path.join(app_dir, config, dateDir)
-                nc_files = sorted([x for x in os.listdir(localFileDir) if 'channel_rt' in x and timeCheck in x and 'georeferenced' in x])
+                nc_files = sorted([x for x in os.listdir(localFileDir) if geom in x and timeCheck in x and 'georeferenced' in x])
 
                 local_file_path = os.path.join(localFileDir, nc_files[0])
                 prediction_data = nc.Dataset(local_file_path, mode="r")
 
-                qout_dimensions = prediction_data.variables['station_id'].dimensions
-
-                if qout_dimensions[0] == 'station':
+                if geom == 'channel_rt':
                     comidList = prediction_data.variables['station_id'][:]
                     comidIndex = int(np.where(comidList == comid)[0])
+                    var = 'streamflow'
+                elif geom == 'reservoir':
+                    comidList = prediction_data.variables['lake_id'][:]
+                    comidIndex = int(np.where(comidList == comid)[0])
+                    var = 'inflow'
                 else:
                     return JsonResponse({'error': "Invalid netCDF file"})
 
@@ -197,7 +210,7 @@ def get_netcdf_data(request):
                 for ncf in nc_files:
                     local_file_path = os.path.join(localFileDir, ncf)
                     prediction_dataTemp = nc.Dataset(local_file_path, mode="r")
-                    q_outT = prediction_dataTemp.variables['streamflow'][comidIndex].tolist()
+                    q_outT = prediction_dataTemp.variables[var][comidIndex].tolist()
                     q_out.append(round(q_outT * 35.3147, 4))
 
                 ts_pairs_data[str(comid)] = [time, q_out, 'notLong']

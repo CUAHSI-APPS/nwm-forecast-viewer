@@ -8,11 +8,11 @@ class nwmForecasts(TethysAppBase):
 
     name = 'National Water Model Forecast Viewer'
     index = 'nwm_forecasts:home'
-    icon = 'nwm_forecasts/images/icon.gif'
+    icon = 'nwm_forecasts/images/nwm_forecasts.png'
     package = 'nwm_forecasts'
     root_url = 'nwm-forecasts'
     color = '#e74c3c'
-    description= 'This app allows the user to visualize National Water Model forecasts for a specific NHD stream reach.'
+    description= 'This app allows the user to visualize National Water Model forecasts.'
     enable_feedback = False
     feedback_emails = []
 

@@ -7,7 +7,7 @@ var comid;
 //Chart variables
 var nc_chart, seriesData, startDate, seriesDataGroup = [];
 
-$('#config'). on('change', function () {
+$('#config').on('change', function () {
     if ($('#config').val() === 'medium_range') {
         $('#endDate').addClass('hidden');
         $('#endDateLabel').addClass('hidden');
@@ -18,22 +18,45 @@ $('#config'). on('change', function () {
         $('#endDate').addClass('hidden');
         $('#endDateLabel').addClass('hidden');
         $('#time').parent().addClass('hidden');
-        $('#time').val('00');
         $('#timeLag').removeClass('hidden');
     } else if ($('#config').val() === 'short_range') {
         $('#endDate').addClass('hidden');
         $('#endDateLabel').addClass('hidden');
-        $('#time').val('00')
         $('#time').parent().removeClass('hidden');
         $('#timeLag').addClass('hidden');
     } else if ($('#config').val() === 'analysis_assim'){
         $('#endDate').removeClass('hidden');
         $('#endDateLabel').removeClass('hidden');
         $('#time').parent().addClass('hidden');
-        $('#time').val('00')
         $('#timeLag').addClass('hidden');
     };
 });
+
+
+// $('#geom').on('change', function () {
+//     if ($('#geom').val() === 'channel_rt') {
+//         $('#endDate').addClass('hidden');
+//         $('#endDateLabel').addClass('hidden');
+//         $('#time').parent().addClass('hidden');
+//         $('#time').val('06')
+//         $('#timeLag').addClass('hidden');
+//     } else if ($('#config').val() === 'long_range') {
+//         $('#endDate').addClass('hidden');
+//         $('#endDateLabel').addClass('hidden');
+//         $('#time').parent().addClass('hidden');
+//         $('#timeLag').removeClass('hidden');
+//     } else if ($('#config').val() === 'short_range') {
+//         $('#endDate').addClass('hidden');
+//         $('#endDateLabel').addClass('hidden');
+//         $('#time').parent().removeClass('hidden');
+//         $('#timeLag').addClass('hidden');
+//     } else if ($('#config').val() === 'analysis_assim'){
+//         $('#endDate').removeClass('hidden');
+//         $('#endDateLabel').removeClass('hidden');
+//         $('#time').parent().addClass('hidden');
+//         $('#timeLag').addClass('hidden');
+//     };
+// });
 
 $(function () {
     $('[data-toggle="tooltip"]').tooltip();
@@ -54,29 +77,43 @@ $(function () {
     if (window.location.search.includes('?')) {
         var query = window.location.search.split("&");
 
-        var qLong = Number(query[2].substring(query[2].lastIndexOf("longitude=")+10));
-        var qLat = Number(query[3].substring(query[3].lastIndexOf("latitude=")+9));
+        var qLong = Number(query[3].substring(query[3].lastIndexOf("longitude=")+10));
+        var qLat = Number(query[4].substring(query[4].lastIndexOf("latitude=")+9));
         var qConfig = query[0].substring(query[0].lastIndexOf("config=") + 7);
-        var qCOMID = Number(query[1].substring(query[1].lastIndexOf("COMID=") + 6));
-        var qDate = query[4].substring(query[4].lastIndexOf("startDate=") + 10);
-        var qTime = query[5].substring(query[5].lastIndexOf("time=") + 5);
+        var qGeom = query[1].substring(query[1].lastIndexOf("geom=") + 5);
+        var qCOMID = Number(query[2].substring(query[2].lastIndexOf("COMID=") + 6));
+        var qDate = query[5].substring(query[5].lastIndexOf("startDate=") + 10);
+        var qTime = query[6].substring(query[6].lastIndexOf("time=") + 5);
         var qLag = [];
         var qDateEnd = query[query.length - 2].substring(query[query.length - 2].lastIndexOf("endDate=") + 8);
 
+        $('#config').val(qConfig);
+        $('#geom').val(qGeom);
+
         if (window.location.search.indexOf('00z') > -1) {
             qLag.push('00z');
+            $('#00z').attr('checked', true);
+            $('#00z').parent().parent().removeClass('bootstrap-switch-off')
+        } else {
+            $('#00z').attr('checked', false);
+            $('#00z').parent().parent().addClass('bootstrap-switch-off')
         };
         if (window.location.search.indexOf('06z') > -1) {
             qLag.push('06z');
+            $('#06z').attr('checked', true);
+            $('#06z').parent().parent().removeClass('bootstrap-switch-off')
         };
         if (window.location.search.indexOf('12z') > -1) {
             qLag.push('12z');
+            $('#12z').attr('checked', true);
+            $('#12z').parent().parent().removeClass('bootstrap-switch-off')
         };
         if (window.location.search.indexOf('18z') > -1) {
             qLag.push('18z');
+            $('#18z').attr('checked', true);
+            $('#18z').parent().parent().removeClass('bootstrap-switch-off')
         };
 
-        $('#config').val(qConfig);
         $('#comidInput').val(qCOMID);
         $('#longInput').val(qLong);
         $('#latInput').val(qLat);
@@ -109,7 +146,7 @@ $(function () {
 
         initChart(qConfig, startDate, seriesData);
 
-        get_netcdf_chart_data(qConfig, qCOMID, qDate, qTime, qLag, qDateEnd);
+        get_netcdf_chart_data(qConfig, qGeom, qCOMID, qDate, qTime, qLag, qDateEnd);
     }
 
     if ($('#config').val() === 'medium_range') {
@@ -121,19 +158,16 @@ $(function () {
         $('#endDate').addClass('hidden');
         $('#endDateLabel').addClass('hidden');
         $('#time').parent().addClass('hidden');
-        $('#time').val('00');
         $('#timeLag').removeClass('hidden');
     }else if ($('#config').val() === 'short_range') {
         $('#endDate').addClass('hidden');
         $('#endDateLabel').addClass('hidden');
-        $('#time').val('00')
         $('#time').parent().removeClass('hidden');
         $('#timeLag').addClass('hidden');
     } else if ($('#config').val() === 'analysis_assim'){
         $('#endDate').removeClass('hidden');
         $('#endDateLabel').removeClass('hidden');
         $('#time').parent().addClass('hidden');
-        $('#time').val('00')
         $('#timeLag').addClass('hidden');
     };
 
@@ -351,13 +385,14 @@ function geojson2feature(myGeoJSON) {
  *******BUILD CHART FUNCTIONALITY********
  ****************************************/
 
-function get_netcdf_chart_data(config, comid, date, time, lag, endDate) {
+function get_netcdf_chart_data(config, geom, comid, date, time, lag, endDate) {
     $.ajax({
         type: 'GET',
         url: 'get-netcdf-data',
         dataType: 'json',
         data: {
             'config': config,
+            'geom': geom,
             'comid': comid,
             'startDate': date,
             'time': time,
@@ -369,15 +404,13 @@ function get_netcdf_chart_data(config, comid, date, time, lag, endDate) {
             clearErrorSelection();
         },
         beforeSend: function () {
-            if (config === "long_range") {
-                $('#info').html('<p class="alert alert-info" style="text-align: center"><strong>' +
-                    'Retrieving forecasts' + '</strong></p>').removeClass('hidden').addClass('error');
-
-                // Hide error message 5 seconds after showing it
-                setTimeout(function () {
-                    $('#info').addClass('hidden')
-                }, 5000);
-            };
+            $('#info').html('<p class="alert alert-info" style="text-align: center"><strong>' +
+                'Retrieving forecasts' + '</strong></p>').removeClass('hidden');
+        },
+        complete: function () {
+            setTimeout(function () {
+                $('#info').addClass('hidden')
+            }, 5000);
         },
         success: function (data) {
             if ("success" in data) {
@@ -544,7 +577,7 @@ var plotData = function(config, data, start, colorIndex, seriesDesc) {
             fillOpacity: 0.3,
             name: seriesDesc + ' Streamflow (cfs)',
             data: data,
-            pointStart: start,
+            pointStart: start + (3600 * 1000 * 6),
             pointInterval: calib['interval']
         };
         nc_chart.addSeries(data_series);
@@ -563,12 +596,13 @@ function clearErrorSelection() {
 
 function changeUnits(config) {
     if (config !== 'long_range') {
+        var calib = calibrateModel(config, startDate);
         if (nc_chart.yAxis[0].axisTitle.textStr === 'Streamflows (cfs)') {
             var newSeries = [];
             seriesData.forEach(function (i) {
                 newSeries.push(i * 0.0283168);
             });
-            var calib = calibrateModel(config, startDate)
+
             nc_chart.series[0].remove();
             nc_chart.yAxis[0].setTitle({
                 text: 'Streamflows (cms)'
@@ -582,7 +616,6 @@ function changeUnits(config) {
             };
             nc_chart.addSeries(data_series);
         } else {
-            var calib = calibrateModel(config)
             nc_chart.series[0].remove();
             nc_chart.yAxis[0].setTitle({
                 text: 'Streamflows (cfs)'
@@ -613,7 +646,7 @@ function changeUnits(config) {
                     type: 'area',
                     name: seriesDataGroup[i][1] + ' Streamflow (cms)',
                     data: newSeries,
-                    pointStart: seriesDataGroup[i][2],
+                    pointStart: seriesDataGroup[i][2] + (3600 * 1000 * 6),
                     pointInterval: calib['interval']
                 };
                 nc_chart.addSeries(data_series);
@@ -630,7 +663,7 @@ function changeUnits(config) {
                     type: 'area',
                     name: seriesDataGroup[i][1] + ' Streamflow (cfs)',
                     data: seriesDataGroup[i][0],
-                    pointStart: seriesDataGroup[i][2],
+                    pointStart: seriesDataGroup[i][2] + (3600 * 1000 * 6),
                     pointInterval: calib['interval']
                 };
                 nc_chart.addSeries(data_series);
@@ -644,13 +677,13 @@ function calibrateModel(config, date) {
     var start;
     if (config === 'short_range') {
         interval = 3600 * 1000; // one hour
-        start = date;
+        start = date + (3600 * 1000); // calibrates short range;
     } else if (config === 'analysis_assim') {
         interval = 3600 * 1000; // one hour
         start = date + (3600 * 1000 * 3); // calibrates analysis assimilation
     } else if (config === 'medium_range') {
         interval = 3600 * 1000 * 3; // three hours
-        start = date;
+        start = date + (3600 * 1000 * 3); // calibrates medium range;
     } else {
         interval = 3600 * 1000 * 6; // six hours
     };
