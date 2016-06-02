@@ -495,7 +495,7 @@ def get_data_waterml(request):
             raise Http404('A zip file download for all long range forecasts is in development.')
 
 
-def get_hs_res_list(request):
+def get_hs_watershed_list(request):
     if request.is_ajax() and request.method == 'GET':
         resources_list = []
         hs = get_hs_object(request)
@@ -562,7 +562,7 @@ def load_watershed(request):
                 for chunk in hs.getResourceFile(pid=res_id, filename='watershed.geojson'):
                     f.write(chunk)
             with open(tmp_file) as f:
-                geojson = f.read()
+                geojson_str = f.read()
             os.remove(tmp_file)
         except Exception as e:
             print e
@@ -572,5 +572,5 @@ def load_watershed(request):
 
         return JsonResponse({
             'success': 'Resources obtained successfully.',
-            'geojson': geojson
+            'geojson_str': geojson_str
         })

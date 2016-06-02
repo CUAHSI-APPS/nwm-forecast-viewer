@@ -32,9 +32,9 @@ class nwmForecasts(TethysAppBase):
                     UrlMap(name='waterml',
                            url='nwm-forecasts/waterml',
                            controller='nwm_forecasts.controllers.get_data_waterml'),
-                    UrlMap(name='get_hs_res_list',
-                           url='nwm-forecasts/get-hs-res-list',
-                           controller='nwm_forecasts.controllers.get_hs_res_list'),
+                    UrlMap(name='get_hs_watershed_list',
+                           url='nwm-forecasts/get-hs-watershed-list',
+                           controller='nwm_forecasts.controllers.get_hs_watershed_list'),
                     UrlMap(name='load_watershed',
                            url='nwm-forecasts/load-watershed',
                            controller='nwm_forecasts.controllers.load_watershed')

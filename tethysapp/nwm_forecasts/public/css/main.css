@@ -25,3 +25,16 @@ p {
 .row label {
 
 }
+.modal-body {
+    display: flex;
+    justify-content: center;
+}
+#tbl-watersheds {
+    vertical-align: middle;
+}
+#tbl-watersheds tr {
+    border: 2px solid black;
+}
+#tbl-watersheds td, #tbl-watersheds th {
+    padding: 10px;
+}

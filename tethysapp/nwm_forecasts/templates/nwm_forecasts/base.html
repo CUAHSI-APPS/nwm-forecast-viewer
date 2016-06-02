@@ -15,59 +15,60 @@
 {% block app_title %}{{ tethys_app.name }}{% endblock %}
 
 {% block app_navigation_items %}
-<button type="button" class="btn btn-default" data-toggle="modal" data-target="#popup-load-watershed">Load Watershed</button>
+<button type="button" class="btn btn-default" data-toggle="modal" data-target="#popup-load-watershed">Add Watershed</button>
+<br><br>
 <form id="paramForm" method="get" action="{% url 'nwm_forecasts:home' %}">
-  {% gizmo select_input config_input %}
-  {% gizmo select_input geom_input %}
-  <label class="control-label" for="comidInput">Enter COMID</label>
-  <input id="comidInput" name="COMID" type="text" class="form-control form-group" data-toggle="tooltip" data-placement="top"
-         title="Select stream reach from map or enter manually">
-  <div id="girdDiv" class="hidden">
-    <label class="control-label" for="comidInput">Enter Grid Cell "Y" Value</label>
-    <input id="gridInputY" name="Y" type="text" class="form-control form-group" disabled>
-    <label class="control-label" for="comidInput">Enter Grid Cell "X" Value</label>
-    <input id="gridInputX" name="X" type="text" class="form-control form-group" disabled>
-  </div>
-  <input id="longInput" name="longitude" type="text" value="-98" class="hidden">
-  <input id="latInput" name="latitude" type="text" value="38.5" class="hidden">
-
-  {% gizmo date_picker start_date %}
-  {% gizmo select_input start_time %}
-
-  <div id="timeLag" class="hidden">
-    <label>Time lag</label>
-    <div class="row">
-      <div class="col-md-1">
-        <p>00z</p>
-      </div>
-      <div class="col-md-4">
-        {% gizmo toggle_switch longRangeLag00 %}
-      </div>
-      <div class="col-md-1">
-        <p>06z</p>
-      </div>
-      <div class="col-md-4">
-        {% gizmo toggle_switch longRangeLag06 %}
-      </div>
+    {% gizmo select_input config_input %}
+    {% gizmo select_input geom_input %}
+    <label class="control-label" for="comidInput">Enter COMID</label>
+    <input id="comidInput" name="COMID" type="text" class="form-control form-group" data-toggle="tooltip" data-placement="top"
+           title="Select stream reach from map or enter manually">
+    <div id="girdDiv" class="hidden">
+        <label class="control-label" for="comidInput">Enter Grid Cell "Y" Value</label>
+        <input id="gridInputY" name="Y" type="text" class="form-control form-group" disabled>
+        <label class="control-label" for="comidInput">Enter Grid Cell "X" Value</label>
+        <input id="gridInputX" name="X" type="text" class="form-control form-group" disabled>
     </div>
-    <div class="row">
-      <div class="col-md-1">
-        <p>12z</p>
-      </div>
-      <div class="col-md-4">
-        {% gizmo toggle_switch longRangeLag12 %}
-      </div>
-      <div class="col-md-1">
-        <p>18z</p>
-      </div>
-      <div class="col-md-4">
-        {% gizmo toggle_switch longRangeLag18 %}
-      </div>
-    </div>
-  </div>
+    <input id="longInput" name="longitude" type="text" value="-98" class="hidden">
+    <input id="latInput" name="latitude" type="text" value="38.5" class="hidden">
 
-  <label id="endDateLabel" class="control-label hidden" for="endDate">Enter Ending Date</label>
-  {% gizmo date_picker end_date %}
+    {% gizmo date_picker start_date %}
+    {% gizmo select_input start_time %}
+
+    <div id="timeLag" class="hidden">
+        <label>Time lag</label>
+        <div class="row">
+            <div class="col-md-1">
+                <p>00z</p>
+            </div>
+            <div class="col-md-4">
+                {% gizmo toggle_switch longRangeLag00 %}
+            </div>
+            <div class="col-md-1">
+                <p>06z</p>
+            </div>
+            <div class="col-md-4">
+                {% gizmo toggle_switch longRangeLag06 %}
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-1">
+                <p>12z</p>
+            </div>
+            <div class="col-md-4">
+                {% gizmo toggle_switch longRangeLag12 %}
+            </div>
+            <div class="col-md-1">
+                <p>18z</p>
+            </div>
+            <div class="col-md-4">
+                {% gizmo toggle_switch longRangeLag18 %}
+            </div>
+        </div>
+    </div>
+
+    <label id="endDateLabel" class="control-label hidden" for="endDate">Enter Ending Date</label>
+    {% gizmo date_picker end_date %}
 </form>
 {% gizmo button submit_button %}
 

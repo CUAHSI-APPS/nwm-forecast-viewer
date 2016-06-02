@@ -7,9 +7,8 @@ var comid;
 //Chart variables
 var nc_chart, seriesData, startDate, seriesDataGroup = [];
 
-generateResourceList();
-
-$('#btn-upload-res').on('click', uploadResourceButtonHandler);
+//jQuery handle variables
+var $btnLoadWatershed;
 
 $('#config').on('change', function () {
     if ($('#config').val() === 'medium_range') {
@@ -63,6 +62,10 @@ $('#config').on('change', function () {
 // });
 
 $(function () {
+    $btnLoadWatershed = $('#btn-load-watershed');
+    getHSWatershedList();
+    $btnLoadWatershed.on('click', onClickLoadWatershed);
+
     $('[data-toggle="tooltip"]').tooltip();
 
     /**********************************
@@ -694,17 +697,17 @@ function calibrateModel(config, date) {
     return {'interval': interval, 'start': start}
 }
 
-function generateResourceList () {
+function getHSWatershedList () {
     $.ajax({
         type: 'GET',
-        url: 'get-hs-res-list',
+        url: 'get-hs-watershed-list',
         dataType: 'json',
         error: function () {
             // TODO
         },
         success: function (response) {
             var resources,
-                resTableHtml = '<table id="tbl-resources"><thead><th></th><th>Title</th><th>Owner</th></thead><tbody>';
+                resTableHtml = '<table id="tbl-watersheds"><thead><th></th><th>Title</th><th>Owner</th></thead><tbody>';
 
             if (response.hasOwnProperty('success')) {
                 if (response.hasOwnProperty('resources')) {
@@ -721,7 +724,7 @@ function generateResourceList () {
                         });
                         resTableHtml += '</tbody></table>';
                         $('#popup-load-watershed').find('.modal-body').html(resTableHtml);
-                        $('#btn-upload-res')
+                        $btnLoadWatershed
                             .removeClass('hidden')
                             .prop('disabled', false);
                     }
@@ -731,9 +734,9 @@ function generateResourceList () {
     });
 }
 
-function uploadResourceButtonHandler() {
+function onClickLoadWatershed() {
 
-    $('#btn-upload-res').prop('disabled', true);
+    $btnLoadWatershed.prop('disabled', true);
     var $rdoRes = $('.rdo-res:checked'),
         resId = $rdoRes.val();
 
@@ -754,21 +757,34 @@ function loadWatershed(resId) {
         success: function (response) {
             var view;
             var geoJson;
+            var geometry;
+            var minX, maxX, minY, maxY, featureCenter;
             var watershedLayer;
-
-            $('#btn-upload-res').prop('disabled', false);
             if (response.hasOwnProperty('success')) {
-                geoJson = JSON.parse(response.geojson);
+                geoJson = JSON.parse(response.geojson_str);
+                geometry = new ol.format.GeoJSON({
+                    defaultDataProjection: 'EPSG:3857'
+                }).readGeometry(geoJson);
+                geometry.transform('EPSG:4326', 'EPSG:3857');
                 watershedLayer = new ol.layer.Vector({
                     source: new ol.source.Vector({
-                        features: (new ol.format.GeoJSON()).readFeatures(geoJson)
+                        features: [
+                            new ol.Feature(geometry)
+                        ]
                     })
                 });
+                minX = geoJson.bbox[0];
+                maxX = geoJson.bbox[2];
+                minY = geoJson.bbox[1];
+                maxY = geoJson.bbox[3];
+                featureCenter = [minX + (maxX-minX)/2, minY + (maxY-minY)/2];
                 map.addLayer(watershedLayer);
                 view = map.getView();
-                view.setCenter(ol.proj.fromLonLat(geoJson.bbox.slice(0, 2)));
-                view.setZoom(10);
+                view.setCenter(ol.proj.fromLonLat(featureCenter));
+                view.setZoom(11);
+                $('#popup-load-watershed').modal('hide');
             }
+            $btnLoadWatershed.prop('disabled', false);
         }
     });
 }
