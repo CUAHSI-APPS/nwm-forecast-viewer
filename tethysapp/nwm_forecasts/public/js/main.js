@@ -9,6 +9,7 @@ var nc_chart, seriesData, startDate, seriesDataGroup = [];
 
 //jQuery handle variables
 var $btnLoadWatershed;
+var $popupLoadWatershed;
 
 $('#config').on('change', function () {
     if ($('#config').val() === 'medium_range') {
@@ -65,6 +66,7 @@ $(function () {
     $btnLoadWatershed = $('#btn-load-watershed');
     getHSWatershedList();
     $btnLoadWatershed.on('click', onClickLoadWatershed);
+    $popupLoadWatershed = $('#popup-load-watershed');
 
     $('[data-toggle="tooltip"]').tooltip();
 
@@ -713,7 +715,7 @@ function getHSWatershedList () {
                 if (response.hasOwnProperty('resources')) {
                     resources = JSON.parse(response.resources);
                     if (resources.length === 0) {
-                        $('#popup-load-watershed').find('.modal-body').html('<b>No watershed boundary resources found on HydroShare</b>');
+                        $popupLoadWatershed.find('.modal-body').html('<b>No watershed boundary resources found on HydroShare</b>');
                     } else {
                         resources.forEach(function (resource) {
                             resTableHtml += '<tr>' +
@@ -723,7 +725,7 @@ function getHSWatershedList () {
                                 '</tr>';
                         });
                         resTableHtml += '</tbody></table>';
-                        $('#popup-load-watershed').find('.modal-body').html(resTableHtml);
+                        $popupLoadWatershed.find('.modal-body').html(resTableHtml);
                         $btnLoadWatershed
                             .removeClass('hidden')
                             .prop('disabled', false);
@@ -782,7 +784,7 @@ function loadWatershed(resId) {
                 view = map.getView();
                 view.setCenter(ol.proj.fromLonLat(featureCenter));
                 view.setZoom(11);
-                $('#popup-load-watershed').modal('hide');
+                $popupLoadWatershed.modal('hide');
             }
             $btnLoadWatershed.prop('disabled', false);
         }
