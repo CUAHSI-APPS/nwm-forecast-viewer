@@ -499,9 +499,12 @@ def get_hs_watershed_list(request):
     if request.is_ajax() and request.method == 'GET':
         resources_list = []
         hs = get_hs_object(request)
+        creator = None
+        try:
+            creator = hs.getUserInfo()['username']
+        except Exception as e:
+            print str(e)
 
-        # owner = hs.getUserInfo()['username']
-        creator = 'scrawley'
         types = ['GenericResource']
 
         for resource in hs.getResourceList(types=types, creator=creator):
