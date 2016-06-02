@@ -3,6 +3,8 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, Http404
 from django.shortcuts import render_to_response
 from tethys_sdk.gizmos import SelectInput, ToggleSwitch, Button
+from django.conf import settings
+from hs_restclient import HydroShare, HydroShareAuthOAuth2
 
 import os
 import netCDF4 as nc
@@ -10,6 +12,8 @@ import json
 import datetime as dt
 import numpy as np
 
+hs_hostname = 'www.hydroshare.org'
+tmp_dir = '/tmp/nwm_temp'
 
 @login_required()
 def home(request):
@@ -489,3 +493,84 @@ def get_data_waterml(request):
             # xmlResponse['content-disposition'] = "attachment; filename=output-time-series.xml"
             # return xmlResponse
             raise Http404('A zip file download for all long range forecasts is in development.')
+
+
+def get_hs_res_list(request):
+    if request.is_ajax() and request.method == 'GET':
+        resources_list = []
+        hs = get_hs_object(request)
+
+        # owner = hs.getUserInfo()['username']
+        creator = 'scrawley'
+        types = ['GenericResource']
+
+        for resource in hs.getResourceList(types=types, creator=creator):
+            res_id = resource['resource_id']
+            try:
+                for res_file in hs.getResourceFileList(res_id):
+                    if 'watershed.geojson' in res_file['url']:
+                        resources_list.append({
+                            'title': resource['resource_title'],
+                            'id': res_id,
+                            'owner': resource['creator']
+                        })
+            except Exception as e:
+                print str(e)
+                continue
+
+        resources_json = json.dumps(resources_list)
+
+        return JsonResponse({
+            'success': 'Resources obtained successfully.',
+            'resources': resources_json
+        })
+
+
+def get_hs_object(request):
+    try:
+        hs = get_oauth_hs(request)
+    except Exception as e:
+        print str(e)
+        hs = HydroShare(hostname=hs_hostname, use_https=True)
+    return hs
+
+
+def get_oauth_hs(request):
+    global hs_hostname
+
+    client_id = getattr(settings, 'SOCIAL_AUTH_HYDROSHARE_KEY', 'None')
+    client_secret = getattr(settings, 'SOCIAL_AUTH_HYDROSHARE_SECRET', 'None')
+
+    # Throws django.core.exceptions.ObjectDoesNotExist if current user is not signed in via HydroShare OAuth
+    token = request.user.social_auth.get(provider='hydroshare').extra_data['token_dict']
+    auth = HydroShareAuthOAuth2(client_id, client_secret, token=token)
+
+    return HydroShare(auth=auth, hostname=hs_hostname, use_https=True)
+
+
+def load_watershed(request):
+    global tmp_dir
+    if not os.path.exists(tmp_dir):
+        os.mkdir(tmp_dir)
+
+    if request.is_ajax() and request.method == 'GET':
+        try:
+            hs = get_hs_object(request)
+            res_id = request.GET['res_id']
+            tmp_file = os.path.join(tmp_dir, 'watershed.geojson')
+            with open(tmp_file, 'wb') as f:
+                for chunk in hs.getResourceFile(pid=res_id, filename='watershed.geojson'):
+                    f.write(chunk)
+            with open(tmp_file) as f:
+                geojson = f.read()
+            os.remove(tmp_file)
+        except Exception as e:
+            print e
+            return JsonResponse({
+                'error': 'Failed to load watershed.',
+            })
+
+        return JsonResponse({
+            'success': 'Resources obtained successfully.',
+            'geojson': geojson
+        })

@@ -7,6 +7,10 @@ var comid;
 //Chart variables
 var nc_chart, seriesData, startDate, seriesDataGroup = [];
 
+generateResourceList();
+
+$('#btn-upload-res').on('click', uploadResourceButtonHandler);
+
 $('#config').on('change', function () {
     if ($('#config').val() === 'medium_range') {
         $('#endDate').addClass('hidden');
@@ -119,7 +123,7 @@ $(function () {
         $('#latInput').val(qLat);
         $('#startDate').val(qDate);
         $('#time').val(qTime);
-        
+
         if ($('#longInput').val() !== '-98' && $('#latInput').val() !== '38.5') {
             CenterMap(qLat, qLong);
             map.getView().setZoom(12);
@@ -192,7 +196,7 @@ $(function () {
             key: 'eLVu8tDRPeQqmBlKAjcw~82nOqZJe2EpKmqd-kQrSmg~AocUZ43djJ-hMBHQdYDyMbT-Enfsk0mtUIGws1WeDuOvjY4EXCH-9OK3edNLDgkc',
             imagerySet: 'AerialWithLabels'
         })
-	});
+    });
 
     var createLineStyleFunction = function() {
         return function(feature, resolution) {
@@ -235,13 +239,13 @@ $(function () {
         loader: function(extent, resolution, projection) {
             var url = serviceUrl + '/query/?f=json&geometry=' +
                 '{"xmin":' + extent[0] + ',"ymin":' + extent[1] + ',"xmax":' + extent[2] + ',"ymax":' + extent[3] +
-                    ',"spatialReference":{"wkid":102100}}&inSR=102100&outSR=102100';
+                ',"spatialReference":{"wkid":102100}}&inSR=102100&outSR=102100';
             $.ajax({url: url, dataType: 'jsonp', success: function(response) {
                 if (response.error) {
                     alert(response.error.message + '\n' +
                         response.error.details.join('\n'));
                 } else {
-                // dataProjection will be read from document
+                    // dataProjection will be read from document
                     var features = esrijsonFormat.readFeatures(response, {
                         featureProjection: projection
                     });
@@ -688,4 +692,83 @@ function calibrateModel(config, date) {
         interval = 3600 * 1000 * 6; // six hours
     };
     return {'interval': interval, 'start': start}
-};
+}
+
+function generateResourceList () {
+    $.ajax({
+        type: 'GET',
+        url: 'get-hs-res-list',
+        dataType: 'json',
+        error: function () {
+            // TODO
+        },
+        success: function (response) {
+            var resources,
+                resTableHtml = '<table id="tbl-resources"><thead><th></th><th>Title</th><th>Owner</th></thead><tbody>';
+
+            if (response.hasOwnProperty('success')) {
+                if (response.hasOwnProperty('resources')) {
+                    resources = JSON.parse(response.resources);
+                    if (resources.length === 0) {
+                        $('#popup-load-watershed').find('.modal-body').html('<b>No watershed boundary resources found on HydroShare</b>');
+                    } else {
+                        resources.forEach(function (resource) {
+                            resTableHtml += '<tr>' +
+                                '<td><input type="radio" name="resource" class="rdo-res" value="' + resource.id + '"></td>' +
+                                '<td class="res_title">' + resource.title + '</td>' +
+                                '<td class="res_owner">' + resource.owner + '</td>' +
+                                '</tr>';
+                        });
+                        resTableHtml += '</tbody></table>';
+                        $('#popup-load-watershed').find('.modal-body').html(resTableHtml);
+                        $('#btn-upload-res')
+                            .removeClass('hidden')
+                            .prop('disabled', false);
+                    }
+                }
+            }
+        }
+    });
+}
+
+function uploadResourceButtonHandler() {
+
+    $('#btn-upload-res').prop('disabled', true);
+    var $rdoRes = $('.rdo-res:checked'),
+        resId = $rdoRes.val();
+
+    loadWatershed(resId);
+}
+
+function loadWatershed(resId) {
+    $.ajax({
+        type: 'GET',
+        url: 'load-watershed',
+        dataType: 'json',
+        data: {
+            res_id: resId
+        },
+        error: function () {
+            console.error('Failed to load watershed!');
+        },
+        success: function (response) {
+            var view;
+            var geoJson;
+            var watershedLayer;
+
+            $('#btn-upload-res').prop('disabled', false);
+            if (response.hasOwnProperty('success')) {
+                geoJson = JSON.parse(response.geojson);
+                watershedLayer = new ol.layer.Vector({
+                    source: new ol.source.Vector({
+                        features: (new ol.format.GeoJSON()).readFeatures(geoJson)
+                    })
+                });
+                map.addLayer(watershedLayer);
+                view = map.getView();
+                view.setCenter(ol.proj.fromLonLat(geoJson.bbox.slice(0, 2)));
+                view.setZoom(10);
+            }
+        }
+    });
+}
