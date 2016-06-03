@@ -95,7 +95,11 @@ def home(request):
     if request.GET:
         #Make the waterml url query string
         config = request.GET['config']
-        comid = request.GET['COMID']
+        geom = request.GET['geom']
+        if geom != 'land':
+            comid = request.GET['COMID']
+        else:
+            comid = ','.join([request.GET['Y'], request.GET['X']])
         lon = request.GET['longitude']
         lat = request.GET['latitude']
         startDate = request.GET['startDate']
@@ -176,7 +180,10 @@ def get_netcdf_data(request):
         try:
             config = get_data['config']
             geom = get_data['geom']
-            comid = int(get_data['comid'])
+            if geom != 'land':
+                comid = int(get_data['comid'])
+            else:
+                comid = get_data['comid']
             startDate = get_data['startDate']
             time = get_data['time']
             lag = get_data['lag'].split(',')
@@ -203,9 +210,9 @@ def get_netcdf_data(request):
                     var = 'inflow'
                 elif geom == 'land':
                     comidList = comid.split(',')
-                    comidIndexY = comidList[0]
-                    comidIndexY = comidList[1]
-                    var = 'SNOWH'
+                    comidIndexY = int(comidList[0])
+                    comidIndexX = int(comidList[1])
+                    var = 'ACCET'
                 else:
                     return JsonResponse({'error': "Invalid netCDF file"})
 
@@ -219,8 +226,13 @@ def get_netcdf_data(request):
                 for ncf in nc_files:
                     local_file_path = os.path.join(localFileDir, ncf)
                     prediction_dataTemp = nc.Dataset(local_file_path, mode="r")
-                    q_outT = prediction_dataTemp.variables[var][comidIndex].tolist()
-                    q_out.append(round(q_outT * 35.3147, 4))
+
+                    if geom != 'land':
+                        q_outT = prediction_dataTemp.variables[var][comidIndex].tolist()
+                        q_out.append(round(q_outT * 35.3147, 4))
+                    else:
+                        q_outT = prediction_dataTemp.variables[var][0][comidIndexY][comidIndexX].tolist()
+                        q_out.append(round(q_outT * 0.0393701, 4))
 
                 ts_pairs_data[str(comid)] = [time, q_out, 'notLong']
 

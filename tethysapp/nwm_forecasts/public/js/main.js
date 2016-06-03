@@ -124,7 +124,13 @@ $(function () {
             $('#18z').parent().parent().removeClass('bootstrap-switch-off')
         };
 
-        $('#comidInput').val(qCOMID);
+        if (qGeom === 'channel_rt' || qGeom === 'reservoir') {
+            $('#comidInput').val(qCOMID);
+        } else if (qGeom === 'land') {
+            $('#gridInputY').val(qCOMID.split(',')[0]);
+            $('#gridInputX').val(qCOMID.split(',')[1]);
+        };
+
         $('#longInput').val(qLong);
         $('#latInput').val(qLat);
         $('#startDate').val(qDate);
@@ -434,7 +440,7 @@ function get_netcdf_chart_data(config, geom, comid, date, time, lag, endDate) {
                             startDate = d.setUTCSeconds(returned_tsPairsData[key][0]);
                             seriesData = returned_tsPairsData[key][1];
                             nc_chart.yAxis[0].setExtremes(null, null);
-                            plotData(config, seriesData, startDate);
+                            plotData(config, geom, seriesData, startDate);
                         } else {
 
                             for (j = 0; j < returned_tsPairsData[key].length; j++) {
@@ -446,7 +452,7 @@ function get_netcdf_chart_data(config, geom, comid, date, time, lag, endDate) {
                                         returned_tsPairsData[key][j][returned_tsPairsData[key][j].length - 1];
                                     seriesDataGroup.push([seriesDataTemp, seriesDesc, startDateG]);
                                     nc_chart.yAxis[0].setExtremes(null, null);
-                                    plotData(config, seriesDataTemp, startDateG, i - 1, seriesDesc);
+                                    plotData(config, geom, seriesDataTemp, startDateG, i - 1, seriesDesc);
                                 };
                             };
                         };
@@ -566,13 +572,22 @@ function initChart(config, startDate) {
     };
 }
 
-var plotData = function(config, data, start, colorIndex, seriesDesc) {
+var plotData = function(config, geom, data, start, colorIndex, seriesDesc) {
     $('#actionBtns').removeClass('hidden');
     var calib = calibrateModel(config, start)
+
+    if (geom !== 'land') {
+        var units = 'Streamflow (cfs)';
+    } else {
+        var units = 'Accumulated Total ET (Inches)';
+        nc_chart.yAxis[0].setTitle({text: units});
+        $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
+    };
+
     if (config !== 'long_range') {
         var data_series = {
             type: 'area',
-            name: 'Streamflow (cfs)',
+            name: units,
             data: data,
             pointStart: calib['start'],
             pointInterval: calib['interval']
@@ -587,7 +602,7 @@ var plotData = function(config, data, start, colorIndex, seriesDesc) {
             type: 'area',
             color: Highcharts.getOptions().colors[colorIndex],
             fillOpacity: 0.3,
-            name: seriesDesc + ' Streamflow (cfs)',
+            name: seriesDesc + ' ' + units,
             data: data,
             pointStart: start + (3600 * 1000 * 6),
             pointInterval: calib['interval']
@@ -629,9 +644,7 @@ function changeUnits(config) {
             nc_chart.addSeries(data_series);
         } else {
             nc_chart.series[0].remove();
-            nc_chart.yAxis[0].setTitle({
-                text: 'Streamflows (cfs)'
-            });
+            nc_chart.yAxis[0].setTitle({text: 'Streamflows (cfs)'});
             var data_series = {
                 type: 'area',
                 name: 'Streamflow (cfs)',
