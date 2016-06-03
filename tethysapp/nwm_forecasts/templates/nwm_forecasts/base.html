@@ -15,18 +15,20 @@
 {% block app_title %}{{ tethys_app.name }}{% endblock %}
 
 {% block app_navigation_items %}
-<button type="button" class="btn btn-default" data-toggle="modal" data-target="#popup-load-watershed">Add Watershed</button>
-<br><br>
+<button id="watershedBtn" type="button" class="btn btn-primary" data-toggle="modal" data-target="#popup-load-watershed">Add Watershed</button>
+<br /><br />
 <form id="paramForm" method="get" action="{% url 'nwm_forecasts:home' %}">
     {% gizmo select_input config_input %}
     {% gizmo select_input geom_input %}
-    <label class="control-label" for="comidInput">Enter COMID</label>
-    <input id="comidInput" name="COMID" type="text" class="form-control form-group" data-toggle="tooltip" data-placement="top"
-           title="Select stream reach from map or enter manually">
-    <div id="girdDiv" class="hidden">
-        <label class="control-label" for="comidInput">Enter Grid Cell "Y" Value</label>
+    <div id="comidDiv">
+      <label class="control-label" for="comidInput">Enter COMID</label>
+      <input id="comidInput" name="COMID" type="text" class="form-control form-group" data-toggle="tooltip"
+             data-placement="top" title="Select stream reach from map or enter manually">
+    </div>
+    <div id="gridDiv" class="hidden">
+        <label class="control-label" for="gridInputY">Enter Grid Cell "Y" Value</label>
         <input id="gridInputY" name="Y" type="text" class="form-control form-group" disabled>
-        <label class="control-label" for="comidInput">Enter Grid Cell "X" Value</label>
+        <label class="control-label" for="gridInputX">Enter Grid Cell "X" Value</label>
         <input id="gridInputX" name="X" type="text" class="form-control form-group" disabled>
     </div>
     <input id="longInput" name="longitude" type="text" value="-98" class="hidden">

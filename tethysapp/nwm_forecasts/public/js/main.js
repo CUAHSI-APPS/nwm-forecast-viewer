@@ -37,30 +37,21 @@ $('#config').on('change', function () {
 });
 
 
-// $('#geom').on('change', function () {
-//     if ($('#geom').val() === 'channel_rt') {
-//         $('#endDate').addClass('hidden');
-//         $('#endDateLabel').addClass('hidden');
-//         $('#time').parent().addClass('hidden');
-//         $('#time').val('06')
-//         $('#timeLag').addClass('hidden');
-//     } else if ($('#config').val() === 'long_range') {
-//         $('#endDate').addClass('hidden');
-//         $('#endDateLabel').addClass('hidden');
-//         $('#time').parent().addClass('hidden');
-//         $('#timeLag').removeClass('hidden');
-//     } else if ($('#config').val() === 'short_range') {
-//         $('#endDate').addClass('hidden');
-//         $('#endDateLabel').addClass('hidden');
-//         $('#time').parent().removeClass('hidden');
-//         $('#timeLag').addClass('hidden');
-//     } else if ($('#config').val() === 'analysis_assim'){
-//         $('#endDate').removeClass('hidden');
-//         $('#endDateLabel').removeClass('hidden');
-//         $('#time').parent().addClass('hidden');
-//         $('#timeLag').addClass('hidden');
-//     };
-// });
+$('#geom').on('change', function () {
+    if ($('#geom').val() === 'channel_rt' || $('#geom').val() === 'reservoir') {
+        $('#comidInput').attr('disabled', false);
+        $('#comidDiv').removeClass('hidden');
+        $('#gridInputY').attr('disabled', true);
+        $('#gridInputX').attr('disabled', true);
+        $('#gridDiv').addClass('hidden');
+    } else if ($('#geom').val() === 'land') {
+        $('#comidInput').attr('disabled', true);
+        $('#comidDiv').addClass('hidden');
+        $('#gridInputY').attr('disabled', false);
+        $('#gridInputX').attr('disabled', false);
+        $('#gridDiv').removeClass('hidden');
+    };
+});
 
 $(function () {
     $btnLoadWatershed = $('#btn-load-watershed');
@@ -85,14 +76,24 @@ $(function () {
 
     if (window.location.search.includes('?')) {
         var query = window.location.search.split("&");
-
-        var qLong = Number(query[3].substring(query[3].lastIndexOf("longitude=")+10));
-        var qLat = Number(query[4].substring(query[4].lastIndexOf("latitude=")+9));
+        
         var qConfig = query[0].substring(query[0].lastIndexOf("config=") + 7);
         var qGeom = query[1].substring(query[1].lastIndexOf("geom=") + 5);
-        var qCOMID = Number(query[2].substring(query[2].lastIndexOf("COMID=") + 6));
-        var qDate = query[5].substring(query[5].lastIndexOf("startDate=") + 10);
-        var qTime = query[6].substring(query[6].lastIndexOf("time=") + 5);
+        if (qGeom === 'channel_rt' || qGeom === 'reservoir') {
+            var qCOMID = Number(query[2].substring(query[2].lastIndexOf("COMID=") + 6));
+            var qLong = Number(query[3].substring(query[3].lastIndexOf("longitude=")+10));
+            var qLat = Number(query[4].substring(query[4].lastIndexOf("latitude=")+9));
+            var qDate = query[5].substring(query[5].lastIndexOf("startDate=") + 10);
+            var qTime = query[6].substring(query[6].lastIndexOf("time=") + 5);
+        } else {
+            var qCOMID = query[2].substring(query[2].lastIndexOf("Y=") + 2) + ',' +
+                query[3].substring(query[3].lastIndexOf("X=") + 2);
+            var qLong = Number(query[4].substring(query[4].lastIndexOf("longitude=")+10));
+            var qLat = Number(query[5].substring(query[5].lastIndexOf("latitude=")+9));
+            var qDate = query[6].substring(query[6].lastIndexOf("startDate=") + 10);
+            var qTime = query[7].substring(query[7].lastIndexOf("time=") + 5);
+        };
+        
         var qLag = [];
         var qDateEnd = query[query.length - 2].substring(query[query.length - 2].lastIndexOf("endDate=") + 8);
 
@@ -179,6 +180,8 @@ $(function () {
         $('#time').parent().addClass('hidden');
         $('#timeLag').addClass('hidden');
     };
+    
+    $( "#geom" ).trigger( "change" );
 
     /**********************************
      ********INITIALIZE LAYERS*********
