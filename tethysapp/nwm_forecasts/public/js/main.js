@@ -94,10 +94,10 @@ $(function () {
             var qLat = Number(query[5].substring(query[5].lastIndexOf("latitude=")+9));
             var qDate = query[6].substring(query[6].lastIndexOf("startDate=") + 10);
             var qTime = query[7].substring(query[7].lastIndexOf("time=") + 5);
-        };
+        }
 
         var qLag = [];
-        var qDateEnd = query[query.length - 2].substring(query[query.length - 2].lastIndexOf("endDate=") + 8);
+        var qDateEnd = query[query.length - 3].substring(query[query.length - 3].lastIndexOf("endDate=") + 8);
 
         $('#config').val(qConfig);
         $('#geom').val(qGeom);
@@ -109,29 +109,29 @@ $(function () {
         } else {
             $('#00z').attr('checked', false);
             $('#00z').parent().parent().addClass('bootstrap-switch-off')
-        };
+        }
         if (window.location.search.indexOf('06z') > -1) {
             qLag.push('06z');
             $('#06z').attr('checked', true);
             $('#06z').parent().parent().removeClass('bootstrap-switch-off')
-        };
+        }
         if (window.location.search.indexOf('12z') > -1) {
             qLag.push('12z');
             $('#12z').attr('checked', true);
             $('#12z').parent().parent().removeClass('bootstrap-switch-off')
-        };
+        }
         if (window.location.search.indexOf('18z') > -1) {
             qLag.push('18z');
             $('#18z').attr('checked', true);
             $('#18z').parent().parent().removeClass('bootstrap-switch-off')
-        };
+        }
 
         if (qGeom === 'channel_rt' || qGeom === 'reservoir') {
             $('#comidInput').val(qCOMID);
         } else if (qGeom === 'land') {
             $('#gridInputY').val(qCOMID.split(',')[0]);
             $('#gridInputX').val(qCOMID.split(',')[1]);
-        };
+        }
 
         $('#longInput').val(qLong);
         $('#latInput').val(qLat);
@@ -187,7 +187,7 @@ $(function () {
         $('#endDateLabel').removeClass('hidden');
         $('#time').parent().addClass('hidden');
         $('#timeLag').addClass('hidden');
-    };
+    }
 
     $( "#geom" ).trigger( "change" );
 
