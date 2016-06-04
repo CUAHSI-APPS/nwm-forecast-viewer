@@ -11,9 +11,11 @@ import netCDF4 as nc
 import json
 import datetime as dt
 import numpy as np
+import shapefile
+import tempfile
 
 hs_hostname = 'www.hydroshare.org'
-tmp_dir = '/tmp/nwm_temp'
+
 
 @login_required()
 def home(request):
@@ -90,10 +92,8 @@ def home(request):
                            attributes='id="submitBtn" form=paramForm value="Success"',
                            submit=True)
 
-
-
     if request.GET:
-        #Make the waterml url query string
+        # Make the waterml url query string
         config = request.GET['config']
         comid = request.GET['COMID']
         lon = request.GET['longitude']
@@ -101,6 +101,12 @@ def home(request):
         startDate = request.GET['startDate']
         endDate = request.GET['endDate']
         time = request.GET['time']
+
+        watershed_obj = None
+        if request.GET.get('watershed'):
+            watershed = request.GET['watershed']
+            args = watershed.split(':')
+            watershed_obj = get_geojson_from_hs_resource(args[0], args[1], request)
 
         lagList = []
         if '00z' in request.GET:
@@ -147,7 +153,8 @@ def home(request):
             # 'waterML_button': waterML_button,
             # 'HS_button': HS_button,
             # 'HSGIS_button': HSGIS_button,
-            'waterml_url': waterml_url
+            'waterml_url': waterml_url,
+            'watershed': watershed_obj
         }
 
         return render(request, 'nwm_forecasts/home.html', context)
@@ -496,37 +503,46 @@ def get_data_waterml(request):
 
 
 def get_hs_watershed_list(request):
+    response_obj = {}
     if request.is_ajax() and request.method == 'GET':
         resources_list = []
         hs = get_hs_object(request)
-        creator = None
-        try:
-            creator = hs.getUserInfo()['username']
-        except Exception as e:
-            print str(e)
-
-        types = ['GenericResource']
-
-        for resource in hs.getResourceList(types=types, creator=creator):
-            res_id = resource['resource_id']
+        if hs is None:
+            response_obj['error'] = 'You must be signed in through HydroShare to access this feature. ' \
+                                    'Please log out and then sign in again using your HydroShare account.'
+        else:
+            creator = None
             try:
-                for res_file in hs.getResourceFileList(res_id):
-                    if 'watershed.geojson' in res_file['url']:
-                        resources_list.append({
-                            'title': resource['resource_title'],
-                            'id': res_id,
-                            'owner': resource['creator']
-                        })
-            except Exception as e:
-                print str(e)
-                continue
+                creator = hs.getUserInfo()['username']
+            except Exception:
+                pass
 
-        resources_json = json.dumps(resources_list)
+            valid_res_types = ['GenericResource', 'GeographicFeatureResource']
+            valid_file_extensions = ['.shp', '.geojson']
 
-        return JsonResponse({
-            'success': 'Resources obtained successfully.',
-            'resources': resources_json
-        })
+            for resource in hs.getResourceList(types=valid_res_types, creator=creator):
+                res_id = resource['resource_id']
+                try:
+                    for res_file in hs.getResourceFileList(res_id):
+                        filename = os.path.basename(res_file['url'])
+                        if os.path.splitext(filename)[1] in valid_file_extensions:
+                            resources_list.append({
+                                'title': resource['resource_title'],
+                                'id': res_id,
+                                'owner': resource['creator'],
+                                'filename': filename
+                            })
+                            break
+                except Exception as e:
+                    print str(e)
+                    continue
+
+            resources_json = json.dumps(resources_list)
+
+            response_obj['success'] = 'Resources obtained successfully.'
+            response_obj['resources'] = resources_json
+
+        return JsonResponse(response_obj)
 
 
 def get_hs_object(request):
@@ -534,7 +550,7 @@ def get_hs_object(request):
         hs = get_oauth_hs(request)
     except Exception as e:
         print str(e)
-        hs = HydroShare(hostname=hs_hostname, use_https=True)
+        hs = None
     return hs
 
 
@@ -552,28 +568,59 @@ def get_oauth_hs(request):
 
 
 def load_watershed(request):
-    global tmp_dir
-    if not os.path.exists(tmp_dir):
-        os.mkdir(tmp_dir)
+    geojson_str = None
 
     if request.is_ajax() and request.method == 'GET':
-        try:
-            hs = get_hs_object(request)
-            res_id = request.GET['res_id']
-            tmp_file = os.path.join(tmp_dir, 'watershed.geojson')
-            with open(tmp_file, 'wb') as f:
-                for chunk in hs.getResourceFile(pid=res_id, filename='watershed.geojson'):
-                    f.write(chunk)
-            with open(tmp_file) as f:
-                geojson_str = f.read()
-            os.remove(tmp_file)
-        except Exception as e:
-            print e
-            return JsonResponse({
-                'error': 'Failed to load watershed.',
-            })
+        res_id = str(request.GET['res_id'])
+        filename = str(request.GET['filename'])
+        response_obj = get_geojson_from_hs_resource(res_id, filename, request)
+        return JsonResponse(response_obj)
 
-        return JsonResponse({
-            'success': 'Resources obtained successfully.',
-            'geojson_str': geojson_str
-        })
+
+def get_geojson_from_hs_resource(res_id, filename, request):
+    response_obj = {}
+    try:
+        hs = get_hs_object(request)
+
+        if filename.endswith('.geojson'):
+            geojson_str = str(hs.getResourceFile(pid=res_id, filename=filename).next())
+
+            response_obj['type'] = 'geojson'
+
+        elif filename.endswith('.shp'):
+            proj_str = str(hs.getResourceFile(pid=res_id, filename=filename.replace('.shp', '.prj')).next())
+            '''
+            Credit: The following code was adapted from https://gist.github.com/frankrowe/6071443
+            '''
+            # Read the shapefile-like object
+            with tempfile.TemporaryFile() as f1:
+                for chunk in hs.getResourceFile(pid=res_id, filename=filename):
+                    f1.write(chunk)
+                with tempfile.TemporaryFile() as f2:
+                    for chunk in hs.getResourceFile(pid=res_id, filename=filename.replace('.shp', '.dbf')):
+                        f2.write(chunk)
+
+                    shp_reader = shapefile.Reader(shp=f1, dbf=f2)
+                    fields = shp_reader.fields[1:]
+                    field_names = [field[0] for field in fields]
+                    shp_buffer = []
+                    for sr in shp_reader.shapeRecords():
+                        atr = dict(zip(field_names, sr.record))
+                        geom = sr.shape.__geo_interface__
+                        shp_buffer.append(dict(type="Feature", geometry=geom, properties=atr))
+
+            # Write the GeoJSON object
+            geojson_str = json.dumps({"type": "FeatureCollection", "features": shp_buffer})
+            '''
+            End credit
+            '''
+            response_obj['proj_str'] = proj_str
+
+        response_obj['success'] = 'Geojson obtained successfully.'
+        response_obj['geojson_str'] = geojson_str
+
+    except Exception as e:
+        print e
+        response_obj['error'] = 'Failed to load watershed.'
+
+    return response_obj

@@ -1,5 +1,5 @@
 //Map variables
-var map, base_layer, all_streams_layer, selected_streams_layer;
+var map, mapView, base_layer, all_streams_layer, selected_streams_layer;
 
 // NHD variables
 var comid;
@@ -33,7 +33,7 @@ $('#config').on('change', function () {
         $('#endDateLabel').removeClass('hidden');
         $('#time').parent().addClass('hidden');
         $('#timeLag').addClass('hidden');
-    };
+    }
 });
 
 
@@ -83,6 +83,8 @@ $(function () {
         })
     });
 
+    mapView = map.getView();
+
     if (window.location.search.includes('?')) {
         var query = window.location.search.split("&");
 
@@ -131,7 +133,7 @@ $(function () {
 
         if ($('#longInput').val() !== '-98' && $('#latInput').val() !== '38.5') {
             CenterMap(qLat, qLong);
-            map.getView().setZoom(12);
+            mapView.setZoom(12);
 
             var wktval = "POINT(" + qLong + " " + qLat + ")";
             var options = {
@@ -151,7 +153,7 @@ $(function () {
                 "optClientRef": "CodePen"
             };
             WATERS.Services.PointIndexingService(data, options);
-        };
+        }
 
         initChart(qConfig, startDate, seriesData);
 
@@ -178,7 +180,7 @@ $(function () {
         $('#endDateLabel').removeClass('hidden');
         $('#time').parent().addClass('hidden');
         $('#timeLag').addClass('hidden');
-    };
+    }
 
     /**********************************
      ********INITIALIZE LAYERS*********
@@ -188,8 +190,8 @@ $(function () {
     map.on('click', function(evt) {
         var coordinate = evt.coordinate;
         lonlat = ol.proj.transform(coordinate, 'EPSG:3857', 'EPSG:4326');
-        if (map.getView().getZoom()<12) {
-            map.getView().setZoom(12);
+        if (mapView.getZoom()<12) {
+            mapView.setZoom(12);
             CenterMap(lonlat[1],lonlat[0]);
         }
 
@@ -291,7 +293,7 @@ function CenterMap(lat,lon){
         "coordinates": [lon, lat]
     };
     var coords = ol.proj.transform(dbPoint.coordinates, 'EPSG:4326','EPSG:3857');
-    map.getView().setCenter(coords);
+    mapView.setCenter(coords);
 }
 
 /****************************************
@@ -369,7 +371,7 @@ function pis_error(XMLHttpRequest, textStatus, errorThrown) {
 function report_failed_search(MessageText){
     //Set the message of the bad news
     $('#info').append('<strong>Search Results:</strong><br>' + MessageText);
-    map.getView().setZoom(4);
+    mapView.setZoom(4);
 }
 
 function geojson2feature(myGeoJSON) {
@@ -704,9 +706,6 @@ function getHSWatershedList () {
         type: 'GET',
         url: 'get-hs-watershed-list',
         dataType: 'json',
-        error: function () {
-            // TODO
-        },
         success: function (response) {
             var resources,
                 resTableHtml = '<table id="tbl-watersheds"><thead><th></th><th>Title</th><th>Owner</th></thead><tbody>';
@@ -715,11 +714,11 @@ function getHSWatershedList () {
                 if (response.hasOwnProperty('resources')) {
                     resources = JSON.parse(response.resources);
                     if (resources.length === 0) {
-                        $popupLoadWatershed.find('.modal-body').html('<b>No watershed boundary resources found on HydroShare</b>');
+                        $popupLoadWatershed.find('.modal-body').html('<b>It appears that you do not own any valid HydroShare resources.</b>');
                     } else {
                         resources.forEach(function (resource) {
                             resTableHtml += '<tr>' +
-                                '<td><input type="radio" name="resource" class="rdo-res" value="' + resource.id + '"></td>' +
+                                '<td><input type="radio" name="resource" class="rdo-res" data-filename="' + resource.filename + '" value="' + resource.id + '"></td>' +
                                 '<td class="res_title">' + resource.title + '</td>' +
                                 '<td class="res_owner">' + resource.owner + '</td>' +
                                 '</tr>';
@@ -731,6 +730,8 @@ function getHSWatershedList () {
                             .prop('disabled', false);
                     }
                 }
+            } else if (response.hasOwnProperty('error')) {
+                $popupLoadWatershed.find('.modal-body').html('<h6>' + response.error + '</h6>');
             }
         }
     });
@@ -739,54 +740,75 @@ function getHSWatershedList () {
 function onClickLoadWatershed() {
 
     $btnLoadWatershed.prop('disabled', true);
-    var $rdoRes = $('.rdo-res:checked'),
-        resId = $rdoRes.val();
+    var $rdoRes = $('.rdo-res:checked');
+    var resId = $rdoRes.val();
+    var filename = $rdoRes.attr('data-filename');
 
-    loadWatershed(resId);
+    loadWatershed(resId, filename);
 }
 
-function loadWatershed(resId) {
+function loadWatershed(resId, filename) {
     $.ajax({
         type: 'GET',
         url: 'load-watershed',
         dataType: 'json',
         data: {
-            res_id: resId
+            res_id: resId,
+            filename: filename
         },
         error: function () {
             console.error('Failed to load watershed!');
         },
         success: function (response) {
-            var view;
-            var geoJson;
-            var geometry;
-            var minX, maxX, minY, maxY, featureCenter;
-            var watershedLayer;
+            $('#watershed_polygon_id').val(resId + ':' + filename);
             if (response.hasOwnProperty('success')) {
-                geoJson = JSON.parse(response.geojson_str);
-                geometry = new ol.format.GeoJSON({
-                    defaultDataProjection: 'EPSG:3857'
-                }).readGeometry(geoJson);
-                geometry.transform('EPSG:4326', 'EPSG:3857');
-                watershedLayer = new ol.layer.Vector({
-                    source: new ol.source.Vector({
-                        features: [
-                            new ol.Feature(geometry)
-                        ]
-                    })
-                });
-                minX = geoJson.bbox[0];
-                maxX = geoJson.bbox[2];
-                minY = geoJson.bbox[1];
-                maxY = geoJson.bbox[3];
-                featureCenter = [minX + (maxX-minX)/2, minY + (maxY-minY)/2];
-                map.addLayer(watershedLayer);
-                view = map.getView();
-                view.setCenter(ol.proj.fromLonLat(featureCenter));
-                view.setZoom(11);
+                addGeojsonLayerToMap(response.geojson_str, response.proj_str, true);
                 $popupLoadWatershed.modal('hide');
+            } else {
+                alert(response.error);
             }
             $btnLoadWatershed.prop('disabled', false);
         }
     });
+}
+
+function addGeojsonLayerToMap(geojsonStr, projStr, zoomTo) {
+    var geoJson;
+    var geometry;
+    var watershedLayer;
+    var geoJsonReproj;
+
+    geojsonStr = geojsonStr.replace(/&quot;/g, '"'); // Unencode the encoded double-quotes
+
+    geoJson = JSON.parse(geojsonStr);
+
+    if (!(projStr === null || projStr === undefined || projStr === '')) {
+        projStr = projStr.replace(/&quot;/g, '"'); // Unencode the encoded double-quotes
+        proj4.defs('new_projection', projStr);
+        if (projStr) {
+            geoJsonReproj = reproject(geoJson, proj4('new_projection'), proj4('EPSG:3857'));
+            watershedLayer = new ol.layer.Vector({
+                source: new ol.source.Vector({
+                    features: (new ol.format.GeoJSON()).readFeatures(geoJsonReproj)
+                })
+            });
+        }
+    } else {
+        geometry = new ol.format.GeoJSON({
+            defaultDataProjection: 'EPSG:3857'
+        }).readGeometry(geoJson);
+        geometry.transform('EPSG:4326', 'EPSG:3857');
+        watershedLayer = new ol.layer.Vector({
+            source: new ol.source.Vector({
+                features: [
+                    new ol.Feature(geometry)
+                ]
+            })
+        });
+    }
+
+    map.addLayer(watershedLayer);
+    if (zoomTo) {
+        mapView.fit(watershedLayer.getSource().getExtent(), map.getSize());
+    }
 }
