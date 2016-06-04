@@ -639,6 +639,7 @@ def get_geojson_from_hs_resource(res_id, filename, request):
 
         response_obj['success'] = 'Geojson obtained successfully.'
         response_obj['geojson_str'] = geojson_str
+        response_obj['id'] = '%s:%s' % (res_id, filename)
 
     except Exception as e:
         print e

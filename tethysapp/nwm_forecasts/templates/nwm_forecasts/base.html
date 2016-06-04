@@ -71,10 +71,9 @@
 
         <label id="endDateLabel" class="control-label hidden" for="endDate">Enter Ending Date</label>
         {% gizmo date_picker end_date %}
-        <input type="text" id="watershed_polygon_id" name="watershed" hidden>
+        <input type="text" id="input-watershed-id" name="watershed" hidden>
     </form>
     {% gizmo button submit_button %}
-    <div id="test-it"></div>
 
 {% endblock %}
 
@@ -105,7 +104,7 @@
         {% if watershed.success %}
             <script>
                 $(function () {
-                    addGeojsonLayerToMap('{{watershed.geojson_str}}', '{{watershed.proj_str}}', false);
+                    addGeojsonLayerToMap('{{watershed.geojson_str}}', '{{watershed.proj_str}}', '{{ watershed.id }}', false);
                 });
             </script>
         {% endif %}

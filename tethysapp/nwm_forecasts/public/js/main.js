@@ -78,7 +78,7 @@ $(function () {
 
     if (window.location.search.includes('?')) {
         var query = window.location.search.split("&");
-        
+
         var qConfig = query[0].substring(query[0].lastIndexOf("config=") + 7);
         var qGeom = query[1].substring(query[1].lastIndexOf("geom=") + 5);
         if (qGeom === 'channel_rt' || qGeom === 'reservoir') {
@@ -95,7 +95,7 @@ $(function () {
             var qDate = query[6].substring(query[6].lastIndexOf("startDate=") + 10);
             var qTime = query[7].substring(query[7].lastIndexOf("time=") + 5);
         };
-        
+
         var qLag = [];
         var qDateEnd = query[query.length - 2].substring(query[query.length - 2].lastIndexOf("endDate=") + 8);
 
@@ -188,7 +188,7 @@ $(function () {
         $('#time').parent().addClass('hidden');
         $('#timeLag').addClass('hidden');
     };
-    
+
     $( "#geom" ).trigger( "change" );
 
     /**********************************
@@ -775,20 +775,19 @@ function loadWatershed(resId, filename) {
         error: function () {
             console.error('Failed to load watershed!');
         },
-        success: function (response) {
-            $('#watershed_polygon_id').val(resId + ':' + filename);
-            if (response.hasOwnProperty('success')) {
-                addGeojsonLayerToMap(response.geojson_str, response.proj_str, true);
+        success: function (watershed) {
+            if (watershed.hasOwnProperty('success')) {
+                addGeojsonLayerToMap(watershed.geojson_str, watershed.proj_str, watershed.id, true);
                 $popupLoadWatershed.modal('hide');
             } else {
-                alert(response.error);
+                alert(watershed.error);
             }
             $btnLoadWatershed.prop('disabled', false);
         }
     });
 }
 
-function addGeojsonLayerToMap(geojsonStr, projStr, zoomTo) {
+function addGeojsonLayerToMap(geojsonStr, projStr, watershedId, zoomTo) {
     var geoJson;
     var geometry;
     var watershedLayer;
@@ -827,4 +826,5 @@ function addGeojsonLayerToMap(geojsonStr, projStr, zoomTo) {
     if (zoomTo) {
         mapView.fit(watershedLayer.getSource().getExtent(), map.getSize());
     }
+    $('#input-watershed-id').val(watershedId);
 }
