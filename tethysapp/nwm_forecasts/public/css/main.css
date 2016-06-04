@@ -9,7 +9,7 @@ p {
     color: #333;
 }
 
-#submitBtn {
+#submitBtn, #watershedBtn {
     width: 270px;
 }
 

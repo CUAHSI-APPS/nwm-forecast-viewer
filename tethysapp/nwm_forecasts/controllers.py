@@ -95,7 +95,11 @@ def home(request):
     if request.GET:
         # Make the waterml url query string
         config = request.GET['config']
-        comid = request.GET['COMID']
+        geom = request.GET['geom']
+        if geom != 'land':
+            comid = request.GET['COMID']
+        else:
+            comid = ','.join([request.GET['Y'], request.GET['X']])
         lon = request.GET['longitude']
         lat = request.GET['latitude']
         startDate = request.GET['startDate']
@@ -183,7 +187,10 @@ def get_netcdf_data(request):
         try:
             config = get_data['config']
             geom = get_data['geom']
-            comid = int(get_data['comid'])
+            if geom != 'land':
+                comid = int(get_data['comid'])
+            else:
+                comid = get_data['comid']
             startDate = get_data['startDate']
             time = get_data['time']
             lag = get_data['lag'].split(',')
@@ -208,6 +215,11 @@ def get_netcdf_data(request):
                     comidList = prediction_data.variables['lake_id'][:]
                     comidIndex = int(np.where(comidList == comid)[0])
                     var = 'inflow'
+                elif geom == 'land':
+                    comidList = comid.split(',')
+                    comidIndexY = int(comidList[0])
+                    comidIndexX = int(comidList[1])
+                    var = 'ACCET'
                 else:
                     return JsonResponse({'error': "Invalid netCDF file"})
 
@@ -221,8 +233,13 @@ def get_netcdf_data(request):
                 for ncf in nc_files:
                     local_file_path = os.path.join(localFileDir, ncf)
                     prediction_dataTemp = nc.Dataset(local_file_path, mode="r")
-                    q_outT = prediction_dataTemp.variables[var][comidIndex].tolist()
-                    q_out.append(round(q_outT * 35.3147, 4))
+
+                    if geom != 'land':
+                        q_outT = prediction_dataTemp.variables[var][comidIndex].tolist()
+                        q_out.append(round(q_outT * 35.3147, 4))
+                    else:
+                        q_outT = prediction_dataTemp.variables[var][0][comidIndexY][comidIndexX].tolist()
+                        q_out.append(round(q_outT * 0.0393701, 4))
 
                 ts_pairs_data[str(comid)] = [time, q_out, 'notLong']
 
@@ -425,9 +442,12 @@ def getTimeSeries(comid, date, time, config, lag=''):
         return ts_group
 
 
-def format_time_series(startDate, ts, nodata_value):
+def format_time_series(config, startDate, ts, time, nodata_value):
     nDays = len(ts)
-    datelist = [dt.datetime.strptime(startDate, "%Y-%m-%d") + dt.timedelta(days=x) for x in range(0,nDays)]
+    if config == 'short_range' or config == 'analysis_assim':
+        datelist = [dt.datetime.strptime(startDate, "%Y-%m-%d") + dt.timedelta(hours=x + int(time) +1) for x in range(0,nDays)]
+    elif config == 'medium_range':
+        datelist = [dt.datetime.strptime(startDate, "%Y-%m-%d") + dt.timedelta(hours=x+9) for x in range(0, nDays*3, 3)]
     formatted_ts = []
     for i in range(0, nDays):
         formatted_val = ts[i]
@@ -436,6 +456,7 @@ def format_time_series(startDate, ts, nodata_value):
         formatted_date = datelist[i].strftime('%Y-%m-%dT%H:%M:%S')
         formatted_ts.append({'date':formatted_date, 'val':formatted_val})
 
+    print len(ts), formatted_ts, '********************'
     return formatted_ts
 
 
@@ -461,7 +482,7 @@ def get_data_waterml(request):
         nodata_value = -9999
         if config != 'long_range':
             ts = getTimeSeries(comid, start, time, config)
-            time_series = format_time_series(start, ts, nodata_value)
+            time_series = format_time_series(config, start, ts, time, nodata_value)
             site_name = get_site_name(float(lat), float(lon))
             context = {
                 'config': config,
@@ -482,7 +503,7 @@ def get_data_waterml(request):
             #     ts_group = getTimeSeries(comid, start, time, config, lg)
             #     ts_group_formatted = []
             #     for ts in ts_group[0:-1]:
-            #         ts_group_formatted.append(format_time_series(ts_group[-1], ts, nodata_value))
+            #         ts_group_formatted.append(format_time_series(config, ts_group[-1], ts, nodata_value))
             #     site_name = lg + ' ' + get_site_name(float(lat), float(lon))
             #     for ts_f in ts_group_formatted:
             #         context = {
