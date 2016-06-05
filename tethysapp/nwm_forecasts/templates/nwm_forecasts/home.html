@@ -4,16 +4,41 @@
 {% load staticfiles %}
 
 {% block app_content %}
-  <div id="map-view" class="noGraph"></div>
-  <div id="info" class="hidden"></div>
-  <br />
-  <div id="nc-chart" class="hidden"></div>
+<div id="map-view" class="noGraph"></div>
+<div id="info" class="hidden"></div>
+<br />
+<div id="nc-chart" class="hidden"></div>
+{% endblock %}
+
+{% block app_content_wrapper_override %}
+<!-- Modal  -->
+<div class="modal fade" id="popup-load-watershed" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Add a watershed from HydroShare</h4>
+            </div>
+            <div class="modal-body">
+                <b>Searching for available watersheds on HydroShare...</b>
+                <br>
+                <img src="/static/nwm_forecasts/images/loading-animation.gif">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" id="close-popup" data-dismiss="modal">Close</button>
+                <button type="button" id="btn-load-watershed" class="btn btn-default hidden" disabled>Add</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- End Modal -->
+{{block.super}}
 {% endblock %}
 
 {% block app_actions %}
-  <div id="actionBtns" class="hidden">
+<div id="actionBtns" class="hidden">
     {% if waterml_url %}
-      <a id="WMLbtn" target="_blank" href="{% url 'nwm_forecasts:waterml' %}{{waterml_url}}" class="btn btn-default">Get WaterML</a>
+    <a id="WMLbtn" target="_blank" href="{% url 'nwm_forecasts:waterml' %}{{waterml_url}}" class="btn btn-default">Get WaterML</a>
     {% endif %}
-  </div>
+</div>
 {% endblock %}

@@ -8,15 +8,14 @@ class nwmForecasts(TethysAppBase):
 
     name = 'National Water Model Forecast Viewer'
     index = 'nwm_forecasts:home'
-    icon = 'nwm_forecasts/images/icon.gif'
+    icon = 'nwm_forecasts/images/nwm_forecasts.png'
     package = 'nwm_forecasts'
     root_url = 'nwm-forecasts'
     color = '#e74c3c'
-    description= 'This app allows the user to visualize National Water Model forecasts for a specific NHD stream reach.'
+    description= 'This app allows the user to visualize National Water Model forecasts.'
     enable_feedback = False
     feedback_emails = []
 
-        
     def url_maps(self):
         """
         Add controllers
@@ -32,6 +31,12 @@ class nwmForecasts(TethysAppBase):
                     UrlMap(name='waterml',
                            url='nwm-forecasts/waterml',
                            controller='nwm_forecasts.controllers.get_data_waterml'),
+                    UrlMap(name='get_hs_watershed_list',
+                           url='nwm-forecasts/get-hs-watershed-list',
+                           controller='nwm_forecasts.controllers.get_hs_watershed_list'),
+                    UrlMap(name='load_watershed',
+                           url='nwm-forecasts/load-watershed',
+                           controller='nwm_forecasts.controllers.load_watershed')
                     )
 
         return url_maps

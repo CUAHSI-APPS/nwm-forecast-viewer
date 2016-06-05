@@ -1,108 +1,68 @@
-//variables related to the map
-var map, base_layer, all_streams_layer, selected_streams_layer;
-var flag_geocoded;
+//Map variables
+var map, mapView, base_layer, all_streams_layer, selected_streams_layer;
 
-//variables related to the delineation process
-var comid, fmeasure, gnis_name, wbd_huc12;
+// NHD variables
+var comid;
 
-//variables related to the netcdf chart
-var defaultChartSettings, nc_chart, plotCounter = 1, chartShowingBmks = false;
+//Chart variables
+var nc_chart, seriesData, startDate, seriesDataGroup = [];
 
-//jQuery handles
-var infoDiv = $('#info');
-var chartDiv =  $('#nc-chart');
-var actionBtnsDiv = $('#actionBtns');
+//jQuery handle variables
+var $btnLoadWatershed;
+var $popupLoadWatershed;
 
-$('#config'). on('change', function () {
+$('#config').on('change', function () {
     if ($('#config').val() === 'medium_range') {
+        $('#endDate').addClass('hidden');
+        $('#endDateLabel').addClass('hidden');
         $('#time').parent().addClass('hidden');
         $('#time').val('06')
-
-    } else if ($('#config').val() === 'long_range_mem1' || $('#config').val() === 'long_range_mem2' ||
-        $('#config').val() === 'long_range_mem3' || $('#config').val() === 'long_range_mem4') {
-        $('#time').val('00')
-        $('#time').parent().removeClass('hidden');
-
-        $('#time option:contains("01")').prop("hidden", true);
-        $('#time option:contains("02")').prop("hidden", true);
-        $('#time option:contains("03")').prop("hidden", true);
-        $('#time option:contains("04")').prop("hidden", true);
-        $('#time option:contains("05")').prop("hidden", true);
-        $('#time option:contains("07")').prop("hidden", true);
-        $('#time option:contains("08")').prop("hidden", true);
-        $('#time option:contains("09")').prop("hidden", true);
-        $('#time option:contains("10")').prop("hidden", true);
-        $('#time option:contains("11")').prop("hidden", true);
-        $('#time option:contains("13")').prop("hidden", true);
-        $('#time option:contains("14")').prop("hidden", true);
-        $('#time option:contains("15")').prop("hidden", true);
-        $('#time option:contains("16")').prop("hidden", true);
-        $('#time option:contains("17")').prop("hidden", true);
-        $('#time option:contains("19")').prop("hidden", true);
-        $('#time option:contains("20")').prop("hidden", true);
-        $('#time option:contains("21")').prop("hidden", true);
-        $('#time option:contains("22")').prop("hidden", true);
-        $('#time option:contains("23")').prop("hidden", true);
-
+        $('#timeLag').addClass('hidden');
+    } else if ($('#config').val() === 'long_range') {
+        $('#endDate').addClass('hidden');
+        $('#endDateLabel').addClass('hidden');
+        $('#time').parent().addClass('hidden');
+        $('#timeLag').removeClass('hidden');
     } else if ($('#config').val() === 'short_range') {
-        $('#time').val('00')
+        $('#endDate').addClass('hidden');
+        $('#endDateLabel').addClass('hidden');
         $('#time').parent().removeClass('hidden');
-        $('#time option:contains("01")').prop("hidden", false);
-        $('#time option:contains("02")').prop("hidden", false);
-        $('#time option:contains("03")').prop("hidden", false);
-        $('#time option:contains("04")').prop("hidden", false);
-        $('#time option:contains("05")').prop("hidden", false);
-        $('#time option:contains("07")').prop("hidden", false);
-        $('#time option:contains("08")').prop("hidden", false);
-        $('#time option:contains("09")').prop("hidden", false);
-        $('#time option:contains("10")').prop("hidden", false);
-        $('#time option:contains("11")').prop("hidden", false);
-        $('#time option:contains("13")').prop("hidden", false);
-        $('#time option:contains("14")').prop("hidden", false);
-        $('#time option:contains("15")').prop("hidden", false);
-        $('#time option:contains("16")').prop("hidden", false);
-        $('#time option:contains("17")').prop("hidden", false);
-        $('#time option:contains("19")').prop("hidden", false);
-        $('#time option:contains("20")').prop("hidden", false);
-        $('#time option:contains("21")').prop("hidden", false);
-        $('#time option:contains("22")').prop("hidden", false);
-        $('#time option:contains("23")').prop("hidden", false);
+        $('#timeLag').addClass('hidden');
+    } else if ($('#config').val() === 'analysis_assim'){
+        $('#endDate').removeClass('hidden');
+        $('#endDateLabel').removeClass('hidden');
+        $('#time').parent().addClass('hidden');
+        $('#timeLag').addClass('hidden');
     }
 });
 
-$(function () {
-    if ($('#config').val() === 'medium_range') {
-        $('#time').parent().addClass('hidden');
-    } else if ($('#config').val() === 'long_range_mem1' || $('#config').val() === 'long_range_mem2' ||
-        $('#config').val() === 'long_range_mem3' || $('#config').val() === 'long_range_mem4') {
-        $('#time').val('00')
-        $('#time').parent().removeClass('hidden');
 
-        $('#time option:contains("01")').prop("hidden", true);
-        $('#time option:contains("02")').prop("hidden", true);
-        $('#time option:contains("03")').prop("hidden", true);
-        $('#time option:contains("04")').prop("hidden", true);
-        $('#time option:contains("05")').prop("hidden", true);
-        $('#time option:contains("07")').prop("hidden", true);
-        $('#time option:contains("08")').prop("hidden", true);
-        $('#time option:contains("09")').prop("hidden", true);
-        $('#time option:contains("10")').prop("hidden", true);
-        $('#time option:contains("11")').prop("hidden", true);
-        $('#time option:contains("13")').prop("hidden", true);
-        $('#time option:contains("14")').prop("hidden", true);
-        $('#time option:contains("15")').prop("hidden", true);
-        $('#time option:contains("16")').prop("hidden", true);
-        $('#time option:contains("17")').prop("hidden", true);
-        $('#time option:contains("19")').prop("hidden", true);
-        $('#time option:contains("20")').prop("hidden", true);
-        $('#time option:contains("21")').prop("hidden", true);
-        $('#time option:contains("22")').prop("hidden", true);
-        $('#time option:contains("23")').prop("hidden", true);
-
+$('#geom').on('change', function () {
+    if ($('#geom').val() === 'channel_rt' || $('#geom').val() === 'reservoir') {
+        $('#comidInput').attr('disabled', false);
+        $('#comidDiv').removeClass('hidden');
+        $('#gridInputY').attr('disabled', true);
+        $('#gridInputX').attr('disabled', true);
+        $('#gridDiv').addClass('hidden');
+    } else if ($('#geom').val() === 'land') {
+        $('#comidInput').attr('disabled', true);
+        $('#comidDiv').addClass('hidden');
+        $('#gridInputY').attr('disabled', false);
+        $('#gridInputX').attr('disabled', false);
+        $('#gridDiv').removeClass('hidden');
     };
+});
+
+$(function () {
+    $btnLoadWatershed = $('#btn-load-watershed');
+    getHSWatershedList();
+    $btnLoadWatershed.on('click', onClickLoadWatershed);
+    $popupLoadWatershed = $('#popup-load-watershed');
+
+    $('[data-toggle="tooltip"]').tooltip();
 
     /**********************************
-     ****INITIALIZE MAP AND LAYERS*****
+     **********INITIALIZE MAP *********
      **********************************/
     map = new ol.Map({
         target: 'map-view',
@@ -114,15 +74,136 @@ $(function () {
         })
     });
 
+    mapView = map.getView();
+
+    if (window.location.search.includes('?')) {
+        var query = window.location.search.split("&");
+
+        var qConfig = query[0].substring(query[0].lastIndexOf("config=") + 7);
+        var qGeom = query[1].substring(query[1].lastIndexOf("geom=") + 5);
+        if (qGeom === 'channel_rt' || qGeom === 'reservoir') {
+            var qCOMID = Number(query[2].substring(query[2].lastIndexOf("COMID=") + 6));
+            var qLong = Number(query[3].substring(query[3].lastIndexOf("longitude=")+10));
+            var qLat = Number(query[4].substring(query[4].lastIndexOf("latitude=")+9));
+            var qDate = query[5].substring(query[5].lastIndexOf("startDate=") + 10);
+            var qTime = query[6].substring(query[6].lastIndexOf("time=") + 5);
+        } else {
+            var qCOMID = query[2].substring(query[2].lastIndexOf("Y=") + 2) + ',' +
+                query[3].substring(query[3].lastIndexOf("X=") + 2);
+            var qLong = Number(query[4].substring(query[4].lastIndexOf("longitude=")+10));
+            var qLat = Number(query[5].substring(query[5].lastIndexOf("latitude=")+9));
+            var qDate = query[6].substring(query[6].lastIndexOf("startDate=") + 10);
+            var qTime = query[7].substring(query[7].lastIndexOf("time=") + 5);
+        }
+
+        var qLag = [];
+        var qDateEnd = query[query.length - 3].substring(query[query.length - 3].lastIndexOf("endDate=") + 8);
+
+        $('#config').val(qConfig);
+        $('#geom').val(qGeom);
+
+        if (window.location.search.indexOf('00z') > -1) {
+            qLag.push('00z');
+            $('#00z').attr('checked', true);
+            $('#00z').parent().parent().removeClass('bootstrap-switch-off')
+        } else {
+            $('#00z').attr('checked', false);
+            $('#00z').parent().parent().addClass('bootstrap-switch-off')
+        }
+        if (window.location.search.indexOf('06z') > -1) {
+            qLag.push('06z');
+            $('#06z').attr('checked', true);
+            $('#06z').parent().parent().removeClass('bootstrap-switch-off')
+        }
+        if (window.location.search.indexOf('12z') > -1) {
+            qLag.push('12z');
+            $('#12z').attr('checked', true);
+            $('#12z').parent().parent().removeClass('bootstrap-switch-off')
+        }
+        if (window.location.search.indexOf('18z') > -1) {
+            qLag.push('18z');
+            $('#18z').attr('checked', true);
+            $('#18z').parent().parent().removeClass('bootstrap-switch-off')
+        }
+
+        if (qGeom === 'channel_rt' || qGeom === 'reservoir') {
+            $('#comidInput').val(qCOMID);
+        } else if (qGeom === 'land') {
+            $('#gridInputY').val(qCOMID.split(',')[0]);
+            $('#gridInputX').val(qCOMID.split(',')[1]);
+        }
+
+        $('#longInput').val(qLong);
+        $('#latInput').val(qLat);
+        $('#startDate').val(qDate);
+        $('#time').val(qTime);
+
+        if ($('#longInput').val() !== '-98' && $('#latInput').val() !== '38.5') {
+            CenterMap(qLat, qLong);
+            mapView.setZoom(12);
+
+            var wktval = "POINT(" + qLong + " " + qLat + ")";
+            var options = {
+                "success": "pis_success2",
+                "error": "pis_error",
+                "timeout": 60 * 1000
+            };
+            var data = {
+                "pGeometry": wktval,
+                "pGeometryMod": "WKT,SRSNAME=urn:ogc:def:crs:OGC::CRS84",
+                "pPointIndexingMethod": "DISTANCE",
+                "pPointIndexingMaxDist": 10,
+                "pOutputPathFlag": "TRUE",
+                "pReturnFlowlineGeomFlag": "FULL",
+                "optOutCS": "SRSNAME=urn:ogc:def:crs:OGC::CRS84",
+                "optOutPrettyPrint": 0,
+                "optClientRef": "CodePen"
+            };
+            WATERS.Services.PointIndexingService(data, options);
+        }
+
+        initChart(qConfig, startDate, seriesData);
+
+        get_netcdf_chart_data(qConfig, qGeom, qCOMID, qDate, qTime, qLag, qDateEnd);
+    }
+
+    if ($('#config').val() === 'medium_range') {
+        $('#endDate').addClass('hidden');
+        $('#endDateLabel').addClass('hidden');
+        $('#time').parent().addClass('hidden');
+        $('#timeLag').addClass('hidden');
+    } else if ($('#config').val() === 'long_range') {
+        $('#endDate').addClass('hidden');
+        $('#endDateLabel').addClass('hidden');
+        $('#time').parent().addClass('hidden');
+        $('#timeLag').removeClass('hidden');
+    }else if ($('#config').val() === 'short_range') {
+        $('#endDate').addClass('hidden');
+        $('#endDateLabel').addClass('hidden');
+        $('#time').parent().removeClass('hidden');
+        $('#timeLag').addClass('hidden');
+    } else if ($('#config').val() === 'analysis_assim'){
+        $('#endDate').removeClass('hidden');
+        $('#endDateLabel').removeClass('hidden');
+        $('#time').parent().addClass('hidden');
+        $('#timeLag').addClass('hidden');
+    }
+
+    $( "#geom" ).trigger( "change" );
+
+    /**********************************
+     ********INITIALIZE LAYERS*********
+     **********************************/
+
     var lonlat;
     map.on('click', function(evt) {
-        flag_geocoded=false;
         var coordinate = evt.coordinate;
         lonlat = ol.proj.transform(coordinate, 'EPSG:3857', 'EPSG:4326');
-        if (map.getView().getZoom()<12) {
-            map.getView().setZoom(12);
+        if (mapView.getZoom()<12) {
+            mapView.setZoom(12);
             CenterMap(lonlat[1],lonlat[0]);
         }
+
         run_point_indexing_service(lonlat);
     });
 
@@ -131,7 +212,7 @@ $(function () {
             key: 'eLVu8tDRPeQqmBlKAjcw~82nOqZJe2EpKmqd-kQrSmg~AocUZ43djJ-hMBHQdYDyMbT-Enfsk0mtUIGws1WeDuOvjY4EXCH-9OK3edNLDgkc',
             imagerySet: 'AerialWithLabels'
         })
-	});
+    });
 
     var createLineStyleFunction = function() {
         return function(feature, resolution) {
@@ -168,18 +249,19 @@ $(function () {
     });
 
     var serviceUrl = 'https://watersgeo.epa.gov/arcgis/rest/services/NHDPlus_NP21/NHDSnapshot_NP21_Labeled/MapServer/0';
+    // var serviceUrl = 'http://geoserver.byu.edu/arcgis/rest/services/NWC/NWM_Geofabric/MapServer/1';
     var esrijsonFormat = new ol.format.EsriJSON();
     var vectorSource = new ol.source.Vector({
         loader: function(extent, resolution, projection) {
             var url = serviceUrl + '/query/?f=json&geometry=' +
                 '{"xmin":' + extent[0] + ',"ymin":' + extent[1] + ',"xmax":' + extent[2] + ',"ymax":' + extent[3] +
-                    ',"spatialReference":{"wkid":102100}}&inSR=102100&outSR=102100';
+                ',"spatialReference":{"wkid":102100}}&inSR=102100&outSR=102100';
             $.ajax({url: url, dataType: 'jsonp', success: function(response) {
                 if (response.error) {
                     alert(response.error.message + '\n' +
                         response.error.details.join('\n'));
                 } else {
-                // dataProjection will be read from document
+                    // dataProjection will be read from document
                     var features = esrijsonFormat.readFeatures(response, {
                         featureProjection: projection
                     });
@@ -208,106 +290,6 @@ $(function () {
     map.addLayer(base_layer);
     map.addLayer(all_streams_layer);
     map.addLayer(selected_streams_layer);
-
-    /****************************
-     ******INITIALIZE CHART******
-     ****************************/
-    default_chart_settings = {
-        title: {text: "NWM Foracast"},
-        chart: {
-            zoomType: 'x'
-        },
-        plotOptions: {
-            series: {
-                color: '#0066ff',
-                marker: {
-                    enabled: false
-                }
-            },
-            area: {
-                fillColor: {
-                    linearGradient: {
-                        x1: 0,
-                        y1: 0,
-                        x2: 0,
-                        y2: 1
-                    },
-                    stops: [
-                        [0, Highcharts.getOptions().colors[0]],
-                        [1, Highcharts.Color(Highcharts.getOptions().colors[0]).setOpacity(0).get('rgba')]
-                    ]
-                },
-                marker: {
-                    radius: 2
-                },
-                lineWidth: 1,
-                states: {
-                    hover: {
-                        lineWidth: 1
-                    }
-                },
-                threshold: null
-            }
-        },
-        xAxis: {
-            type: 'datetime',
-            title: {
-                text: 'Time'
-            },
-            minRange: 14 * 3600000 // one day
-        },
-        yAxis: {
-            title: {
-                text: 'Streamflows (cms)'
-            },
-            min: 0
-        }
-    };
-
-    chartDiv.highcharts(default_chart_settings);
-    nc_chart = chartDiv.highcharts();
-
-    if (window.location.search.includes('?')) {
-        var query = window.location.search;
-
-        var qLong = Number(query.substring(query.lastIndexOf("longitude=")+10,query.lastIndexOf("&latitude")));
-        var qLat = Number(query.substring(query.lastIndexOf("latitude=")+9,query.lastIndexOf("&startDate")));
-        var qConfig = query.substring(query.lastIndexOf("config=") + 7, query.lastIndexOf("&COMID"));
-        var qCOMID = Number(query.substring(query.lastIndexOf("COMID=") + 6, query.lastIndexOf("&longitude")));
-        var qDate = query.substring(query.lastIndexOf("startDate=") + 10, query.lastIndexOf("&time"));
-        var qTime = query.substring(query.lastIndexOf("time=") + 5, query.lastIndexOf("&submit"));
-
-        $('#config').val(qConfig);
-        $('#comidInput').val(qCOMID);
-        $('#longInput').val(qLong);
-        $('#latInput').val(qLat);
-        $('#startDate').val(qDate);
-        $('#time').val(qTime);
-
-        var wktval = "POINT(" + qLong + " " + qLat + ")";
-        var options = {
-            "success" : "pis_success2",
-            "error"   : "pis_error",
-            "timeout" : 60 * 1000
-        };
-        var data = {
-            "pGeometry": wktval,
-            "pGeometryMod": "WKT,SRSNAME=urn:ogc:def:crs:OGC::CRS84",
-            "pPointIndexingMethod": "DISTANCE",
-            "pPointIndexingMaxDist": 10,
-            "pOutputPathFlag": "TRUE",
-            "pReturnFlowlineGeomFlag": "FULL",
-            "optOutCS": "SRSNAME=urn:ogc:def:crs:OGC::CRS84",
-            "optOutPrettyPrint": 0,
-            "optClientRef": "CodePen"
-        };
-        WATERS.Services.PointIndexingService(data, options);
-
-        CenterMap(qLat, qLong);
-        map.getView().setZoom(12);
-
-        get_netcdf_chart_data(qConfig, qCOMID, qDate, qTime);
-    }
 });
 
 /****************************
@@ -320,7 +302,7 @@ function CenterMap(lat,lon){
         "coordinates": [lon, lat]
     };
     var coords = ol.proj.transform(dbPoint.coordinates, 'EPSG:4326','EPSG:3857');
-    map.getView().setCenter(coords);
+    mapView.setCenter(coords);
 }
 
 /****************************************
@@ -330,8 +312,6 @@ function CenterMap(lat,lon){
 function run_point_indexing_service(lonlat) {
     var inputLon = lonlat[0];
     var inputLat = lonlat[1];
-    $('#longInput').val(inputLon);
-    $('#latInput').val(inputLat);
     var wktval = "POINT(" + inputLon + " " + inputLat + ")";
 
     var options = {
@@ -365,9 +345,12 @@ function pis_success(result) {
         return;
     }
 
-    //build output results text block for display
     var srv_fl = result.output.ary_flowlines;
+    var newLon = srv_fl[0].shape.coordinates[Math.floor(srv_fl[0].shape.coordinates.length/2)][0];
+    var newLat = srv_fl[0].shape.coordinates[Math.floor(srv_fl[0].shape.coordinates.length/2)][1];
     comid = srv_fl[0].comid.toString();
+    $('#longInput').val(newLon);
+    $('#latInput').val(newLat);
     $('#comidInput').val(comid);
 
     //add the selected flow line to the map
@@ -378,18 +361,9 @@ function pis_success(result) {
 }
 
 function pis_success2(result) {
-    var srv_rez = result.output;
-    if (srv_rez == null) {
-        if ( result.status.status_message !== null ) {
-            report_failed_search(result.status.status_message);
-        } else {
-            report_failed_search("No reach located near your click point.");
-        }
-        return;
-    }
-
-    //build output results text block for display
     var srv_fl = result.output.ary_flowlines;
+    var newLon = srv_fl[0].shape.coordinates[Math.floor(srv_fl[0].shape.coordinates.length/2)][0];
+    var newLat = srv_fl[0].shape.coordinates[Math.floor(srv_fl[0].shape.coordinates.length/2)][1];
     comid = srv_fl[0].comid.toString();
 
     //add the selected flow line to the map
@@ -405,9 +379,8 @@ function pis_error(XMLHttpRequest, textStatus, errorThrown) {
 
 function report_failed_search(MessageText){
     //Set the message of the bad news
-    infoDiv.append('<strong>Search Results:</strong><br>' + MessageText);
-    gnis_name = null;
-    map.getView().setZoom(4);
+    $('#info').append('<strong>Search Results:</strong><br>' + MessageText);
+    mapView.setZoom(4);
 }
 
 function geojson2feature(myGeoJSON) {
@@ -432,87 +405,426 @@ function geojson2feature(myGeoJSON) {
  *******BUILD CHART FUNCTIONALITY********
  ****************************************/
 
-function get_netcdf_chart_data(config, comid, startDate, time) {
+function get_netcdf_chart_data(config, geom, comid, date, time, lag, endDate) {
     $.ajax({
         type: 'GET',
         url: 'get-netcdf-data',
         dataType: 'json',
         data: {
             'config': config,
+            'geom': geom,
             'comid': comid,
-            'startDate': startDate,
-            'time': time
+            'startDate': date,
+            'time': time,
+            'lag': lag.toString(),
+            'endDate': endDate
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            infoDiv.html('<p><strong>An unknown error occurred while retrieving the data</strong></p>');
+            $('#info').html('<p><strong>An unknown error occurred while retrieving the data</strong></p>');
             clearErrorSelection();
+        },
+        beforeSend: function () {
+            $('#info').html('<p class="alert alert-info" style="text-align: center"><strong>' +
+                'Retrieving forecasts' + '</strong></p>').removeClass('hidden');
+        },
+        complete: function () {
+            setTimeout(function () {
+                $('#info').addClass('hidden')
+            }, 5000);
         },
         success: function (data) {
             if ("success" in data) {
                 if ("ts_pairs_data" in data) {
                     var returned_tsPairsData = JSON.parse(data.ts_pairs_data);
-                    var actualIndexTracker = 0;
                     for (var key in returned_tsPairsData) {
-                        if (returned_tsPairsData[key][0][1] != -9999) {
+                        if (returned_tsPairsData[key][2] === 'notLong') {
                             var d = new Date(0);
-                            var startDate = d.setUTCSeconds(returned_tsPairsData[key][0]);
-                            var seriesData = returned_tsPairsData[key][1];
+                            startDate = d.setUTCSeconds(returned_tsPairsData[key][0]);
+                            seriesData = returned_tsPairsData[key][1];
                             nc_chart.yAxis[0].setExtremes(null, null);
-                            plotData(config, seriesData, startDate);
-                        }
-                        actualIndexTracker += 1
-                    }
-                }
-            }
-            else if ("error" in data) {
-                chartDiv.addClass('hidden')
-                infoDiv.html('<p class="alert alert-danger" style="text-align: center"><strong>' + data['error'] + '</strong></p>').removeClass('hidden').addClass('error');
+                            plotData(config, geom, seriesData, startDate);
+                        } else {
+
+                            for (j = 0; j < returned_tsPairsData[key].length; j++) {
+                                var d = new Date(0);
+                                var startDateG = d.setUTCSeconds(returned_tsPairsData[key][j][0]);
+                                for (i = 1; i < returned_tsPairsData[key][j].length - 1; i++) {
+                                    var seriesDataTemp = returned_tsPairsData[key][j][i];
+                                    var seriesDesc = 'Member 0' + String(i) + ' ' +
+                                        returned_tsPairsData[key][j][returned_tsPairsData[key][j].length - 1];
+                                    seriesDataGroup.push([seriesDataTemp, seriesDesc, startDateG]);
+                                    nc_chart.yAxis[0].setExtremes(null, null);
+                                    plotData(config, geom, seriesDataTemp, startDateG, i - 1, seriesDesc);
+                                };
+                            };
+                        };
+                    };
+                };
+            } else if ("error" in data) {
+                $('#nc-chart').addClass('hidden')
+                $('#info').html('<p class="alert alert-danger" style="text-align: center"><strong>' + data['error'] + '</strong></p>').removeClass('hidden').addClass('error');
 
                 // Hide error message 5 seconds after showing it
                 setTimeout(function () {
-                    infoDiv.addClass('hidden')
+                    $('#info').addClass('hidden')
                 }, 5000);
-            }
-            else {
+            } else {
                 viewer.entities.resumeEvents();
-                infoDiv.html('<p><strong>An unexplainable error occurred. Why? Who knows...</strong></p>').removeClass('hidden');
-            }
+                $('#info').html('<p><strong>An unexplainable error occurred. Why? Who knows...</strong></p>').removeClass('hidden');
+            };
         }
     });
+};
+
+function initChart(config, startDate) {
+    /****************************
+     ******INITIALIZE CHART******
+     ****************************/
+    if (config !== 'long_range') {
+        default_chart_settings = {
+            title: {text: "NWM Forecast"},
+            chart: {zoomType: 'x'},
+            plotOptions: {
+                series: {
+                    color: '#0066ff',
+                    marker: {
+                        enabled: false
+                    }
+                },
+                area: {
+                    fillColor: {
+                        linearGradient: {x1: 0, y1: 0, x2: 0, y2: 1},
+                        stops: [[0, Highcharts.getOptions().colors[0]],
+                            [1, Highcharts.Color(Highcharts.getOptions().colors[0]).setOpacity(0).get('rgba')]]
+                    },
+                    marker: {radius: 2},
+                    lineWidth: 1,
+                    states: {
+                        hover: {lineWidth: 1}
+                    },
+                    threshold: null
+                }
+            },
+            xAxis: {
+                type: 'datetime',
+                title: {text: 'Time'},
+                minRange: 14 * 3600000 // one day
+            },
+            yAxis: {
+                title: {text: 'Streamflows (cfs)'},
+                min: 0
+            },
+            lang: {
+                unitsKey: 'Switch between english and metric units'
+            },
+            exporting: {
+                buttons: {
+                    customButton: {
+                        text: 'Change Units',
+                        _titleKey: "unitsKey",
+                        onclick: function () {
+                            changeUnits(config)
+                        }
+                    }
+                }
+            }
+        };
+
+        $('#nc-chart').highcharts(default_chart_settings);
+        nc_chart = $('#nc-chart').highcharts();
+    } else {
+        default_chart_settings = {
+            title: {text: "NWM Forecast"},
+            chart: {zoomType: 'x'},
+            plotOptions: {
+                series: {
+                    // color: '#0066ff',
+                    marker: {
+                        enabled: false
+                    }
+                }
+            },
+            xAxis: {
+                type: 'datetime',
+                title: {text: 'Time'},
+                minRange: 14 * 3600000 // one day
+            },
+            yAxis: {
+                title: {text: 'Streamflows (cfs)'},
+                min: 0
+            },
+            lang: {
+                unitsKey: 'Switch between english and metric units'
+            },
+            exporting: {
+                buttons: {
+                    customButton: {
+                        text: 'Change Units',
+                        _titleKey: "unitsKey",
+                        onclick: function () {
+                            changeUnits(config)
+                        }
+                    }
+                }
+            }
+        };
+
+        $('#nc-chart').highcharts(default_chart_settings);
+        nc_chart = $('#nc-chart').highcharts();
+    };
 }
 
-var plotData = function(config, data, startDate) {
-    actionBtnsDiv.removeClass('hidden');
-    var interval;
-    var start;
-    if (config == 'short_range') {
-        interval = 3600 * 1000; // one hour
-        start = startDate;
-        console.log(start);
-    } else if (config == 'medium_range') {
-        interval = 3600 * 1000 * 3; // three hours
-        start = startDate + (3600 * 1000 * 3); // calibrates medium range model
+var plotData = function(config, geom, data, start, colorIndex, seriesDesc) {
+    $('#actionBtns').removeClass('hidden');
+    var calib = calibrateModel(config, start)
+
+    if (geom !== 'land') {
+        var units = 'Streamflow (cfs)';
     } else {
-        interval = 3600 * 1000 * 6; // six hours
-        start = startDate;
+        var units = 'Accumulated Total ET (Inches)';
+        nc_chart.yAxis[0].setTitle({text: units});
+        $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
     };
-    var data_series = {
-        type: 'area',
-        name: 'Streamflow (cms)',
-        data: data,
-        pointStart: start,
-        pointInterval: interval,
+
+    if (config !== 'long_range') {
+        var data_series = {
+            type: 'area',
+            name: units,
+            data: data,
+            pointStart: calib['start'],
+            pointInterval: calib['interval']
+        };
+        nc_chart.addSeries(data_series);
+        if ($('#nc-chart').hasClass('hidden')) {
+            $('#nc-chart').removeClass('hidden');
+            $(window).resize();
+        };
+    } else {
+        var data_series = {
+            type: 'area',
+            color: Highcharts.getOptions().colors[colorIndex],
+            fillOpacity: 0.3,
+            name: seriesDesc + ' ' + units,
+            data: data,
+            pointStart: start + (3600 * 1000 * 6),
+            pointInterval: calib['interval']
+        };
+        nc_chart.addSeries(data_series);
+        if ($('#nc-chart').hasClass('hidden')) {
+            $('#nc-chart').removeClass('hidden');
+            $(window).resize();
+        };
     };
-    nc_chart.addSeries(data_series);
-    if (chartDiv.hasClass('hidden')) {
-        chartDiv.removeClass('hidden');
-        $(window).resize();
-    }
-    plotCounter++;
 };
 
 function clearErrorSelection() {
     var numFeatures = selected_streams_layer.getSource().getFeatures().length;
     var lastFeature = selected_streams_layer.getSource().getFeatures()[numFeatures-1];
     selected_streams_layer.getSource().removeFeature(lastFeature);
+}
+
+function changeUnits(config) {
+    if (config !== 'long_range') {
+        var calib = calibrateModel(config, startDate);
+        if (nc_chart.yAxis[0].axisTitle.textStr === 'Streamflows (cfs)') {
+            var newSeries = [];
+            seriesData.forEach(function (i) {
+                newSeries.push(i * 0.0283168);
+            });
+
+            nc_chart.series[0].remove();
+            nc_chart.yAxis[0].setTitle({
+                text: 'Streamflows (cms)'
+            });
+            var data_series = {
+                type: 'area',
+                name: 'Streamflow (cms)',
+                data: newSeries,
+                pointStart: calib['start'],
+                pointInterval: calib['interval']
+            };
+            nc_chart.addSeries(data_series);
+        } else {
+            nc_chart.series[0].remove();
+            nc_chart.yAxis[0].setTitle({text: 'Streamflows (cfs)'});
+            var data_series = {
+                type: 'area',
+                name: 'Streamflow (cfs)',
+                data: seriesData,
+                pointStart: calib['start'],
+                pointInterval: calib['interval']
+            };
+            nc_chart.addSeries(data_series);
+        };
+    } else {
+        if (nc_chart.yAxis[0].axisTitle.textStr === 'Streamflows (cfs)') {
+            while(nc_chart.series.length > 0) {
+                nc_chart.series[0].remove(true);
+            }
+            nc_chart.yAxis[0].setTitle({text: 'Streamflows (cms)'});
+
+            for (i = 0; i < seriesDataGroup.length; i++) {
+                var newSeries = [];
+                seriesDataGroup[i][0].forEach(function (j) {
+                    newSeries.push(j * 0.0283168);
+                });
+                var calib = calibrateModel(config);
+                var data_series = {
+                    type: 'area',
+                    name: seriesDataGroup[i][1] + ' Streamflow (cms)',
+                    data: newSeries,
+                    pointStart: seriesDataGroup[i][2] + (3600 * 1000 * 6),
+                    pointInterval: calib['interval']
+                };
+                nc_chart.addSeries(data_series);
+            };
+        } else {
+            while(nc_chart.series.length > 0) {
+                nc_chart.series[0].remove(true);
+            }
+            nc_chart.yAxis[0].setTitle({text: 'Streamflows (cfs)'});
+
+            for (i = 0; i < seriesDataGroup.length; i++) {
+                var calib = calibrateModel(config)
+                var data_series = {
+                    type: 'area',
+                    name: seriesDataGroup[i][1] + ' Streamflow (cfs)',
+                    data: seriesDataGroup[i][0],
+                    pointStart: seriesDataGroup[i][2] + (3600 * 1000 * 6),
+                    pointInterval: calib['interval']
+                };
+                nc_chart.addSeries(data_series);
+            };
+        };
+    };
+};
+
+function calibrateModel(config, date) {
+    var interval;
+    var start;
+    if (config === 'short_range') {
+        interval = 3600 * 1000; // one hour
+        start = date + (3600 * 1000); // calibrates short range;
+    } else if (config === 'analysis_assim') {
+        interval = 3600 * 1000; // one hour
+        start = date + (3600 * 1000 * 3); // calibrates analysis assimilation
+    } else if (config === 'medium_range') {
+        interval = 3600 * 1000 * 3; // three hours
+        start = date + (3600 * 1000 * 3); // calibrates medium range;
+    } else {
+        interval = 3600 * 1000 * 6; // six hours
+    };
+    return {'interval': interval, 'start': start}
+}
+
+function getHSWatershedList () {
+    $.ajax({
+        type: 'GET',
+        url: 'get-hs-watershed-list',
+        dataType: 'json',
+        success: function (response) {
+            var resources,
+                resTableHtml = '<table id="tbl-watersheds"><thead><th></th><th>Title</th><th>Owner</th></thead><tbody>';
+
+            if (response.hasOwnProperty('success')) {
+                if (response.hasOwnProperty('resources')) {
+                    resources = JSON.parse(response.resources);
+                    if (resources.length === 0) {
+                        $popupLoadWatershed.find('.modal-body').html('<b>It appears that you do not own any valid HydroShare resources.</b>');
+                    } else {
+                        resources.forEach(function (resource) {
+                            resTableHtml += '<tr>' +
+                                '<td><input type="radio" name="resource" class="rdo-res" data-filename="' + resource.filename + '" value="' + resource.id + '"></td>' +
+                                '<td class="res_title">' + resource.title + '</td>' +
+                                '<td class="res_owner">' + resource.owner + '</td>' +
+                                '</tr>';
+                        });
+                        resTableHtml += '</tbody></table>';
+                        $popupLoadWatershed.find('.modal-body').html(resTableHtml);
+                        $btnLoadWatershed
+                            .removeClass('hidden')
+                            .prop('disabled', false);
+                    }
+                }
+            } else if (response.hasOwnProperty('error')) {
+                $popupLoadWatershed.find('.modal-body').html('<h6>' + response.error + '</h6>');
+            }
+        }
+    });
+}
+
+function onClickLoadWatershed() {
+
+    $btnLoadWatershed.prop('disabled', true);
+    var $rdoRes = $('.rdo-res:checked');
+    var resId = $rdoRes.val();
+    var filename = $rdoRes.attr('data-filename');
+
+    loadWatershed(resId, filename);
+}
+
+function loadWatershed(resId, filename) {
+    $.ajax({
+        type: 'GET',
+        url: 'load-watershed',
+        dataType: 'json',
+        data: {
+            res_id: resId,
+            filename: filename
+        },
+        error: function () {
+            console.error('Failed to load watershed!');
+        },
+        success: function (watershed) {
+            if (watershed.hasOwnProperty('success')) {
+                addGeojsonLayerToMap(watershed.geojson_str, watershed.proj_str, watershed.id, true);
+                $popupLoadWatershed.modal('hide');
+            } else {
+                alert(watershed.error);
+            }
+            $btnLoadWatershed.prop('disabled', false);
+        }
+    });
+}
+
+function addGeojsonLayerToMap(geojsonStr, projStr, watershedId, zoomTo) {
+    var geoJson;
+    var geometry;
+    var watershedLayer;
+    var geoJsonReproj;
+
+    geojsonStr = geojsonStr.replace(/&quot;/g, '"'); // Unencode the encoded double-quotes
+
+    geoJson = JSON.parse(geojsonStr);
+
+    if (!(projStr === null || projStr === undefined || projStr === '')) {
+        projStr = projStr.replace(/&quot;/g, '"'); // Unencode the encoded double-quotes
+        proj4.defs('new_projection', projStr);
+        if (projStr) {
+            geoJsonReproj = reproject(geoJson, proj4('new_projection'), proj4('EPSG:3857'));
+            watershedLayer = new ol.layer.Vector({
+                source: new ol.source.Vector({
+                    features: (new ol.format.GeoJSON()).readFeatures(geoJsonReproj)
+                })
+            });
+        }
+    } else {
+        geometry = new ol.format.GeoJSON({
+            defaultDataProjection: 'EPSG:3857'
+        }).readGeometry(geoJson);
+        geometry.transform('EPSG:4326', 'EPSG:3857');
+        watershedLayer = new ol.layer.Vector({
+            source: new ol.source.Vector({
+                features: [
+                    new ol.Feature(geometry)
+                ]
+            })
+        });
+    }
+
+    map.addLayer(watershedLayer);
+    if (zoomTo) {
+        mapView.fit(watershedLayer.getSource().getExtent(), map.getSize());
+    }
+    $('#input-watershed-id').val(watershedId);
 }
