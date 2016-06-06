@@ -13,24 +13,20 @@ var $popupLoadWatershed;
 
 $('#config').on('change', function () {
     if ($('#config').val() === 'medium_range') {
-        $('#endDate').addClass('hidden');
-        $('#endDateLabel').addClass('hidden');
+        $('#endDate,#endDateLabel,#timeLag').addClass('hidden');
         $('#time').parent().addClass('hidden');
+        $('option:contains("Reservoir"),#velocVar').removeClass('hidden');
         $('#time').val('06')
-        $('#timeLag').addClass('hidden');
     } else if ($('#config').val() === 'long_range') {
-        $('#endDate').addClass('hidden');
-        $('#endDateLabel').addClass('hidden');
+        $('#endDate,endDateLabel,option:contains("Reservoir"),#velocVar').addClass('hidden');
         $('#time').parent().addClass('hidden');
         $('#timeLag').removeClass('hidden');
     } else if ($('#config').val() === 'short_range') {
-        $('#endDate').addClass('hidden');
-        $('#endDateLabel').addClass('hidden');
+        $('#endDate,#endDateLabel,#timeLag').addClass('hidden');
         $('#time').parent().removeClass('hidden');
-        $('#timeLag').addClass('hidden');
+        $('option:contains("Reservoir"),#velocVar').removeClass('hidden');
     } else if ($('#config').val() === 'analysis_assim'){
-        $('#endDate').removeClass('hidden');
-        $('#endDateLabel').removeClass('hidden');
+        $('#endDate,#endDateLabel,option:contains("Reservoir"),#velocVar').removeClass('hidden');
         $('#time').parent().addClass('hidden');
         $('#timeLag').addClass('hidden');
     }
@@ -38,18 +34,42 @@ $('#config').on('change', function () {
 
 
 $('#geom').on('change', function () {
-    if ($('#geom').val() === 'channel_rt' || $('#geom').val() === 'reservoir') {
+    if ($('#geom').val() === 'channel_rt') {
         $('#comidInput').attr('disabled', false);
-        $('#comidDiv').removeClass('hidden');
+        if (window.location.search.includes('channel_rt') && window.location.search.includes('long_range') === false) {
+            $('#variable').val(window.location.search.split("&")[2].substring(window.location.search.split("&")[2].
+                lastIndexOf("variable=") + 9));
+        } else {
+            $('#variable').val('streamflow');
+        };
+        $('#comidDiv,#streamVar,#velocVar').removeClass('hidden');
         $('#gridInputY').attr('disabled', true);
         $('#gridInputX').attr('disabled', true);
-        $('#gridDiv').addClass('hidden');
+        $('#gridDiv,#infVar,#outfVar,#snowhVar,#sneqVar,#snowcVar,#etVar,#ssVar,#avsnowVar').addClass('hidden');
+    } else if ($('#geom').val() === 'reservoir') {
+        $('#comidInput').attr('disabled', false);
+        if (window.location.search.includes('reservoir')) {
+            $('#variable').val(window.location.search.split("&")[2].substring(window.location.search.split("&")[2].
+                lastIndexOf("variable=") + 9));
+        } else {
+            $('#variable').val('inflow');
+        };
+        $('#comidDiv,#infVar,#outfVar').removeClass('hidden');
+        $('#gridInputY').attr('disabled', true);
+        $('#gridInputX').attr('disabled', true);
+        $('#gridDiv,#streamVar,#velocVar,#snowhVar,#sneqVar,#snowcVar,#etVar,#ssVar,#avsnowVar').addClass('hidden');
     } else if ($('#geom').val() === 'land') {
         $('#comidInput').attr('disabled', true);
-        $('#comidDiv').addClass('hidden');
+        $('#comidDiv,#streamVar,#velocVar,#infVar,#outfVar').addClass('hidden');
         $('#gridInputY').attr('disabled', false);
         $('#gridInputX').attr('disabled', false);
-        $('#gridDiv').removeClass('hidden');
+        if (window.location.search.includes('land')) {
+            $('#variable').val(window.location.search.split("&")[2].substring(window.location.search.split("&")[2].
+                lastIndexOf("variable=") + 9));
+        } else {
+            $('#variable').val('SNOWH');
+        };
+        $('#gridDiv,#snowhVar,#sneqVar,#snowcVar,#etVar,#ssVar,#avsnowVar').removeClass('hidden');
     };
 });
 
@@ -81,19 +101,20 @@ $(function () {
 
         var qConfig = query[0].substring(query[0].lastIndexOf("config=") + 7);
         var qGeom = query[1].substring(query[1].lastIndexOf("geom=") + 5);
+        var qVar = query[2].substring(query[2].lastIndexOf("variable=") + 9);
         if (qGeom === 'channel_rt' || qGeom === 'reservoir') {
-            var qCOMID = Number(query[2].substring(query[2].lastIndexOf("COMID=") + 6));
-            var qLong = Number(query[3].substring(query[3].lastIndexOf("longitude=")+10));
-            var qLat = Number(query[4].substring(query[4].lastIndexOf("latitude=")+9));
-            var qDate = query[5].substring(query[5].lastIndexOf("startDate=") + 10);
-            var qTime = query[6].substring(query[6].lastIndexOf("time=") + 5);
-        } else {
-            var qCOMID = query[2].substring(query[2].lastIndexOf("Y=") + 2) + ',' +
-                query[3].substring(query[3].lastIndexOf("X=") + 2);
+            var qCOMID = Number(query[3].substring(query[3].lastIndexOf("COMID=") + 6));
             var qLong = Number(query[4].substring(query[4].lastIndexOf("longitude=")+10));
             var qLat = Number(query[5].substring(query[5].lastIndexOf("latitude=")+9));
             var qDate = query[6].substring(query[6].lastIndexOf("startDate=") + 10);
             var qTime = query[7].substring(query[7].lastIndexOf("time=") + 5);
+        } else {
+            var qCOMID = query[3].substring(query[3].lastIndexOf("Y=") + 2) + ',' +
+                query[4].substring(query[4].lastIndexOf("X=") + 2);
+            var qLong = Number(query[5].substring(query[5].lastIndexOf("longitude=")+10));
+            var qLat = Number(query[6].substring(query[6].lastIndexOf("latitude=")+9));
+            var qDate = query[7].substring(query[7].lastIndexOf("startDate=") + 10);
+            var qTime = query[8].substring(query[8].lastIndexOf("time=") + 5);
         }
 
         var qLag = [];
@@ -164,32 +185,11 @@ $(function () {
 
         initChart(qConfig, startDate, seriesData);
 
-        get_netcdf_chart_data(qConfig, qGeom, qCOMID, qDate, qTime, qLag, qDateEnd);
+        get_netcdf_chart_data(qConfig, qGeom, qVar, qCOMID, qDate, qTime, qLag, qDateEnd);
     }
 
-    if ($('#config').val() === 'medium_range') {
-        $('#endDate').addClass('hidden');
-        $('#endDateLabel').addClass('hidden');
-        $('#time').parent().addClass('hidden');
-        $('#timeLag').addClass('hidden');
-    } else if ($('#config').val() === 'long_range') {
-        $('#endDate').addClass('hidden');
-        $('#endDateLabel').addClass('hidden');
-        $('#time').parent().addClass('hidden');
-        $('#timeLag').removeClass('hidden');
-    }else if ($('#config').val() === 'short_range') {
-        $('#endDate').addClass('hidden');
-        $('#endDateLabel').addClass('hidden');
-        $('#time').parent().removeClass('hidden');
-        $('#timeLag').addClass('hidden');
-    } else if ($('#config').val() === 'analysis_assim'){
-        $('#endDate').removeClass('hidden');
-        $('#endDateLabel').removeClass('hidden');
-        $('#time').parent().addClass('hidden');
-        $('#timeLag').addClass('hidden');
-    }
-
-    $( "#geom" ).trigger( "change" );
+    $("#config").trigger("change");
+    $("#geom").trigger("change");
 
     /**********************************
      ********INITIALIZE LAYERS*********
@@ -405,7 +405,7 @@ function geojson2feature(myGeoJSON) {
  *******BUILD CHART FUNCTIONALITY********
  ****************************************/
 
-function get_netcdf_chart_data(config, geom, comid, date, time, lag, endDate) {
+function get_netcdf_chart_data(config, geom, variable, comid, date, time, lag, endDate) {
     $.ajax({
         type: 'GET',
         url: 'get-netcdf-data',
@@ -413,6 +413,7 @@ function get_netcdf_chart_data(config, geom, comid, date, time, lag, endDate) {
         data: {
             'config': config,
             'geom': geom,
+            'variable': variable,
             'comid': comid,
             'startDate': date,
             'time': time,
@@ -442,7 +443,7 @@ function get_netcdf_chart_data(config, geom, comid, date, time, lag, endDate) {
                             startDate = d.setUTCSeconds(returned_tsPairsData[key][0]);
                             seriesData = returned_tsPairsData[key][1];
                             nc_chart.yAxis[0].setExtremes(null, null);
-                            plotData(config, geom, seriesData, startDate);
+                            plotData(config, geom, variable, seriesData, startDate);
                         } else {
 
                             for (j = 0; j < returned_tsPairsData[key].length; j++) {
@@ -454,7 +455,7 @@ function get_netcdf_chart_data(config, geom, comid, date, time, lag, endDate) {
                                         returned_tsPairsData[key][j][returned_tsPairsData[key][j].length - 1];
                                     seriesDataGroup.push([seriesDataTemp, seriesDesc, startDateG]);
                                     nc_chart.yAxis[0].setExtremes(null, null);
-                                    plotData(config, geom, seriesDataTemp, startDateG, i - 1, seriesDesc);
+                                    plotData(config, geom, variable, seriesDataTemp, startDateG, i - 1, seriesDesc);
                                 };
                             };
                         };
@@ -511,7 +512,7 @@ function initChart(config, startDate) {
                 minRange: 14 * 3600000 // one day
             },
             yAxis: {
-                title: {text: 'Streamflows (cfs)'},
+                title: {text: 'Flow (cfs)'},
                 min: 0
             },
             lang: {
@@ -550,7 +551,7 @@ function initChart(config, startDate) {
                 minRange: 14 * 3600000 // one day
             },
             yAxis: {
-                title: {text: 'Streamflows (cfs)'},
+                title: {text: 'Flow (cfs)'},
                 min: 0
             },
             lang: {
@@ -574,14 +575,38 @@ function initChart(config, startDate) {
     };
 }
 
-var plotData = function(config, geom, data, start, colorIndex, seriesDesc) {
+var plotData = function(config, geom, variable, data, start, colorIndex, seriesDesc) {
     $('#actionBtns').removeClass('hidden');
     var calib = calibrateModel(config, start)
 
-    if (geom !== 'land') {
-        var units = 'Streamflow (cfs)';
-    } else {
+    if (variable === 'streamflow' || variable === 'inflow' || variable === 'outflow') {
+        var units = 'Flow (cfs)';
+    } else if (variable === 'velocity') {
+        var units = 'Velocity (ft/s)';
+        nc_chart.yAxis[0].setTitle({text: units});
+        $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
+    } else if (variable === 'SNOWH') {
+        var units = 'Snow Depth (Feet)';
+        nc_chart.yAxis[0].setTitle({text: units});
+        $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
+    } else if (variable === 'SNEQV') {
+        var units = 'Snow Water Equivalent (Feet)';
+        nc_chart.yAxis[0].setTitle({text: units});
+        $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
+    } else if (variable === 'ACCET') {
         var units = 'Accumulated Total ET (Inches)';
+        nc_chart.yAxis[0].setTitle({text: units});
+        $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
+    } else if (variable === 'FSNO') {
+        var units = 'Snow Cover (Fraction)';
+        nc_chart.yAxis[0].setTitle({text: units});
+        $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
+    } else if (variable === 'SOILSAT_TOP') {
+        var units = 'Soil Saturation (Fraction)';
+        nc_chart.yAxis[0].setTitle({text: units});
+        $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
+    } else if (variable === 'SNOWT_AVG') {
+        var units = 'Average Snow Temperature (Kelvin)';
         nc_chart.yAxis[0].setTitle({text: units});
         $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
     };
@@ -626,7 +651,7 @@ function clearErrorSelection() {
 function changeUnits(config) {
     if (config !== 'long_range') {
         var calib = calibrateModel(config, startDate);
-        if (nc_chart.yAxis[0].axisTitle.textStr === 'Streamflows (cfs)') {
+        if (nc_chart.yAxis[0].axisTitle.textStr === 'Flow (cfs)') {
             var newSeries = [];
             seriesData.forEach(function (i) {
                 newSeries.push(i * 0.0283168);
@@ -634,11 +659,11 @@ function changeUnits(config) {
 
             nc_chart.series[0].remove();
             nc_chart.yAxis[0].setTitle({
-                text: 'Streamflows (cms)'
+                text: 'Flow (cms)'
             });
             var data_series = {
                 type: 'area',
-                name: 'Streamflow (cms)',
+                name: 'Flow (cms)',
                 data: newSeries,
                 pointStart: calib['start'],
                 pointInterval: calib['interval']
@@ -646,10 +671,10 @@ function changeUnits(config) {
             nc_chart.addSeries(data_series);
         } else {
             nc_chart.series[0].remove();
-            nc_chart.yAxis[0].setTitle({text: 'Streamflows (cfs)'});
+            nc_chart.yAxis[0].setTitle({text: 'Flow (cfs)'});
             var data_series = {
                 type: 'area',
-                name: 'Streamflow (cfs)',
+                name: 'Flow (cfs)',
                 data: seriesData,
                 pointStart: calib['start'],
                 pointInterval: calib['interval']
@@ -657,11 +682,11 @@ function changeUnits(config) {
             nc_chart.addSeries(data_series);
         };
     } else {
-        if (nc_chart.yAxis[0].axisTitle.textStr === 'Streamflows (cfs)') {
+        if (nc_chart.yAxis[0].axisTitle.textStr === 'Flow (cfs)') {
             while(nc_chart.series.length > 0) {
                 nc_chart.series[0].remove(true);
             }
-            nc_chart.yAxis[0].setTitle({text: 'Streamflows (cms)'});
+            nc_chart.yAxis[0].setTitle({text: 'Flow (cms)'});
 
             for (i = 0; i < seriesDataGroup.length; i++) {
                 var newSeries = [];
@@ -671,7 +696,7 @@ function changeUnits(config) {
                 var calib = calibrateModel(config);
                 var data_series = {
                     type: 'area',
-                    name: seriesDataGroup[i][1] + ' Streamflow (cms)',
+                    name: seriesDataGroup[i][1] + ' Flow (cms)',
                     data: newSeries,
                     pointStart: seriesDataGroup[i][2] + (3600 * 1000 * 6),
                     pointInterval: calib['interval']
@@ -682,13 +707,13 @@ function changeUnits(config) {
             while(nc_chart.series.length > 0) {
                 nc_chart.series[0].remove(true);
             }
-            nc_chart.yAxis[0].setTitle({text: 'Streamflows (cfs)'});
+            nc_chart.yAxis[0].setTitle({text: 'Flow (cfs)'});
 
             for (i = 0; i < seriesDataGroup.length; i++) {
                 var calib = calibrateModel(config)
                 var data_series = {
                     type: 'area',
-                    name: seriesDataGroup[i][1] + ' Streamflow (cfs)',
+                    name: seriesDataGroup[i][1] + ' Flow (cfs)',
                     data: seriesDataGroup[i][0],
                     pointStart: seriesDataGroup[i][2] + (3600 * 1000 * 6),
                     pointInterval: calib['interval']

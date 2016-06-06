@@ -42,6 +42,22 @@ def home(request):
                              initial=['Channel'],
                              original=True)
 
+    # var_input = SelectInput(display_text='Enter Variable',
+    #                         name='variable',
+    #                         multiple=False,
+    #                         options=[('Streamflow', 'streamflow'),
+    #                                  ('Velocity', 'velocity'),
+    #                                  ('Inflow', 'inflow'),
+    #                                  ('Outflow', 'outflow'),
+    #                                  ('Snow Depth', 'SNOWH'),
+    #                                  ('Snow Water Equivalent', 'SNEQV'),
+    #                                  ('Snow-cover Fraction on the Grown', 'FSNO'),
+    #                                  ('Accumulated Total ET', 'ACCET'),
+    #                                  ('Soil Saturation (top two layers)', 'SOILSAT_TOP'),
+    #                                  ('Average Snow Temperature', 'SNOWT_AVG')],
+    #                         initial=['Streamflow'],
+    #                         original=True)
+
     start_date = {
         'display_text': 'Enter Beginning Date',
         'name': 'startDate',
@@ -96,6 +112,7 @@ def home(request):
         # Make the waterml url query string
         config = request.GET['config']
         geom = request.GET['geom']
+        variable = request.GET['variable']
         if geom != 'land':
             comid = request.GET['COMID']
         else:
@@ -181,12 +198,14 @@ def home(request):
 
 def get_netcdf_data(request):
     if request.method == 'GET':
+        print request.GET, '***********************'
         get_data = request.GET
         ts_pairs_data = {}  # For time series pairs data
 
         try:
             config = get_data['config']
             geom = get_data['geom']
+            var = get_data['variable']
             if geom != 'land':
                 comid = int(get_data['comid'])
             else:
@@ -210,16 +229,13 @@ def get_netcdf_data(request):
                 if geom == 'channel_rt':
                     comidList = prediction_data.variables['station_id'][:]
                     comidIndex = int(np.where(comidList == comid)[0])
-                    var = 'streamflow'
                 elif geom == 'reservoir':
                     comidList = prediction_data.variables['lake_id'][:]
                     comidIndex = int(np.where(comidList == comid)[0])
-                    var = 'inflow'
                 elif geom == 'land':
                     comidList = comid.split(',')
                     comidIndexY = int(comidList[0])
                     comidIndexX = int(comidList[1])
-                    var = 'ACCET'
                 else:
                     return JsonResponse({'error': "Invalid netCDF file"})
 
@@ -234,11 +250,23 @@ def get_netcdf_data(request):
                     local_file_path = os.path.join(localFileDir, ncf)
                     prediction_dataTemp = nc.Dataset(local_file_path, mode="r")
 
-                    if geom != 'land':
+                    if var in ['streamflow', 'inflow', 'outflow']:
                         q_outT = prediction_dataTemp.variables[var][comidIndex].tolist()
                         q_out.append(round(q_outT * 35.3147, 4))
-                    else:
-                        q_outT = prediction_dataTemp.variables[var][0][comidIndexY][comidIndexX].tolist()
+                    elif var == 'velocity':
+                        q_outT = prediction_dataTemp.variables[var][comidIndex].tolist()
+                        q_out.append(round(q_outT * 3.28084, 4))
+                    elif var == 'SNOWH':
+                        q_outT = np.ma.getdata(prediction_dataTemp.variables[var][0][comidIndexY][comidIndexX]).tolist()
+                        q_out.append(round(q_outT * 3.28084, 4))
+                    elif var == 'SNEQV':
+                        q_outT = np.ma.getdata(prediction_dataTemp.variables[var][0][comidIndexY][comidIndexX]).tolist()
+                        q_out.append(round((q_outT/1000) * 3.28084, 4))
+                    elif var in ['FSNO', 'SOILSAT_TOP', 'SNOWT_AVG']:
+                        q_outT = np.ma.getdata(prediction_dataTemp.variables[var][0][comidIndexY][comidIndexX]).tolist()
+                        q_out.append(round(q_outT, 4))
+                    elif var == 'ACCET':
+                        q_outT = np.ma.getdata(prediction_dataTemp.variables[var][0][comidIndexY][comidIndexX]).tolist()
                         q_out.append(round(q_outT * 0.0393701, 4))
 
                 ts_pairs_data[str(comid)] = [time, q_out, 'notLong']

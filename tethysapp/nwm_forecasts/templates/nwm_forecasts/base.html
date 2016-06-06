@@ -20,6 +20,21 @@
 <form id="paramForm" method="get" action="{% url 'nwm_forecasts:home' %}">
     {% gizmo select_input config_input %}
     {% gizmo select_input geom_input %}
+    <div class="form-group ">
+      <label class="control-label" for="variable">Enter Variable</label>
+      <select id="variable" class="form-control" name="variable">
+        <option id="streamVar" value="streamflow" selected>Streamflow</option>
+        <option id="velocVar" value="velocity">Velocity</option>
+        <option id="infVar" value="inflow" class="hidden">Inflow</option>
+        <option id="outfVar" value="outflow" class="hidden">Outflow</option>
+        <option id="snowhVar" value="SNOWH" class="hidden">Snow Depth</option>
+        <option id="sneqVar" value="SNEQV" class="hidden">Snow Water Equivalent</option>
+        <option id="snowcVar" value="FSNO" class="hidden">Snow-cover</option>
+        <option id="etVar" value="ACCET" class="hidden">Accumulated Total ET</option>
+        <option id="ssVar" value="SOILSAT_TOP" class="hidden">Near Surface Soil Saturation</option>
+        <option id="avsnowVar" value="SNOWT_AVG" class="hidden">Average Snow Temperature</option>
+      </select>
+    </div>
     <div id="comidDiv">
       <label class="control-label" for="comidInput">Enter COMID</label>
       <input id="comidInput" name="COMID" type="text" class="form-control form-group" data-toggle="tooltip"
