@@ -15,7 +15,7 @@ $('#config').on('change', function () {
     if ($('#config').val() === 'medium_range') {
         $('#endDate,#endDateLabel,#timeLag').addClass('hidden');
         $('#time').parent().addClass('hidden');
-        if ($('#geom').val() !== 'land') {
+        if ($('#geom').val() === 'channel_rt' && $('#config').val() !== 'long_range') {
             $('#velocVar').removeClass('hidden');
         };
         $('#time').val('06')
@@ -26,14 +26,14 @@ $('#config').on('change', function () {
     } else if ($('#config').val() === 'short_range') {
         $('#endDate,#endDateLabel,#timeLag').addClass('hidden');
         $('#time').parent().removeClass('hidden');
-        if ($('#geom').val() !== 'land') {
+        if ($('#geom').val() === 'channel_rt' && $('#config').val() !== 'long_range') {
             $('#velocVar').removeClass('hidden');
         };
     } else if ($('#config').val() === 'analysis_assim'){
         $('#endDate,#endDateLabel').removeClass('hidden');
         $('#time').parent().addClass('hidden');
         $('#timeLag').addClass('hidden');
-        if ($('#geom').val() !== 'land') {
+        if ($('#geom').val() === 'channel_rt' && $('#config').val() !== 'long_range') {
             $('#velocVar').removeClass('hidden');
         };
     }
@@ -50,10 +50,14 @@ $('#geom').on('change', function () {
         } else {
             $('#variable').val('streamflow');
         };
-        $('#comidDiv,#streamVar,#velocVar').removeClass('hidden');
+        $('#comidDiv,#streamVar').removeClass('hidden');
+        if ($('#config').val() !== 'long_range') {
+            $('#velocVar').removeClass('hidden');
+        }
         $('#gridInputY').attr('disabled', true);
         $('#gridInputX').attr('disabled', true);
-        $('#gridDiv,#infVar,#outfVar,#snowhVar,#sneqVar,#snowcVar,#etVar,#ssVar,#avsnowVar').addClass('hidden');
+        $('#gridDiv,#infVar,#outfVar,#snowhVar,#sneqVar,#snowcVar,#etVar,#ssVar,#avsnowVar,#subrunoffVar,#runoffVar,#canwVar,#ssiVar,#evapVar,#soiltVar,#soilmVar').
+            addClass('hidden');
     } else if ($('#geom').val() === 'reservoir') {
         $('#comidInput').attr('disabled', false);
         if (window.location.search.includes('reservoir')) {
@@ -65,7 +69,8 @@ $('#geom').on('change', function () {
         $('#comidDiv,#infVar,#outfVar').removeClass('hidden');
         $('#gridInputY').attr('disabled', true);
         $('#gridInputX').attr('disabled', true);
-        $('#gridDiv,#streamVar,#velocVar,#snowhVar,#sneqVar,#snowcVar,#etVar,#ssVar,#avsnowVar').addClass('hidden');
+        $('#gridDiv,#streamVar,#velocVar,#snowhVar,#sneqVar,#snowcVar,#etVar,#ssVar,#avsnowVar,#subrunoffVar,#runoffVar,#canwVar,#ssiVar,#evapVar,#soiltVar,#soilmVar').
+            addClass('hidden');
     } else if ($('#geom').val() === 'land' && ($('#config').val() === 'short_range' ||
         $('#config').val() === 'analysis_assim')) {
         $('#comidInput').attr('disabled', true);

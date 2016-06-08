@@ -255,7 +255,7 @@ def get_netcdf_data(request):
                         local_file_path = os.path.join(localFileDir, nc_files_1[0])
                         prediction_data = nc.Dataset(local_file_path, mode="r")
 
-                        comidList = prediction_data.variables['station_id'][:]
+                        comidList = prediction_data.variables['lake_id'][:]
                         comidIndex = int(np.where(comidList == comid)[0])
 
                         loopThroughFiles(localFileDir, q_out_1, nc_files_1, var, comidIndex)
@@ -276,8 +276,10 @@ def get_netcdf_data(request):
                         local_file_path = os.path.join(localFileDir, nc_files_1[0])
                         prediction_data = nc.Dataset(local_file_path, mode="r")
 
-                        comidList = prediction_data.variables['station_id'][:]
-                        comidIndex = int(np.where(comidList == comid)[0])
+                        comidList = comid.split(',')
+                        comidIndexY = int(comidList[0])
+                        comidIndexX = int(comidList[1])
+
                         loopThroughFiles(localFileDir, q_out_1, nc_files_1, var, None, comidIndexY, comidIndexX)
                         loopThroughFiles(localFileDir, q_out_2, nc_files_2, var, None, comidIndexY, comidIndexX)
                         loopThroughFiles(localFileDir, q_out_3, nc_files_3, var, None, comidIndexY, comidIndexX)
@@ -580,7 +582,7 @@ def getTimeSeries(config, geom, var, comid, date, endDate, time, lag=''):
                 local_file_path = os.path.join(localFileDir, nc_files_1[0])
                 prediction_data = nc.Dataset(local_file_path, mode="r")
 
-                comidList = prediction_data.variables['station_id'][:]
+                comidList = prediction_data.variables['lake_id'][:]
                 comidIndex = int(np.where(comidList == comid)[0])
 
                 loopThroughFiles(localFileDir, q_out_1, nc_files_1, var, comidIndex)
@@ -601,8 +603,9 @@ def getTimeSeries(config, geom, var, comid, date, endDate, time, lag=''):
                 local_file_path = os.path.join(localFileDir, nc_files_1[0])
                 prediction_data = nc.Dataset(local_file_path, mode="r")
 
-                comidList = prediction_data.variables['station_id'][:]
-                comidIndex = int(np.where(comidList == comid)[0])
+                comidList = comid.split(',')
+                comidIndexY = int(comidList[0])
+                comidIndexX = int(comidList[1])
 
                 loopThroughFiles(localFileDir, q_out_1, nc_files_1, var, None, comidIndexY, comidIndexX)
                 loopThroughFiles(localFileDir, q_out_2, nc_files_2, var, None, comidIndexY, comidIndexX)
