@@ -686,7 +686,7 @@ def get_data_waterml(request):
             units = {'name': 'Temperature', 'short': 'K', 'long': 'Kelvin'}
 
         nodata_value = -9999
-        if config != 'land':
+        if config != 'long_range':
             ts = getTimeSeries(config, geom, var, comid, start, end, time)
             time_series = format_time_series(config, start, ts, time, nodata_value)
             site_name = get_site_name(config, geom, var, float(lat), float(lon))
