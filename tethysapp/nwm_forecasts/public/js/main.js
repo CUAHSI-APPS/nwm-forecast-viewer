@@ -15,21 +15,29 @@ $('#config').on('change', function () {
     if ($('#config').val() === 'medium_range') {
         $('#endDate,#endDateLabel,#timeLag').addClass('hidden');
         $('#time').parent().addClass('hidden');
-        $('option:contains("Reservoir"),#velocVar').removeClass('hidden');
+        if ($('#geom').val() !== 'land') {
+            $('#velocVar').removeClass('hidden');
+        };
         $('#time').val('06')
     } else if ($('#config').val() === 'long_range') {
-        $('#endDate,endDateLabel,option:contains("Reservoir"),#velocVar').addClass('hidden');
+        $('#endDate,endDateLabel,#velocVar').addClass('hidden');
         $('#time').parent().addClass('hidden');
         $('#timeLag').removeClass('hidden');
     } else if ($('#config').val() === 'short_range') {
         $('#endDate,#endDateLabel,#timeLag').addClass('hidden');
         $('#time').parent().removeClass('hidden');
-        $('option:contains("Reservoir"),#velocVar').removeClass('hidden');
+        if ($('#geom').val() !== 'land') {
+            $('#velocVar').removeClass('hidden');
+        };
     } else if ($('#config').val() === 'analysis_assim'){
-        $('#endDate,#endDateLabel,option:contains("Reservoir"),#velocVar').removeClass('hidden');
+        $('#endDate,#endDateLabel').removeClass('hidden');
         $('#time').parent().addClass('hidden');
         $('#timeLag').addClass('hidden');
+        if ($('#geom').val() !== 'land') {
+            $('#velocVar').removeClass('hidden');
+        };
     }
+    $("#geom").trigger("change");
 });
 
 
@@ -58,9 +66,11 @@ $('#geom').on('change', function () {
         $('#gridInputY').attr('disabled', true);
         $('#gridInputX').attr('disabled', true);
         $('#gridDiv,#streamVar,#velocVar,#snowhVar,#sneqVar,#snowcVar,#etVar,#ssVar,#avsnowVar').addClass('hidden');
-    } else if ($('#geom').val() === 'land') {
+    } else if ($('#geom').val() === 'land' && ($('#config').val() === 'short_range' ||
+        $('#config').val() === 'analysis_assim')) {
         $('#comidInput').attr('disabled', true);
-        $('#comidDiv,#streamVar,#velocVar,#infVar,#outfVar').addClass('hidden');
+        $('#comidDiv,#streamVar,#velocVar,#infVar,#outfVar,#subrunoffVar,#runoffVar,#evapVar,#soiltVar,#soilmVar,#canwVar,#ssiVar')
+            .addClass('hidden');
         $('#gridInputY').attr('disabled', false);
         $('#gridInputX').attr('disabled', false);
         if (window.location.search.includes('land')) {
@@ -70,6 +80,33 @@ $('#geom').on('change', function () {
             $('#variable').val('SNOWH');
         };
         $('#gridDiv,#snowhVar,#sneqVar,#snowcVar,#etVar,#ssVar,#avsnowVar').removeClass('hidden');
+    } else if ($('#geom').val() === 'land' && $('#config').val() === 'medium_range') {
+        $('#comidInput').attr('disabled', true);
+        $('#comidDiv,#streamVar,#velocVar,#infVar,#outfVar,#runoffVar,#ssiVar').
+            addClass('hidden');
+        $('#gridInputY').attr('disabled', false);
+        $('#gridInputX').attr('disabled', false);
+        if (window.location.search.includes('land')) {
+            $('#variable').val(window.location.search.split("&")[2].substring(window.location.search.split("&")[2].
+                lastIndexOf("variable=") + 9));
+        } else {
+            $('#variable').val('SNOWH');
+        };
+        $('#gridDiv,#snowhVar,#sneqVar,#snowcVar,#etVar,#ssVar,#avsnowVar,#subrunoffVar,#evapVar,#canwVar,#soiltVar,#soilmVar').
+            removeClass('hidden');
+    } else if ($('#geom').val() === 'land' && $('#config').val() === 'long_range') {
+        $('#comidInput').attr('disabled', true);
+        $('#comidDiv,#streamVar,#velocVar,#infVar,#outfVar,#snowhVar,#snowcVar,#avsnowVar,#evapVar,#soiltVar,#soilmVar')
+            .addClass('hidden');
+        $('#gridInputY').attr('disabled', false);
+        $('#gridInputX').attr('disabled', false);
+        if (window.location.search.includes('land') && window.location.search.includes('long_range')) {
+            $('#variable').val(window.location.search.split("&")[2].substring(window.location.search.split("&")[2].
+                lastIndexOf("variable=") + 9));
+        } else {
+            $('#variable').val('SNEQV');
+        };
+        $('#gridDiv,#sneqVar,#etVar,#ssVar,#subrunoffVar,#runoffVar,#canwVar,#ssiVar').removeClass('hidden');
     };
 });
 
@@ -593,20 +630,25 @@ var plotData = function(config, geom, variable, data, start, colorIndex, seriesD
         var units = 'Snow Water Equivalent (Feet)';
         nc_chart.yAxis[0].setTitle({text: units});
         $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
-    } else if (variable === 'ACCET') {
-        var units = 'Accumulated Total ET (Inches)';
+    } else if (variable === 'ACCET' || variable === 'ACCECAN' || variable === 'CANWAT' ||
+        variable === 'UGDRNOFF' || variable === 'SFCRNOFF') {
+        var units = 'Depth (Inches)';
         nc_chart.yAxis[0].setTitle({text: units});
         $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
     } else if (variable === 'FSNO') {
         var units = 'Snow Cover (Fraction)';
         nc_chart.yAxis[0].setTitle({text: units});
         $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
-    } else if (variable === 'SOILSAT_TOP') {
+    } else if (variable === 'SOIL_M') {
+        var units = 'Soil Moisture';
+        nc_chart.yAxis[0].setTitle({text: units});
+        $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
+    } else if (variable === 'SOILSAT_TOP' || variable === 'SOILSAT') {
         var units = 'Soil Saturation (Fraction)';
         nc_chart.yAxis[0].setTitle({text: units});
         $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
-    } else if (variable === 'SNOWT_AVG') {
-        var units = 'Average Snow Temperature (Kelvin)';
+    } else if (variable === 'SNOWT_AVG' || variable === 'SOIL_T') {
+        var units = 'Temperature (Kelvin)';
         nc_chart.yAxis[0].setTitle({text: units});
         $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
     };
