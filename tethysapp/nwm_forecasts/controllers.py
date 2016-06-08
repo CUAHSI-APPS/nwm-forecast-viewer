@@ -96,6 +96,7 @@ def home(request):
         # Make the waterml url query string
         config = request.GET['config']
         geom = request.GET['geom']
+        variable = request.GET['variable']
         if geom != 'land':
             comid = request.GET['COMID']
         else:
@@ -123,24 +124,8 @@ def home(request):
             lagList.append('t18z')
 
         lag = ','.join(lagList)
-        # time2 = '00:00:00'
-        waterml_url = '?config=%s&COMID=%s&lon=%s&lat=%s&date=%s&time=%s&lag=%s' % (config, comid, lon, lat, startDate,
-                                                                                    time, lag)
-
-        # waterML_button = Button(display_text='Get WaterML',
-        #                    name='waterMLBtn',
-        #                    attributes='target="_blank" href="/apps/nwm-forecasts/waterml{{waterml_url}}',
-        #                    submit=False)
-
-        # HS_button = Button(display_text='Add to HydroShare',
-        #                    name='HSBtn',
-        #                    attributes='id="HSBtn" data-toggle="modal" data-target="#hydroshare-modal"',
-        #                    submit=False)
-
-        # HSGIS_button = Button(display_text='Add to HydroShare GIS',
-        #                       name='HSGISBtn',
-        #                       attributes='',
-        #                       submit=False)
+        waterml_url = '?config=%s&geom=%s&variable=%s&COMID=%s&lon=%s&lat=%s&date=%s&endDate=%s&time=%s&lag=%s' % \
+                      (config, geom, variable, comid, lon, lat, startDate, endDate, time, lag)
 
         context = {
             'config_input': config_input,
@@ -148,15 +133,11 @@ def home(request):
             'start_date': start_date,
             'end_date': end_date,
             'start_time': start_time,
-            # 'end_date': end_date,
             'longRangeLag00': longRangeLag00,
             'longRangeLag06': longRangeLag06,
             'longRangeLag12': longRangeLag12,
             'longRangeLag18': longRangeLag18,
             'submit_button': submit_button,
-            # 'waterML_button': waterML_button,
-            # 'HS_button': HS_button,
-            # 'HSGIS_button': HSGIS_button,
             'waterml_url': waterml_url,
             'watershed': watershed_obj
         }
@@ -182,11 +163,12 @@ def home(request):
 def get_netcdf_data(request):
     if request.method == 'GET':
         get_data = request.GET
-        ts_pairs_data = {}  # For time series pairs data
+        ts_pairs_data = {}
 
         try:
             config = get_data['config']
             geom = get_data['geom']
+            var = get_data['variable']
             if geom != 'land':
                 comid = int(get_data['comid'])
             else:
@@ -204,44 +186,7 @@ def get_netcdf_data(request):
                 localFileDir = os.path.join(app_dir, config, dateDir)
                 nc_files = sorted([x for x in os.listdir(localFileDir) if geom in x and timeCheck in x and 'georeferenced' in x])
 
-                local_file_path = os.path.join(localFileDir, nc_files[0])
-                prediction_data = nc.Dataset(local_file_path, mode="r")
-
-                if geom == 'channel_rt':
-                    comidList = prediction_data.variables['station_id'][:]
-                    comidIndex = int(np.where(comidList == comid)[0])
-                    var = 'streamflow'
-                elif geom == 'reservoir':
-                    comidList = prediction_data.variables['lake_id'][:]
-                    comidIndex = int(np.where(comidList == comid)[0])
-                    var = 'inflow'
-                elif geom == 'land':
-                    comidList = comid.split(',')
-                    comidIndexY = int(comidList[0])
-                    comidIndexX = int(comidList[1])
-                    var = 'ACCET'
-                else:
-                    return JsonResponse({'error': "Invalid netCDF file"})
-
-                variables = prediction_data.variables.keys()
-                if 'time' in variables:
-                    time = [int(nc.num2date(0, prediction_data.variables['time'].units).strftime('%s'))]
-                else:
-                    return JsonResponse({'error': "Invalid netCDF file"})
-
-                q_out = []
-                for ncf in nc_files:
-                    local_file_path = os.path.join(localFileDir, ncf)
-                    prediction_dataTemp = nc.Dataset(local_file_path, mode="r")
-
-                    if geom != 'land':
-                        q_outT = prediction_dataTemp.variables[var][comidIndex].tolist()
-                        q_out.append(round(q_outT * 35.3147, 4))
-                    else:
-                        q_outT = prediction_dataTemp.variables[var][0][comidIndexY][comidIndexX].tolist()
-                        q_out.append(round(q_outT * 0.0393701, 4))
-
-                ts_pairs_data[str(comid)] = [time, q_out, 'notLong']
+                ts_pairs_data[str(comid)] = processNCFiles(localFileDir, nc_files, geom, comid, var)
 
                 return JsonResponse({
                     "success": "Data analysis complete!",
@@ -255,36 +200,11 @@ def get_netcdf_data(request):
                 app_dir = '/projects/water/nwm/data/'
                 dateDir = startDate.replace('-', '')
                 localFileDir = os.path.join(app_dir, config)
-                nc_files = sorted([x for x in os.listdir(localFileDir) if 'channel_rt' in x and
+                nc_files = sorted([x for x in os.listdir(localFileDir) if geom in x and
                                    int(x.split('.')[1]) >= int(dateDir) and int(x.split('.')[1]) < int(endDate) and
                                    'georeferenced' in x])
 
-
-                local_file_path = os.path.join(localFileDir, nc_files[0])
-                prediction_data = nc.Dataset(local_file_path, mode="r")
-
-                qout_dimensions = prediction_data.variables['station_id'].dimensions
-
-                if qout_dimensions[0] == 'station':
-                    comidList = prediction_data.variables['station_id'][:]
-                    comidIndex = int(np.where(comidList == comid)[0])
-                else:
-                    return JsonResponse({'error': "Invalid netCDF file"})
-
-                variables = prediction_data.variables.keys()
-                if 'time' in variables:
-                    time = [int(nc.num2date(0, prediction_data.variables['time'].units).strftime('%s'))]
-                else:
-                    return JsonResponse({'error': "Invalid netCDF file"})
-
-                q_out = []
-                for ncf in nc_files:
-                    local_file_path = os.path.join(localFileDir, ncf)
-                    prediction_dataTemp = nc.Dataset(local_file_path, mode="r")
-                    q_outT = prediction_dataTemp.variables['streamflow'][comidIndex].tolist()
-                    q_out.append(round(q_outT * 35.3147, 4))
-
-                ts_pairs_data[str(comid)] = [time, q_out, 'notLong']
+                ts_pairs_data[str(comid)] = processNCFiles(localFileDir, nc_files, geom, comid, var)
 
                 return JsonResponse({
                     "success": "Data analysis complete!",
@@ -299,23 +219,72 @@ def get_netcdf_data(request):
                     app_dir = '/projects/water/nwm/data/'
                     dateDir = startDate.replace('-', '')
                     localFileDir = os.path.join(app_dir, config, dateDir)
-                    nc_files_1 = sorted([x for x in os.listdir(localFileDir) if
-                                         'channel_rt_1' in x and timeCheck in x and 'georeferenced' in x])
-                    nc_files_2 = sorted([x for x in os.listdir(localFileDir) if
-                                         'channel_rt_2' in x and timeCheck in x and 'georeferenced' in x])
-                    nc_files_3 = sorted([x for x in os.listdir(localFileDir) if
-                                         'channel_rt_3' in x and timeCheck in x and 'georeferenced' in x])
-                    nc_files_4 = sorted([x for x in os.listdir(localFileDir) if
-                                         'channel_rt_4' in x and timeCheck in x and 'georeferenced' in x])
 
-                    local_file_path = os.path.join(localFileDir, nc_files_1[0])
-                    prediction_data = nc.Dataset(local_file_path, mode="r")
+                    q_out_1 = []; q_out_2 = []; q_out_3 = []; q_out_4 = []
+                    if geom == 'channel_rt':
+                        nc_files_1 = sorted([x for x in os.listdir(localFileDir) if
+                                             'channel_rt_1' in x and timeCheck in x and 'georeferenced' in x])
+                        nc_files_2 = sorted([x for x in os.listdir(localFileDir) if
+                                             'channel_rt_2' in x and timeCheck in x and 'georeferenced' in x])
+                        nc_files_3 = sorted([x for x in os.listdir(localFileDir) if
+                                             'channel_rt_3' in x and timeCheck in x and 'georeferenced' in x])
+                        nc_files_4 = sorted([x for x in os.listdir(localFileDir) if
+                                             'channel_rt_4' in x and timeCheck in x and 'georeferenced' in x])
 
-                    qout_dimensions = prediction_data.variables['station_id'].dimensions
+                        local_file_path = os.path.join(localFileDir, nc_files_1[0])
+                        prediction_data = nc.Dataset(local_file_path, mode="r")
 
-                    if qout_dimensions[0] == 'station':
                         comidList = prediction_data.variables['station_id'][:]
                         comidIndex = int(np.where(comidList == comid)[0])
+
+                        loopThroughFiles(localFileDir, q_out_1, nc_files_1, var, comidIndex)
+                        loopThroughFiles(localFileDir, q_out_2, nc_files_2, var, comidIndex)
+                        loopThroughFiles(localFileDir, q_out_3, nc_files_3, var, comidIndex)
+                        loopThroughFiles(localFileDir, q_out_4, nc_files_4, var, comidIndex)
+
+                    elif geom == 'reservoir':
+                        nc_files_1 = sorted([x for x in os.listdir(localFileDir) if
+                                             'reservoir_1' in x and timeCheck in x and 'georeferenced' in x])
+                        nc_files_2 = sorted([x for x in os.listdir(localFileDir) if
+                                             'reservoir_2' in x and timeCheck in x and 'georeferenced' in x])
+                        nc_files_3 = sorted([x for x in os.listdir(localFileDir) if
+                                             'reservoir_3' in x and timeCheck in x and 'georeferenced' in x])
+                        nc_files_4 = sorted([x for x in os.listdir(localFileDir) if
+                                             'reservoir_4' in x and timeCheck in x and 'georeferenced' in x])
+
+                        local_file_path = os.path.join(localFileDir, nc_files_1[0])
+                        prediction_data = nc.Dataset(local_file_path, mode="r")
+
+                        comidList = prediction_data.variables['lake_id'][:]
+                        comidIndex = int(np.where(comidList == comid)[0])
+
+                        loopThroughFiles(localFileDir, q_out_1, nc_files_1, var, comidIndex)
+                        loopThroughFiles(localFileDir, q_out_2, nc_files_2, var, comidIndex)
+                        loopThroughFiles(localFileDir, q_out_3, nc_files_3, var, comidIndex)
+                        loopThroughFiles(localFileDir, q_out_4, nc_files_4, var, comidIndex)
+
+                    elif geom == 'land':
+                        nc_files_1 = sorted([x for x in os.listdir(localFileDir) if
+                                             'land_1' in x and timeCheck in x and 'georeferenced' in x])
+                        nc_files_2 = sorted([x for x in os.listdir(localFileDir) if
+                                             'land_2' in x and timeCheck in x and 'georeferenced' in x])
+                        nc_files_3 = sorted([x for x in os.listdir(localFileDir) if
+                                             'land_3' in x and timeCheck in x and 'georeferenced' in x])
+                        nc_files_4 = sorted([x for x in os.listdir(localFileDir) if
+                                             'land_4' in x and timeCheck in x and 'georeferenced' in x])
+
+                        local_file_path = os.path.join(localFileDir, nc_files_1[0])
+                        prediction_data = nc.Dataset(local_file_path, mode="r")
+
+                        comidList = comid.split(',')
+                        comidIndexY = int(comidList[0])
+                        comidIndexX = int(comidList[1])
+
+                        loopThroughFiles(localFileDir, q_out_1, nc_files_1, var, None, comidIndexY, comidIndexX)
+                        loopThroughFiles(localFileDir, q_out_2, nc_files_2, var, None, comidIndexY, comidIndexX)
+                        loopThroughFiles(localFileDir, q_out_3, nc_files_3, var, None, comidIndexY, comidIndexX)
+                        loopThroughFiles(localFileDir, q_out_4, nc_files_4, var, None, comidIndexY, comidIndexX)
+
                     else:
                         return JsonResponse({'error': "Invalid netCDF file"})
 
@@ -324,31 +293,6 @@ def get_netcdf_data(request):
                         time = [int(nc.num2date(0, prediction_data.variables['time'].units).strftime('%s'))]
                     else:
                         return JsonResponse({'error': "Invalid netCDF file"})
-
-                    q_out_1 = []
-                    for ncf in nc_files_1:
-                        local_file_path = os.path.join(localFileDir, ncf)
-                        prediction_dataTemp = nc.Dataset(local_file_path, mode="r")
-                        q_outT = prediction_dataTemp.variables['streamflow'][comidIndex].tolist()
-                        q_out_1.append(round(q_outT * 35.3147, 4))
-                    q_out_2 = []
-                    for ncf in nc_files_2:
-                        local_file_path = os.path.join(localFileDir, ncf)
-                        prediction_dataTemp = nc.Dataset(local_file_path, mode="r")
-                        q_outT = prediction_dataTemp.variables['streamflow'][comidIndex].tolist()
-                        q_out_2.append(round(q_outT * 35.3147, 4))
-                    q_out_3 = []
-                    for ncf in nc_files_3:
-                        local_file_path = os.path.join(localFileDir, ncf)
-                        prediction_dataTemp = nc.Dataset(local_file_path, mode="r")
-                        q_outT = prediction_dataTemp.variables['streamflow'][comidIndex].tolist()
-                        q_out_3.append(round(q_outT * 35.3147, 4))
-                    q_out_4 = []
-                    for ncf in nc_files_4:
-                        local_file_path = os.path.join(localFileDir, ncf)
-                        prediction_dataTemp = nc.Dataset(local_file_path, mode="r")
-                        q_outT = prediction_dataTemp.variables['streamflow'][comidIndex].tolist()
-                        q_out_4.append(round(q_outT * 35.3147, 4))
 
                     q_out_group.append([time, q_out_1, q_out_2, q_out_3, q_out_4, timeCheck])
 
@@ -366,161 +310,64 @@ def get_netcdf_data(request):
         return JsonResponse({'error': "Bad request. Must be a GET request."})
 
 
-# ***----------------------------------------------------------------------------------------*** #
-# ***                                                                                        *** #
-# ***                                     REST API                                           *** #
-# ***                                                                                        *** #
-# ***----------------------------------------------------------------------------------------*** #
+def processNCFiles(localFileDir, nc_files, geom, comid, var):
+    local_file_path = os.path.join(localFileDir, nc_files[0])
+    prediction_data = nc.Dataset(local_file_path, mode="r")
 
-def getTimeSeries(comid, date, time, config, lag=''):
-    if config != 'long_range':
-        timeCheck = ''.join(['t', time, 'z'])
-
-        ts = []
-
-        app_dir = '/projects/water/nwm/data/'
-        dateDir = date.replace('-', '')
-        localFileDir = os.path.join(app_dir, config, dateDir)
-        nc_files = sorted([x for x in os.listdir(localFileDir) if
-                           'channel_rt' in x and timeCheck in x and 'georeferenced' in x])
-        ncFile = nc.Dataset(os.path.join(localFileDir, nc_files[0]), mode="r")
-        comidList = ncFile.variables['station_id'][:]
-        comidIndex = int(np.where(comidList == int(comid))[0])
-
-        for ncf in nc_files:
-            local_file_path = os.path.join(localFileDir, ncf)
-            prediction_dataTemp = nc.Dataset(local_file_path, mode="r")
-            q_out = prediction_dataTemp.variables['streamflow'][comidIndex].tolist()
-            ts.append(round(q_out * 35.3147, 4))
-        return ts
-    elif config == 'long_range':
-        ts_group = []
-        app_dir = '/projects/water/nwm/data/'
-        dateDir = startDate.replace('-', '')
-        localFileDir = os.path.join(app_dir, config, dateDir)
-        nc_files_1 = sorted([x for x in os.listdir(localFileDir) if
-                             'channel_rt_1' in x and lag in x and 'georeferenced' in x])
-        nc_files_2 = sorted([x for x in os.listdir(localFileDir) if
-                             'channel_rt_2' in x and lag in x and 'georeferenced' in x])
-        nc_files_3 = sorted([x for x in os.listdir(localFileDir) if
-                             'channel_rt_3' in x and lag in x and 'georeferenced' in x])
-        nc_files_4 = sorted([x for x in os.listdir(localFileDir) if
-                             'channel_rt_4' in x and lag in x and 'georeferenced' in x])
-
-        prediction_data = nc.Dataset(os.path.join(localFileDir, nc_files_1[0]), mode="r")
+    q_out = []
+    if geom == 'channel_rt':
         comidList = prediction_data.variables['station_id'][:]
         comidIndex = int(np.where(comidList == comid)[0])
+        loopThroughFiles(localFileDir, q_out, nc_files, var, comidIndex)
+    elif geom == 'reservoir':
+        comidList = prediction_data.variables['lake_id'][:]
+        comidIndex = int(np.where(comidList == comid)[0])
+        loopThroughFiles(localFileDir, q_out, nc_files, var, comidIndex)
+    elif geom == 'land':
+        comidList = comid.split(',')
+        comidIndexY = int(comidList[0])
+        comidIndexX = int(comidList[1])
+        loopThroughFiles(localFileDir, q_out, nc_files, var, None, comidIndexY, comidIndexX)
+    else:
+        return JsonResponse({'error': "Invalid netCDF file"})
 
+    variables = prediction_data.variables.keys()
+    if 'time' in variables:
         time = [int(nc.num2date(0, prediction_data.variables['time'].units).strftime('%s'))]
+    else:
+        return JsonResponse({'error': "Invalid netCDF file"})
 
-        q_out_1 = []
-        for ncf in nc_files_1:
-            local_file_path = os.path.join(localFileDir, ncf)
-            prediction_dataTemp = nc.Dataset(local_file_path, mode="r")
-            q_outT = prediction_dataTemp.variables['streamflow'][comidIndex].tolist()
-            q_out_1.append(round(q_outT * 35.3147, 4))
-        q_out_2 = []
-        for ncf in nc_files_2:
-            local_file_path = os.path.join(localFileDir, ncf)
-            prediction_dataTemp = nc.Dataset(local_file_path, mode="r")
-            q_outT = prediction_dataTemp.variables['streamflow'][comidIndex].tolist()
-            q_out_2.append(round(q_outT * 35.3147, 4))
-        q_out_3 = []
-        for ncf in nc_files_3:
-            local_file_path = os.path.join(localFileDir, ncf)
-            prediction_dataTemp = nc.Dataset(local_file_path, mode="r")
-            q_outT = prediction_dataTemp.variables['streamflow'][comidIndex].tolist()
-            q_out_3.append(round(q_outT * 35.3147, 4))
-        q_out_4 = []
-        for ncf in nc_files_4:
-            local_file_path = os.path.join(localFileDir, ncf)
-            prediction_dataTemp = nc.Dataset(local_file_path, mode="r")
-            q_outT = prediction_dataTemp.variables['streamflow'][comidIndex].tolist()
-            q_out_4.append(round(q_outT * 35.3147, 4))
-
-        ts_group.append([q_out_1, q_out_2, q_out_3, q_out_4, time])
-        return ts_group
+    return [time, q_out, 'notLong']
 
 
-def format_time_series(config, startDate, ts, time, nodata_value):
-    nDays = len(ts)
-    if config == 'short_range' or config == 'analysis_assim':
-        datelist = [dt.datetime.strptime(startDate, "%Y-%m-%d") + dt.timedelta(hours=x + int(time) +1) for x in range(0,nDays)]
-    elif config == 'medium_range':
-        datelist = [dt.datetime.strptime(startDate, "%Y-%m-%d") + dt.timedelta(hours=x+9) for x in range(0, nDays*3, 3)]
-    formatted_ts = []
-    for i in range(0, nDays):
-        formatted_val = ts[i]
-        if (formatted_val is None):
-            formatted_val = nodata_value
-        formatted_date = datelist[i].strftime('%Y-%m-%dT%H:%M:%S')
-        formatted_ts.append({'date':formatted_date, 'val':formatted_val})
+def loopThroughFiles(localFileDir, q_out, nc_files, var, comidIndex=None, comidIndexY=None, comidIndexX=None):
+    for ncf in nc_files:
+        local_file_path = os.path.join(localFileDir, ncf)
+        prediction_dataTemp = nc.Dataset(local_file_path, mode="r")
 
-    print len(ts), formatted_ts, '********************'
-    return formatted_ts
+        if var in ['streamflow', 'inflow', 'outflow']:
+            q_outT = prediction_dataTemp.variables[var][comidIndex].tolist()
+            q_out.append(round(q_outT * 35.3147, 4))
+        elif var == 'velocity':
+            q_outT = prediction_dataTemp.variables[var][comidIndex].tolist()
+            q_out.append(round(q_outT * 3.28084, 4))
+        elif var == 'SNOWH':
+            q_outT = np.ma.getdata(prediction_dataTemp.variables[var][0][comidIndexY][comidIndexX]).tolist()
+            q_out.append(round(q_outT * 3.28084, 4))
+        elif var == 'SNEQV':
+            q_outT = np.ma.getdata(prediction_dataTemp.variables[var][0][comidIndexY][comidIndexX]).tolist()
+            q_out.append(round((q_outT / 1000) * 3.28084, 4))
+        elif var in ['FSNO', 'SOILSAT_TOP', 'SOILSAT', 'CANWAT', 'SNOWT_AVG']:
+            q_outT = np.ma.getdata(prediction_dataTemp.variables[var][0][comidIndexY][comidIndexX]).tolist()
+            q_out.append(round(q_outT, 4))
+        elif var in ['SOIL_M', 'SOIL_T']:
+            q_outT = np.ma.getdata(prediction_dataTemp.variables[var][0][comidIndexY][3][comidIndexX]).tolist()
+            q_out.append(round(q_outT, 4))
+        elif var in ['ACCET', 'UGDRNOFF', 'SFCRNOFF', 'ACCECAN', 'CANWAT']:
+            q_outT = np.ma.getdata(prediction_dataTemp.variables[var][0][comidIndexY][comidIndexX]).tolist()
+            q_out.append(round(q_outT * 0.0393701, 4))
 
-
-def get_site_name(lat, lon):
-    lat_name = "Lat: %s" % lat
-    lon_name = "Lon: %s" % lon
-    return lat_name + ' ' +  lon_name
-
-
-def get_data_waterml(request):
-    """
-	Controller that will show the data in WaterML 1.1 format
-	"""
-    if request.GET:
-        config = request.GET["config"]
-        comid = request.GET["COMID"]
-        lat = request.GET["lat"]
-        lon = request.GET["lon"]
-        start = request.GET["date"]
-        time = request.GET['time']
-        # lagList = request.GET['lag'].split(',')
-
-        nodata_value = -9999
-        if config != 'long_range':
-            ts = getTimeSeries(comid, start, time, config)
-            time_series = format_time_series(config, start, ts, time, nodata_value)
-            site_name = get_site_name(float(lat), float(lon))
-            context = {
-                'config': config,
-                'comid': comid,
-                'lat': lat,
-                'lon': lon,
-                'startdate': start,
-                'site_name': site_name,
-                'time_series': time_series
-            }
-
-            xmlResponse = render_to_response('nwm_forecasts/waterml.xml', context)
-            xmlResponse['Content-Type'] = 'application/xml'
-            xmlResponse['content-disposition'] = "attachment; filename=output-time-series.xml"
-            return xmlResponse
-        elif config == 'long_range':
-            # for lg in lagList:
-            #     ts_group = getTimeSeries(comid, start, time, config, lg)
-            #     ts_group_formatted = []
-            #     for ts in ts_group[0:-1]:
-            #         ts_group_formatted.append(format_time_series(config, ts_group[-1], ts, nodata_value))
-            #     site_name = lg + ' ' + get_site_name(float(lat), float(lon))
-            #     for ts_f in ts_group_formatted:
-            #         context = {
-            #             'config': config,
-            #             'comid': comid,
-            #             'lat': lat,
-            #             'lon': lon,
-            #             'startdate': start,
-            #             'site_name': site_name,
-            #             'time_series': ts_f
-            #         }
-            #
-            #         xmlResponse = render_to_response('nwm_forecasts/waterml.xml', context)
-            # xmlResponse['Content-Type'] = 'application/xml'
-            # xmlResponse['content-disposition'] = "attachment; filename=output-time-series.xml"
-            # return xmlResponse
-            raise Http404('A zip file download for all long range forecasts is in development.')
+    return q_out
 
 
 def get_hs_watershed_list(request):
@@ -646,3 +493,246 @@ def get_geojson_from_hs_resource(res_id, filename, request):
         response_obj['error'] = 'Failed to load watershed.'
 
     return response_obj
+
+
+# ***----------------------------------------------------------------------------------------*** #
+# ***                                                                                        *** #
+# ***                                     REST API                                           *** #
+# ***                                                                                        *** #
+# ***----------------------------------------------------------------------------------------*** #
+
+def getTimeSeries(config, geom, var, comid, date, endDate, time, lag=''):
+    if config != 'long_range':
+        timeCheck = ''.join(['t', time, 'z'])
+
+        ts = []
+
+        app_dir = '/projects/water/nwm/data/'
+        dateDir = date.replace('-', '')
+
+        if config in ['short_range', 'medium_range']:
+            localFileDir = os.path.join(app_dir, config, dateDir)
+            nc_files = sorted([x for x in os.listdir(localFileDir) if geom in x and
+                               timeCheck in x and 'georeferenced' in x])
+        elif config == 'analysis_assim':
+            localFileDir = os.path.join(app_dir, config)
+            nc_files = sorted([x for x in os.listdir(localFileDir) if geom in x and
+                               int(x.split('.')[1]) >= int(dateDir) and
+                               int(x.split('.')[1]) < int(endDate.replace('-', '')) and
+                               'georeferenced' in x])
+
+        ncFile = nc.Dataset(os.path.join(localFileDir, nc_files[0]), mode="r")
+
+        if geom == 'channel_rt':
+            comidList = ncFile.variables['station_id'][:]
+            comidIndex = int(np.where(comidList == comid)[0])
+            loopThroughFiles(localFileDir, ts, nc_files, var, comidIndex)
+        elif geom == 'reservoir':
+            comidList = ncFile.variables['lake_id'][:]
+            comidIndex = int(np.where(comidList == comid)[0])
+            loopThroughFiles(localFileDir, ts, nc_files, var, comidIndex)
+        elif geom == 'land':
+            comidList = comid.split(',')
+            comidIndexY = int(comidList[0])
+            comidIndexX = int(comidList[1])
+            loopThroughFiles(localFileDir, ts, nc_files, var, None, comidIndexY, comidIndexX)
+
+        return ts
+
+    elif config == 'long_range':
+        ts_group = []
+        app_dir = '/projects/water/nwm/data/'
+        dateDir = date.replace('-', '')
+        localFileDir = os.path.join(app_dir, config, dateDir)
+
+        for lg in lag:
+            timeCheck = ''.join(['t', lg])
+            q_out_1 = []; q_out_2 = []; q_out_3 = []; q_out_4 = []
+            if geom == 'channel_rt':
+                nc_files_1 = sorted([x for x in os.listdir(localFileDir) if
+                                     'channel_rt_1' in x and timeCheck in x and 'georeferenced' in x])
+                nc_files_2 = sorted([x for x in os.listdir(localFileDir) if
+                                     'channel_rt_2' in x and timeCheck in x and 'georeferenced' in x])
+                nc_files_3 = sorted([x for x in os.listdir(localFileDir) if
+                                     'channel_rt_3' in x and timeCheck in x and 'georeferenced' in x])
+                nc_files_4 = sorted([x for x in os.listdir(localFileDir) if
+                                     'channel_rt_4' in x and timeCheck in x and 'georeferenced' in x])
+
+                local_file_path = os.path.join(localFileDir, nc_files_1[0])
+                prediction_data = nc.Dataset(local_file_path, mode="r")
+
+                comidList = prediction_data.variables['station_id'][:]
+                comidIndex = int(np.where(comidList == comid)[0])
+
+                loopThroughFiles(localFileDir, q_out_1, nc_files_1, var, comidIndex)
+                loopThroughFiles(localFileDir, q_out_2, nc_files_2, var, comidIndex)
+                loopThroughFiles(localFileDir, q_out_3, nc_files_3, var, comidIndex)
+                loopThroughFiles(localFileDir, q_out_4, nc_files_4, var, comidIndex)
+
+            elif geom == 'reservoir':
+                nc_files_1 = sorted([x for x in os.listdir(localFileDir) if
+                                     'reservoir_1' in x and timeCheck in x and 'georeferenced' in x])
+                nc_files_2 = sorted([x for x in os.listdir(localFileDir) if
+                                     'reservoir_2' in x and timeCheck in x and 'georeferenced' in x])
+                nc_files_3 = sorted([x for x in os.listdir(localFileDir) if
+                                     'reservoir_3' in x and timeCheck in x and 'georeferenced' in x])
+                nc_files_4 = sorted([x for x in os.listdir(localFileDir) if
+                                     'reservoir_4' in x and timeCheck in x and 'georeferenced' in x])
+
+                local_file_path = os.path.join(localFileDir, nc_files_1[0])
+                prediction_data = nc.Dataset(local_file_path, mode="r")
+
+                comidList = prediction_data.variables['lake_id'][:]
+                comidIndex = int(np.where(comidList == comid)[0])
+
+                loopThroughFiles(localFileDir, q_out_1, nc_files_1, var, comidIndex)
+                loopThroughFiles(localFileDir, q_out_2, nc_files_2, var, comidIndex)
+                loopThroughFiles(localFileDir, q_out_3, nc_files_3, var, comidIndex)
+                loopThroughFiles(localFileDir, q_out_4, nc_files_4, var, comidIndex)
+
+            elif geom == 'land':
+                nc_files_1 = sorted([x for x in os.listdir(localFileDir) if
+                                     'land_1' in x and timeCheck in x and 'georeferenced' in x])
+                nc_files_2 = sorted([x for x in os.listdir(localFileDir) if
+                                     'land_2' in x and timeCheck in x and 'georeferenced' in x])
+                nc_files_3 = sorted([x for x in os.listdir(localFileDir) if
+                                     'land_3' in x and timeCheck in x and 'georeferenced' in x])
+                nc_files_4 = sorted([x for x in os.listdir(localFileDir) if
+                                     'land_4' in x and timeCheck in x and 'georeferenced' in x])
+
+                local_file_path = os.path.join(localFileDir, nc_files_1[0])
+                prediction_data = nc.Dataset(local_file_path, mode="r")
+
+                comidList = comid.split(',')
+                comidIndexY = int(comidList[0])
+                comidIndexX = int(comidList[1])
+
+                loopThroughFiles(localFileDir, q_out_1, nc_files_1, var, None, comidIndexY, comidIndexX)
+                loopThroughFiles(localFileDir, q_out_2, nc_files_2, var, None, comidIndexY, comidIndexX)
+                loopThroughFiles(localFileDir, q_out_3, nc_files_3, var, None, comidIndexY, comidIndexX)
+                loopThroughFiles(localFileDir, q_out_4, nc_files_4, var, None, comidIndexY, comidIndexX)
+
+            else:
+                return JsonResponse({'error': "Invalid netCDF file"})
+
+            newTime = [int(nc.num2date(0, prediction_data.variables['time'].units).strftime('%s'))]
+
+            ts_group.append([q_out_1, q_out_2, q_out_3, q_out_4, newTime])
+
+        return ts_group
+
+
+def format_time_series(config, startDate, ts, time, nodata_value):
+    nDays = len(ts)
+    if config == 'short_range':
+        datelist = [dt.datetime.strptime(startDate, "%Y-%m-%d") + dt.timedelta(hours=x + int(time) +1) for x in range(0,nDays)]
+    elif config == 'medium_range':
+        datelist = [dt.datetime.strptime(startDate, "%Y-%m-%d") + dt.timedelta(hours=x+9) for x in range(0, nDays*3, 3)]
+    if config == 'analysis_assim':
+        datelist = [dt.datetime.strptime(startDate, "%Y-%m-%d") + dt.timedelta(hours=x + 1) for x in range(0, nDays)]
+
+    formatted_ts = []
+    for i in range(0, nDays):
+        formatted_val = ts[i]
+        if (formatted_val is None):
+            formatted_val = nodata_value
+        formatted_date = datelist[i].strftime('%Y-%m-%dT%H:%M:%S')
+        formatted_ts.append({'date':formatted_date, 'val':formatted_val})
+
+    return formatted_ts
+
+
+def get_site_name(config, geom, var, lat, lon):
+    lat_name = "Lat: %s" % lat
+    lon_name = "Lon: %s" % lon
+    conf_name = config.replace('_', ' ').title()
+    geom_name = geom.replace('_rt', '').title()
+
+    return  conf_name + ', ' + geom_name + ' (' + var + '), ' + lat_name + ' ' +  lon_name
+
+
+def get_data_waterml(request):
+    """
+	Controller that will show the data in WaterML 1.1 format
+	"""
+    if request.GET:
+        config = request.GET["config"]
+        geom = request.GET['geom']
+        var = request.GET['variable']
+        if geom != 'land':
+            comid = int(request.GET['COMID'])
+        else:
+            comid = request.GET['COMID']
+        lat = request.GET["lat"]
+        lon = request.GET["lon"]
+        start = request.GET["date"]
+        end = request.GET["endDate"]
+        time = request.GET['time']
+        lagList = request.GET['lag'].split(',')
+
+        if var in ['streamflow', 'inflow', 'outflow']:
+            units = {'name': 'Flow', 'short': 'cfs', 'long': 'Cubic feet per Second'}
+        elif var == 'velocity':
+            units = {'name': 'Velocity', 'short': 'ft/s', 'long': 'Feet per Second'}
+        if var in ['SNOWH', 'SNEQV']:
+            units = {'name': 'Depth', 'short': 'ft', 'long': 'Feet'}
+        elif var in ['ACCET', 'ACCECAN', 'CANWAT', 'UGDRNOFF', 'SFCRNOFF']:
+            units = {'name': 'Depth', 'short': 'in', 'long': 'Inches'}
+        if var in ['SOILSAT_TOP', 'SOILSAT', 'FSNO']:
+            units = {'name': 'Fraction', 'short': 'None', 'long': 'None'}
+        elif var == 'SOIL_M':
+            units = {'name': 'Soil Moisture', 'short': 'm^3/m^3', 'long': 'Water Volume per Soil Volume'}
+        if var in ['SNOWT_AVG', 'SOIL_T']:
+            units = {'name': 'Temperature', 'short': 'K', 'long': 'Kelvin'}
+
+        nodata_value = -9999
+        if config != 'long_range':
+            ts = getTimeSeries(config, geom, var, comid, start, end, time)
+            time_series = format_time_series(config, start, ts, time, nodata_value)
+            site_name = get_site_name(config, geom, var, float(lat), float(lon))
+
+            context = {
+                'config': config,
+                'comid': comid,
+                'lat': lat,
+                'lon': lon,
+                'startdate': start,
+                'site_name': site_name,
+                'units': units,
+                'time_series': time_series
+            }
+
+            xmlResponse = render_to_response('nwm_forecasts/waterml.xml', context)
+            xmlResponse['Content-Type'] = 'application/xml'
+            # xmlResponse['content-disposition'] = "attachment; filename=output-time-series.xml"
+
+            return xmlResponse
+
+        elif config == 'long_range':
+            # for lg in lagList:
+            #     ts_group = getTimeSeries(config, geom, var, comid, start, end, time, lg)
+            #     ts_group_formatted = []
+            #     for ts in ts_group[0:-1]:
+            #         ts_group_formatted.append(format_time_series(config, ts_group[-1], ts, nodata_value))
+            #
+            #     for ts_f in ts_group_formatted:
+            #         site_name = get_site_name(config, geom, var, float(lat), float(lon)) + ' ' + lg + 'Member ' + \
+            #                     str(ts_group_formatted.index(ts_f) + 1)
+            #         context = {
+            #             'config': config,
+            #             'comid': comid,
+            #             'lat': lat,
+            #             'lon': lon,
+            #             'startdate': start,
+            #             'site_name': site_name,
+            #             'units': units,
+            #             'time_series': ts_f
+            #         }
+            #
+            #         xmlResponse = render('nwm_forecasts/waterml.xml', context)
+            #         xmlResponse['Content-Type'] = 'application/xml'
+            #         xmlResponse['content-disposition'] = "attachment; filename=output-time-series_" + lg + \
+            #                                              '_member_' + str(ts_group_formatted.index(ts_f) + 1) + ".xml"
+            #
+            #         return xmlResponse
+            raise Http404('A zip file download for all long range forecasts is in development.')
