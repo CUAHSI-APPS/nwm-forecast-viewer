@@ -157,7 +157,7 @@ $(function () {
             var qLat = Number(query[6].substring(query[6].lastIndexOf("latitude=")+9));
             var qDate = query[7].substring(query[7].lastIndexOf("startDate=") + 10);
             var qTime = query[8].substring(query[8].lastIndexOf("time=") + 5);
-        }
+        };
 
         var qLag = [];
         var qDateEnd = query[query.length - 3].substring(query[query.length - 3].lastIndexOf("endDate=") + 8);
@@ -618,7 +618,9 @@ function initChart(config, startDate) {
 }
 
 var plotData = function(config, geom, variable, data, start, colorIndex, seriesDesc) {
-    $('#actionBtns').removeClass('hidden');
+    if (config !== 'long_range') {
+        $('#actionBtns').removeClass('hidden');
+    };
     var calib = calibrateModel(config, start)
 
     if (variable === 'streamflow' || variable === 'inflow' || variable === 'outflow') {
