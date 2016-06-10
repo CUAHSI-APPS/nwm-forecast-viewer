@@ -29,7 +29,7 @@ class nwmForecasts(TethysAppBase):
                            url='nwm-forecasts/get-netcdf-data',
                            controller='nwm_forecasts.controllers.get_netcdf_data'),
                     UrlMap(name='waterml',
-                           url='nwm-forecasts/waterml',
+                           url='nwm-forecasts/api/GetWaterML',
                            controller='nwm_forecasts.controllers.get_data_waterml'),
                     UrlMap(name='get_hs_watershed_list',
                            url='nwm-forecasts/get-hs-watershed-list',

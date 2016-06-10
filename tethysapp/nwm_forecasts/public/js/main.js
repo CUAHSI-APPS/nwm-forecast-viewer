@@ -11,6 +11,7 @@ var nc_chart, seriesData, startDate, seriesDataGroup = [];
 var $btnLoadWatershed;
 var $popupLoadWatershed;
 
+
 $('#config').on('change', function () {
     if ($('#config').val() === 'medium_range') {
         $('#endDate,#endDateLabel,#timeLag').addClass('hidden');
@@ -116,6 +117,9 @@ $('#geom').on('change', function () {
 });
 
 $(function () {
+    //turns toggle navigation icon off
+    $(".toggle-nav").removeClass('toggle-nav');
+
     $btnLoadWatershed = $('#btn-load-watershed');
     getHSWatershedList();
     $btnLoadWatershed.on('click', onClickLoadWatershed);

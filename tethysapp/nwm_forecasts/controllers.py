@@ -124,7 +124,7 @@ def home(request):
             lagList.append('t18z')
 
         lag = ','.join(lagList)
-        waterml_url = '?config=%s&geom=%s&variable=%s&COMID=%s&lon=%s&lat=%s&date=%s&endDate=%s&time=%s&lag=%s' % \
+        waterml_url = '?config=%s&geom=%s&variable=%s&COMID=%s&lon=%s&lat=%s&startDate=%s&endDate=%s&time=%s&lag=%s' % \
                       (config, geom, variable, comid, lon, lat, startDate, endDate, time, lag)
 
         context = {
@@ -501,7 +501,7 @@ def get_geojson_from_hs_resource(res_id, filename, request):
 # ***                                                                                        *** #
 # ***----------------------------------------------------------------------------------------*** #
 
-def getTimeSeries(config, geom, var, comid, date, endDate, time, lag=''):
+def getTimeSeries(config, geom, var, comid, date, endDate, time, member=''):
     if config != 'long_range':
         timeCheck = ''.join(['t', time, 'z'])
 
@@ -540,86 +540,33 @@ def getTimeSeries(config, geom, var, comid, date, endDate, time, lag=''):
         return ts
 
     elif config == 'long_range':
-        ts_group = []
+
+        ts = []
+
         app_dir = '/projects/water/nwm/data/'
         dateDir = date.replace('-', '')
         localFileDir = os.path.join(app_dir, config, dateDir)
 
-        for lg in lag:
-            timeCheck = ''.join(['t', lg])
-            q_out_1 = []; q_out_2 = []; q_out_3 = []; q_out_4 = []
-            if geom == 'channel_rt':
-                nc_files_1 = sorted([x for x in os.listdir(localFileDir) if
-                                     'channel_rt_1' in x and timeCheck in x and 'georeferenced' in x])
-                nc_files_2 = sorted([x for x in os.listdir(localFileDir) if
-                                     'channel_rt_2' in x and timeCheck in x and 'georeferenced' in x])
-                nc_files_3 = sorted([x for x in os.listdir(localFileDir) if
-                                     'channel_rt_3' in x and timeCheck in x and 'georeferenced' in x])
-                nc_files_4 = sorted([x for x in os.listdir(localFileDir) if
-                                     'channel_rt_4' in x and timeCheck in x and 'georeferenced' in x])
+        nc_files = sorted([x for x in os.listdir(localFileDir) if
+                           '_'.join(['channel_rt', member]) in x and time in x and 'georeferenced' in x])
 
-                local_file_path = os.path.join(localFileDir, nc_files_1[0])
-                prediction_data = nc.Dataset(local_file_path, mode="r")
+        ncFile = nc.Dataset(os.path.join(localFileDir, nc_files[0]), mode="r")
 
-                comidList = prediction_data.variables['station_id'][:]
-                comidIndex = int(np.where(comidList == comid)[0])
+        if geom == 'channel_rt':
+            comidList = ncFile.variables['station_id'][:]
+            comidIndex = int(np.where(comidList == comid)[0])
+            loopThroughFiles(localFileDir, ts, nc_files, var, comidIndex)
+        elif geom == 'reservoir':
+            comidList = ncFile.variables['lake_id'][:]
+            comidIndex = int(np.where(comidList == comid)[0])
+            loopThroughFiles(localFileDir, ts, nc_files, var, comidIndex)
+        elif geom == 'land':
+            comidList = comid.split(',')
+            comidIndexY = int(comidList[0])
+            comidIndexX = int(comidList[1])
+            loopThroughFiles(localFileDir, ts, nc_files, var, None, comidIndexY, comidIndexX)
 
-                loopThroughFiles(localFileDir, q_out_1, nc_files_1, var, comidIndex)
-                loopThroughFiles(localFileDir, q_out_2, nc_files_2, var, comidIndex)
-                loopThroughFiles(localFileDir, q_out_3, nc_files_3, var, comidIndex)
-                loopThroughFiles(localFileDir, q_out_4, nc_files_4, var, comidIndex)
-
-            elif geom == 'reservoir':
-                nc_files_1 = sorted([x for x in os.listdir(localFileDir) if
-                                     'reservoir_1' in x and timeCheck in x and 'georeferenced' in x])
-                nc_files_2 = sorted([x for x in os.listdir(localFileDir) if
-                                     'reservoir_2' in x and timeCheck in x and 'georeferenced' in x])
-                nc_files_3 = sorted([x for x in os.listdir(localFileDir) if
-                                     'reservoir_3' in x and timeCheck in x and 'georeferenced' in x])
-                nc_files_4 = sorted([x for x in os.listdir(localFileDir) if
-                                     'reservoir_4' in x and timeCheck in x and 'georeferenced' in x])
-
-                local_file_path = os.path.join(localFileDir, nc_files_1[0])
-                prediction_data = nc.Dataset(local_file_path, mode="r")
-
-                comidList = prediction_data.variables['lake_id'][:]
-                comidIndex = int(np.where(comidList == comid)[0])
-
-                loopThroughFiles(localFileDir, q_out_1, nc_files_1, var, comidIndex)
-                loopThroughFiles(localFileDir, q_out_2, nc_files_2, var, comidIndex)
-                loopThroughFiles(localFileDir, q_out_3, nc_files_3, var, comidIndex)
-                loopThroughFiles(localFileDir, q_out_4, nc_files_4, var, comidIndex)
-
-            elif geom == 'land':
-                nc_files_1 = sorted([x for x in os.listdir(localFileDir) if
-                                     'land_1' in x and timeCheck in x and 'georeferenced' in x])
-                nc_files_2 = sorted([x for x in os.listdir(localFileDir) if
-                                     'land_2' in x and timeCheck in x and 'georeferenced' in x])
-                nc_files_3 = sorted([x for x in os.listdir(localFileDir) if
-                                     'land_3' in x and timeCheck in x and 'georeferenced' in x])
-                nc_files_4 = sorted([x for x in os.listdir(localFileDir) if
-                                     'land_4' in x and timeCheck in x and 'georeferenced' in x])
-
-                local_file_path = os.path.join(localFileDir, nc_files_1[0])
-                prediction_data = nc.Dataset(local_file_path, mode="r")
-
-                comidList = comid.split(',')
-                comidIndexY = int(comidList[0])
-                comidIndexX = int(comidList[1])
-
-                loopThroughFiles(localFileDir, q_out_1, nc_files_1, var, None, comidIndexY, comidIndexX)
-                loopThroughFiles(localFileDir, q_out_2, nc_files_2, var, None, comidIndexY, comidIndexX)
-                loopThroughFiles(localFileDir, q_out_3, nc_files_3, var, None, comidIndexY, comidIndexX)
-                loopThroughFiles(localFileDir, q_out_4, nc_files_4, var, None, comidIndexY, comidIndexX)
-
-            else:
-                return JsonResponse({'error': "Invalid netCDF file"})
-
-            newTime = [int(nc.num2date(0, prediction_data.variables['time'].units).strftime('%s'))]
-
-            ts_group.append([q_out_1, q_out_2, q_out_3, q_out_4, newTime])
-
-        return ts_group
+        return ts
 
 
 def format_time_series(config, startDate, ts, time, nodata_value):
@@ -628,8 +575,10 @@ def format_time_series(config, startDate, ts, time, nodata_value):
         datelist = [dt.datetime.strptime(startDate, "%Y-%m-%d") + dt.timedelta(hours=x + int(time) +1) for x in range(0,nDays)]
     elif config == 'medium_range':
         datelist = [dt.datetime.strptime(startDate, "%Y-%m-%d") + dt.timedelta(hours=x+9) for x in range(0, nDays*3, 3)]
-    if config == 'analysis_assim':
+    elif config == 'analysis_assim':
         datelist = [dt.datetime.strptime(startDate, "%Y-%m-%d") + dt.timedelta(hours=x + 1) for x in range(0, nDays)]
+    elif config == 'long_range':
+        datelist = [dt.datetime.strptime(startDate, "%Y-%m-%d") + dt.timedelta(hours=x + 6) for x in range(0, nDays*6, 6)]
 
     formatted_ts = []
     for i in range(0, nDays):
@@ -643,12 +592,18 @@ def format_time_series(config, startDate, ts, time, nodata_value):
 
 
 def get_site_name(config, geom, var, lat, lon):
-    lat_name = "Lat: %s" % lat
-    lon_name = "Lon: %s" % lon
+    if lat != '':
+        lat_name = "Lat: %s" % lat
+    else:
+        lat_name = ''
+    if lon != '':
+        lon_name = "Lon: %s" % lon
+    else:
+        lon_name = ''
     conf_name = config.replace('_', ' ').title()
     geom_name = geom.replace('_rt', '').title()
 
-    return  conf_name + ', ' + geom_name + ' (' + var + '), ' + lat_name + ' ' +  lon_name
+    return  conf_name + ', ' + geom_name + ' (' + var + '). ' + lat_name + ' ' +  lon_name
 
 
 def get_data_waterml(request):
@@ -663,12 +618,43 @@ def get_data_waterml(request):
             comid = int(request.GET['COMID'])
         else:
             comid = request.GET['COMID']
-        lat = request.GET["lat"]
-        lon = request.GET["lon"]
-        start = request.GET["date"]
-        end = request.GET["endDate"]
-        time = request.GET['time']
-        lagList = request.GET['lag'].split(',')
+        if "lat=" in request.GET:
+            lat = request.GET["lat"]
+        else:
+            lat = ''
+        if "lon=" in request.GET:
+            lon = request.GET["lon"]
+        else:
+            lon = ''
+        start = request.GET["startDate"]
+        if config == 'analysis_assim':
+            try:
+                end = request.GET["endDate"]
+            except:
+                end = (dt.datetime.strptime(start, '%Y-%m-%d') + dt.timedelta(days=1)).strftime('%Y-%m-%d')
+        else:
+            end = '9999-99-99'
+        if config == 'short_range':
+            try:
+                time = request.GET['time']
+            except:
+                time = '00'
+        elif config == 'medium_range':
+            time = '06'
+        else:
+            time = '00'
+
+        if config == 'long_range':
+            try:
+                lag = request.GET['lag']
+            except:
+                lag = 't00z'
+            try:
+                member = request.GET['member']
+            except:
+                member = '1'
+        else:
+            lag = ''
 
         if var in ['streamflow', 'inflow', 'outflow']:
             units = {'name': 'Flow', 'short': 'cfs', 'long': 'Cubic feet per Second'}
@@ -686,53 +672,49 @@ def get_data_waterml(request):
             units = {'name': 'Temperature', 'short': 'K', 'long': 'Kelvin'}
 
         nodata_value = -9999
-        if config != 'long_range':
-            ts = getTimeSeries(config, geom, var, comid, start, end, time)
-            time_series = format_time_series(config, start, ts, time, nodata_value)
-            site_name = get_site_name(config, geom, var, float(lat), float(lon))
 
-            context = {
-                'config': config,
-                'comid': comid,
-                'lat': lat,
-                'lon': lon,
-                'startdate': start,
-                'site_name': site_name,
-                'units': units,
-                'time_series': time_series
-            }
+        try:
+            if config != 'long_range':
+                ts = getTimeSeries(config, geom, var, comid, start, end, time)
+                time_series = format_time_series(config, start, ts, time, nodata_value)
+                site_name = get_site_name(config, geom, var, lat, lon)
 
-            xmlResponse = render_to_response('nwm_forecasts/waterml.xml', context)
-            xmlResponse['Content-Type'] = 'application/xml'
-            # xmlResponse['content-disposition'] = "attachment; filename=output-time-series.xml"
+                context = {
+                    'config': config,
+                    'comid': comid,
+                    'lat': lat,
+                    'lon': lon,
+                    'startdate': start,
+                    'site_name': site_name,
+                    'units': units,
+                    'time_series': time_series
+                }
 
-            return xmlResponse
+                xmlResponse = render_to_response('nwm_forecasts/waterml.xml', context)
+                xmlResponse['Content-Type'] = 'application/xml'
 
-        elif config == 'long_range':
-            # for lg in lagList:
-            #     ts_group = getTimeSeries(config, geom, var, comid, start, end, time, lg)
-            #     ts_group_formatted = []
-            #     for ts in ts_group[0:-1]:
-            #         ts_group_formatted.append(format_time_series(config, ts_group[-1], ts, nodata_value))
-            #
-            #     for ts_f in ts_group_formatted:
-            #         site_name = get_site_name(config, geom, var, float(lat), float(lon)) + ' ' + lg + 'Member ' + \
-            #                     str(ts_group_formatted.index(ts_f) + 1)
-            #         context = {
-            #             'config': config,
-            #             'comid': comid,
-            #             'lat': lat,
-            #             'lon': lon,
-            #             'startdate': start,
-            #             'site_name': site_name,
-            #             'units': units,
-            #             'time_series': ts_f
-            #         }
-            #
-            #         xmlResponse = render('nwm_forecasts/waterml.xml', context)
-            #         xmlResponse['Content-Type'] = 'application/xml'
-            #         xmlResponse['content-disposition'] = "attachment; filename=output-time-series_" + lg + \
-            #                                              '_member_' + str(ts_group_formatted.index(ts_f) + 1) + ".xml"
-            #
-            #         return xmlResponse
-            raise Http404('A zip file download for all long range forecasts is in development.')
+                return xmlResponse
+
+            elif config == 'long_range':
+                ts = getTimeSeries(config, geom, var, comid, start, end, lag, member)
+                time_series = format_time_series(config, start, ts, time, nodata_value)
+                site_name = get_site_name(config, geom, var, lat, lon)
+
+                context = {
+                    'config': config,
+                    'comid': comid,
+                    'lat': lat,
+                    'lon': lon,
+                    'startdate': start,
+                    'site_name': site_name,
+                    'units': units,
+                    'time_series': time_series
+                }
+
+                xmlResponse = render_to_response('nwm_forecasts/waterml.xml', context)
+                xmlResponse['Content-Type'] = 'application/xml'
+
+                return xmlResponse
+        except Exception as e:
+            print str(e)
+            raise Http404('An error occurred. Please verify parameters.')
