@@ -591,19 +591,27 @@ def format_time_series(config, startDate, ts, time, nodata_value):
     return formatted_ts
 
 
-def get_site_name(config, geom, var, lat, lon):
+def get_site_name(config, geom, var, lat, lon, lag='', member=''):
     if lat != '':
-        lat_name = "Lat: %s" % lat
+        lat_name = "Lat: %s. " % lat
     else:
         lat_name = ''
     if lon != '':
-        lon_name = "Lon: %s" % lon
+        lon_name = "Lon: %s. " % lon
     else:
         lon_name = ''
+    if lag != '':
+        lag_name = ' Lag: %s. ' % lag
+    else:
+        lag_name = ''
+    if member != '':
+        mem_name = ' Member: %s. ' % member
+    else:
+        mem_name = ''
     conf_name = config.replace('_', ' ').title()
     geom_name = geom.replace('_rt', '').title()
 
-    return  conf_name + ', ' + geom_name + ' (' + var + '). ' + lat_name + ' ' +  lon_name
+    return  conf_name + ', ' + geom_name + ' (' + var + '). ' + lag_name + mem_name + lat_name  + lon_name
 
 
 def get_data_waterml(request):
@@ -698,7 +706,7 @@ def get_data_waterml(request):
             elif config == 'long_range':
                 ts = getTimeSeries(config, geom, var, comid, start, end, lag, member)
                 time_series = format_time_series(config, start, ts, time, nodata_value)
-                site_name = get_site_name(config, geom, var, lat, lon)
+                site_name = get_site_name(config, geom, var, lat, lon, lag, member)
 
                 context = {
                     'config': config,
