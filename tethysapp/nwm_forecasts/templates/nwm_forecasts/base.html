@@ -12,8 +12,8 @@
 {% endblock %}
 
 {% block exit_button_override %}
-  <div class="exit-button" style="display: flex;">
-    <a href="javascript:void(0);" onclick="TETHYS_APP_BASE.exit_app('https://apps.hydroshare.org/apps/nwm-data-explorer/api/');" style="margin-right: 20px;">Developers API</a>
+  <div class="exit-button" style="display: flex; display: -webkit-flex;">
+    <a href="javascript:void(0);" onclick="TETHYS_APP_BASE.exit_app('https://apps.hydroshare.org/apps/nwm-data-explorer/api/');" style="margin-right: 20px;">API</a>
     <a href="javascript:void(0);" onclick="TETHYS_APP_BASE.exit_app('{% url 'app_library' %}');">Exit</a>
   </div>
 {% endblock %}
