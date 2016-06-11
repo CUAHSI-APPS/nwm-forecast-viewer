@@ -548,7 +548,7 @@ def getTimeSeries(config, geom, var, comid, date, endDate, time, member=''):
         localFileDir = os.path.join(app_dir, config, dateDir)
 
         nc_files = sorted([x for x in os.listdir(localFileDir) if
-                           '_'.join(['channel_rt', member]) in x and time in x and 'georeferenced' in x])
+                           '_'.join([geom, member]) in x and time in x and 'georeferenced' in x])
 
         ncFile = nc.Dataset(os.path.join(localFileDir, nc_files[0]), mode="r")
 
