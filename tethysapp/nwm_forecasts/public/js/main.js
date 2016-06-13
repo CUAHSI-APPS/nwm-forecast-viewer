@@ -11,6 +11,7 @@ var nc_chart, seriesData, startDate, seriesDataGroup = [];
 var $btnLoadWatershed;
 var $popupLoadWatershed;
 
+
 $('#config').on('change', function () {
     if ($('#config').val() === 'medium_range') {
         $('#endDate,#endDateLabel,#timeLag').addClass('hidden');
@@ -116,6 +117,9 @@ $('#geom').on('change', function () {
 });
 
 $(function () {
+    //turns toggle navigation icon off
+    $(".toggle-nav").removeClass('toggle-nav');
+
     $btnLoadWatershed = $('#btn-load-watershed');
     getHSWatershedList();
     $btnLoadWatershed.on('click', onClickLoadWatershed);
@@ -463,7 +467,7 @@ function get_netcdf_chart_data(config, geom, variable, comid, date, time, lag, e
             'endDate': endDate
         },
         error: function (jqXHR, textStatus, errorThrown) {
-            $('#info').html('<p><strong>An unknown error occurred while retrieving the data</strong></p>');
+            $('#info').html('<p class="alert alert-danger" style="text-align: center"><strong>An unknown error occurred while retrieving the data</strong></p>');
             clearErrorSelection();
         },
         beforeSend: function () {
