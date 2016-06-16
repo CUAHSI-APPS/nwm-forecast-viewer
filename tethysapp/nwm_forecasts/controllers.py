@@ -64,7 +64,7 @@ def home(request):
         'initial': dt.datetime.utcnow().strftime("%Y-%m-%d")
     }
 
-    start_time = SelectInput(display_text='Enter Inialization Time (UTC)',
+    start_time = SelectInput(display_text='Enter Initialization Time (UTC)',
                              name='time',
                              multiple=False,
                              options=[('00:00', '00'), ('01:00', '01'),
