@@ -576,7 +576,7 @@ def format_time_series(config, startDate, ts, time, nodata_value):
     elif config == 'medium_range':
         datelist = [dt.datetime.strptime(startDate, "%Y-%m-%d") + dt.timedelta(hours=x+9) for x in range(0, nDays*3, 3)]
     elif config == 'analysis_assim':
-        datelist = [dt.datetime.strptime(startDate, "%Y-%m-%d") + dt.timedelta(hours=x + 1) for x in range(0, nDays)]
+        datelist = [dt.datetime.strptime(startDate, "%Y-%m-%d") + dt.timedelta(hours=x) for x in range(0, nDays)]
     elif config == 'long_range':
         datelist = [dt.datetime.strptime(startDate, "%Y-%m-%d") + dt.timedelta(hours=x + 6) for x in range(0, nDays*6, 6)]
 
