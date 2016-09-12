@@ -877,6 +877,11 @@ function addGeojsonLayerToMap(geojsonStr, projStr, watershedId, zoomTo) {
 
     if (!(projStr === null || projStr === undefined || projStr === '')) {
         projStr = projStr.replace(/&quot;/g, '"'); // Unencode the encoded double-quotes
+        try {
+            projStr = JSON.parse(projStr);
+        } catch (e) {
+            projStr = projStr.slice(1, -1);
+        }
         proj4.defs('new_projection', projStr);
         if (projStr) {
             geoJsonReproj = reproject(geoJson, proj4('new_projection'), proj4('EPSG:3857'));
