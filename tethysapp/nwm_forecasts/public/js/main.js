@@ -243,14 +243,16 @@ $(function () {
 
     var lonlat;
     map.on('click', function(evt) {
-        var coordinate = evt.coordinate;
-        lonlat = ol.proj.transform(coordinate, 'EPSG:3857', 'EPSG:4326');
-        if (mapView.getZoom()<12) {
-            mapView.setZoom(12);
-            CenterMap(lonlat[1],lonlat[0]);
+        if ($("#geom").val() == "channel_rt") {
+//            var coordinate = evt.coordinate;
+//            lonlat = ol.proj.transform(coordinate, 'EPSG:3857', 'EPSG:4326');
+//            if (mapView.getZoom() < 12) {
+//                mapView.setZoom(12);
+//                CenterMap(lonlat[1], lonlat[0]);
+//            }
+//
+//            run_point_indexing_service(lonlat);
         }
-
-        run_point_indexing_service(lonlat);
     });
 
     base_layer = new ol.layer.Tile({
@@ -260,6 +262,43 @@ $(function () {
         })
     });
 
+    var grid_Source = new ol.source.TileWMS({
+        url: 'http://geoserver.byu.edu/arcgis/services/NWM/grid/MapServer/WmsServer?',
+        params: {
+            LAYERS: "0",
+        },
+        crossOrigin: 'Anonymous' //This is necessary for CORS security in the browser
+    });
+
+    grid = new ol.layer.Tile({
+        source: grid_Source,
+        maxResolution: 100,
+        keyword: "land"
+    });
+
+    grid.setOpacity(0.4);
+
+    var reservoir_Source =  new ol.source.TileWMS({
+        url:'http://tethys.byu.edu:8181/geoserver/wms',
+        params:{
+            LAYERS:"nwm:reservoir",
+        },
+        crossOrigin: 'Anonymous' //This is necessary for CORS security in the browser
+        });
+
+//    var reservoir_Source = new ol.source.TileWMS({
+//        url: 'http://geoserver.byu.edu/arcgis/services/NWM/reservoir/MapServer/WmsServer?',
+//        params: {
+//            LAYERS: "0",
+//        },
+//        crossOrigin: 'Anonymous' //This is necessary for CORS security in the browser
+//    });
+
+    reservoir = new ol.layer.Tile({
+        source: reservoir_Source,
+        keyword: "reservoir"
+    });
+
     var createLineStyleFunction = function() {
         return function(feature, resolution) {
             var style = new ol.style.Style({
@@ -267,14 +306,14 @@ $(function () {
                     color: '#ffff00',
                     width: 2
                 }),
-                text: new ol.style.Text({
-                    textAlign: 'center',
-                    textBaseline: 'middle',
-                    font: 'bold 12px Verdana',
-                    text: getText(feature, resolution),
-                    fill: new ol.style.Fill({color: '#cc00cc'}),
-                    stroke: new ol.style.Stroke({color: 'black', width: 0.5})
-                })
+//                text: new ol.style.Text({
+//                    textAlign: 'center',
+//                    textBaseline: 'middle',
+//                    font: 'bold 12px Verdana',
+//                    text: getText(feature, resolution),
+//                    fill: new ol.style.Fill({color: '#cc00cc'}),
+//                    stroke: new ol.style.Stroke({color: 'black', width: 0.5})
+//                })
             });
             return [style];
         };
@@ -291,7 +330,8 @@ $(function () {
 
     selected_streams_layer = new ol.layer.Vector({
         source: new ol.source.Vector(),
-        style: createLineStyleFunction()
+        style: createLineStyleFunction(),
+        keyword: 'selected_streams_layer'
     });
 
     var serviceUrl = 'https://watersgeo.epa.gov/arcgis/rest/services/NHDPlus_NP21/NHDSnapshot_NP21_Labeled/MapServer/0';
@@ -328,15 +368,163 @@ $(function () {
             stroke: new ol.style.Stroke({
                 color: '#0000ff',
                 width: 2
-            })
+            }),
         }),
-        maxResolution: 100
+        maxResolution: 100,
+        keyword: 'channel_rt'
     });
 
     map.addLayer(base_layer);
+    map.addLayer(grid);
+    map.addLayer(reservoir);
     map.addLayer(all_streams_layer);
     map.addLayer(selected_streams_layer);
+
+    toggleLayers = [grid, reservoir, all_streams_layer, selected_streams_layer]
+
+    var element = document.getElementById('popup');
+
+    var popup = new ol.Overlay({
+        element: element,
+        positioning: 'bottom-center',
+        stopEvent: true
+    });
+
+    map.addOverlay(popup);
+
+    //Click funtion to choose gauge on map
+    map.on('singleclick', function(evt) {
+        $(element).popover('destroy');
+        if ((map.getTargetElement().style.cursor == "pointer")) {
+            var view = map.getView();
+            var viewResolution = view.getResolution();
+
+            if (grid.getVisible()) {
+                var grid_url = grid_Source.getGetFeatureInfoUrl(evt.coordinate, viewResolution, view.getProjection(), {
+                    'INFO_FORMAT': 'text/xml',
+                    'FEATURE_COUNT': 50
+                });
+            } else if (reservoir.getVisible()) {
+                var reservoir_url = reservoir_Source.getGetFeatureInfoUrl(evt.coordinate, viewResolution, view.getProjection(), {
+                    'INFO_FORMAT': 'text/xml',
+                    'FEATURE_COUNT': 50
+                });
+                }
+
+            }
+            var displayContent = "<table>";
+            var showPopup = false;
+            var zoomToClick = false;
+//            var displayContent = "COMID: " + comid;
+            if (grid_url) {
+                var grid_Data = dataCall(grid_url);
+                var grid_Count = grid_Data.documentElement.childElementCount;
+
+                //This is for the land grid
+                for (i = 0; i < grid_Count; i++) {
+                    var south_north = grid_Data.documentElement.children[i].attributes['south_north'].value;
+                    var west_east = grid_Data.documentElement.children[i].attributes['west_east'].value;
+                    $("#gridInputY").val(south_north);
+                    $("#gridInputX").val(west_east);
+
+
+                    displayContent += '<tr><td>south_north: ' + south_north + '</td><td>west_east: ' + west_east + '</td></tr>';
+                    showPopup = true;
+                    zoomToClick = true;
+                }
+            } else if (reservoir_url) {
+                var reservoir_Data = dataCall(reservoir_url);
+                var reservoir_Count = reservoir_Data.documentElement.childElementCount;
+
+                //This is for the reservoirs
+                for (i = 1; i < reservoir_Count; i++) {
+//                    var reservoirID = reservoir_Data.documentElement.children[i].attributes['lake_id'].value;
+                    var reservoirID = reservoir_Data.documentElement.children[i].children[0].children[3].innerHTML;
+                    $("#comidInput").val(reservoirID);
+
+                    displayContent += '<tr><td>Reservoir COMID: ' + reservoirID + '</td></tr>';
+                }
+                showPopup = true;
+                zoomToClick = false;
+            }
+
+                displayContent += '</table>';
+            if (showPopup) {
+                var clickCoord = evt.coordinate;
+                lonlat = ol.proj.transform(clickCoord, 'EPSG:3857', 'EPSG:4326');
+                popup.setPosition(clickCoord);
+                $(element).popover({
+                    'placement': 'top',
+                    'html': true,
+                    'content': displayContent
+                });
+
+                $(element).popover('show');
+                $(element).next().css('cursor', 'text');
+            }
+
+        if ($("#geom").val() == "channel_rt") {
+                var coordinate = evt.coordinate;
+                lonlat = ol.proj.transform(coordinate, 'EPSG:3857', 'EPSG:4326');
+                if (mapView.getZoom() < 12) {
+                    mapView.setZoom(12);
+                    CenterMap(lonlat[1], lonlat[0]);
+                }
+
+                run_point_indexing_service(lonlat);
+            }
+
+        if ($("#geom").val() == "land") {
+                var coordinate = evt.coordinate;
+                lonlat = ol.proj.transform(coordinate, 'EPSG:3857', 'EPSG:4326');
+                if (mapView.getZoom() < 12) {
+                    mapView.setZoom(12);
+                    CenterMap(lonlat[1], lonlat[0]);
+                }
+            }
+    });
+
+    map.on('pointermove', function(evt) {
+        if (evt.dragging) {
+            return;
+        }
+        var pixel = map.getEventPixel(evt.originalEvent);
+        var hit = map.forEachLayerAtPixel(pixel, function(layer) {
+            if (layer != base_layer) {
+                return true;
+            }
+        });
+        map.getTargetElement().style.cursor = hit ? 'pointer' : '';
+    });
+
+    $("#geom").on("change", function() {
+        $(element).popover('destroy');
+        toggleLayers.forEach(function(layer) {
+            layer.setVisible($("#geom").val() === layer.get('keyword'));
+        })
+        if ($("#geom").val() == 'channel_rt') {
+            selected_streams_layer.setVisible(true);
+        }
+    })
+    $("#geom").trigger("change")
+
 });
+
+
+/****************************
+ ***Popup Displaying Info***
+ ****************************/
+
+function dataCall(inputURL) {
+    var result = null;
+    $.ajax({
+        url: inputURL,
+        async: false,
+    }).then(function(response) {
+        result = response;
+    });
+    return result;
+}
 
 /****************************
  ***MAP VIEW FUNCTIONALITY***
