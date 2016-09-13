@@ -456,7 +456,11 @@ def get_geojson_from_hs_resource(res_id, filename, request):
             response_obj['type'] = 'geojson'
 
         elif filename.endswith('.shp'):
-            proj_str = str(hs.getResourceFile(pid=res_id, filename=filename.replace('.shp', '.prj')).next())
+            proj_str_raw = str(hs.getResourceFile(pid=res_id, filename=filename.replace('.shp', '.prj')).next())
+            proj_str = json.dumps(proj_str_raw)
+            proj_str.replace('\n', '')
+            response_obj['proj_str'] = proj_str
+
             '''
             Credit: The following code was adapted from https://gist.github.com/frankrowe/6071443
             '''
@@ -482,6 +486,7 @@ def get_geojson_from_hs_resource(res_id, filename, request):
             '''
             End credit
             '''
+
             response_obj['proj_str'] = proj_str
 
         response_obj['success'] = 'Geojson obtained successfully.'
