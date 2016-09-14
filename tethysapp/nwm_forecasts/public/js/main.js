@@ -278,16 +278,8 @@ $(function () {
 
     grid.setOpacity(0.4);
 
-//    var reservoir_Source =  new ol.source.TileWMS({
-//        url:'https://tethys.byu.edu:8181/geoserver/wms',
-//        params:{
-//            LAYERS:"nwm:reservoir",
-//        },
-//        crossOrigin: 'Anonymous' //This is necessary for CORS security in the browser
-//        });
-
     var reservoir_Source = new ol.source.TileWMS({
-        url: 'http://geoserver.byu.edu/arcgis/services/NWM/reservoir/MapServer/WmsServer?',
+        url: 'https://geoserver.byu.edu/arcgis/services/NWM/reservoir/MapServer/WmsServer?',
         params: {
             LAYERS: "0",
         },
@@ -311,8 +303,13 @@ $(function () {
 //                    textBaseline: 'middle',
 //                    font: 'bold 12px Verdana',
 //                    text: getText(feature, resolution),
-//                    fill: new ol.style.Fill({color: '#cc00cc'}),
-//                    stroke: new ol.style.Stroke({color: 'black', width: 0.5})
+//                    fill: new ol.style.Fill({
+//                        color: '#cc00cc'
+//                    }),
+//                    stroke: new ol.style.Stroke({
+//                        color: 'black',
+//                        width: 0.5
+//                    })
 //                })
             });
             return [style];
@@ -342,20 +339,24 @@ $(function () {
             var url = serviceUrl + '/query/?f=json&geometry=' +
                 '{"xmin":' + extent[0] + ',"ymin":' + extent[1] + ',"xmax":' + extent[2] + ',"ymax":' + extent[3] +
                 ',"spatialReference":{"wkid":102100}}&inSR=102100&outSR=102100';
-            $.ajax({url: url, dataType: 'jsonp', success: function(response) {
-                if (response.error) {
-                    alert(response.error.message + '\n' +
-                        response.error.details.join('\n'));
-                } else {
-                    // dataProjection will be read from document
-                    var features = esrijsonFormat.readFeatures(response, {
-                        featureProjection: projection
-                    });
-                    if (features.length > 0) {
-                        vectorSource.addFeatures(features);
+            $.ajax({
+                url: url,
+                dataType: 'jsonp',
+                success: function(response) {
+                    if (response.error) {
+                        alert(response.error.message + '\n' +
+                            response.error.details.join('\n'));
+                    } else {
+                        // dataProjection will be read from document
+                        var features = esrijsonFormat.readFeatures(response, {
+                            featureProjection: projection
+                        });
+                        if (features.length > 0) {
+                            vectorSource.addFeatures(features);
+                        }
                     }
                 }
-            }});
+            });
         },
         strategy: ol.loadingstrategy.tile(ol.tilegrid.createXYZ({
             tileSize: 512
@@ -437,9 +438,8 @@ $(function () {
                 var reservoir_Count = reservoir_Data.documentElement.childElementCount;
 
                 //This is for the reservoirs
-                for (i = 1; i < reservoir_Count; i++) {
+                for (i = 0; i < reservoir_Count; i++) {
                     var reservoirID = reservoir_Data.documentElement.children[i].attributes['lake_id'].value;
-//                    var reservoirID = reservoir_Data.documentElement.children[i].children[0].children[3].innerHTML;
                     $("#comidInput").val(reservoirID);
 
                     displayContent += '<tr><td>Reservoir COMID: ' + reservoirID + '</td></tr>';
@@ -571,7 +571,7 @@ function run_point_indexing_service(lonlat) {
 function pis_success(result) {
     var srv_rez = result.output;
     if (srv_rez == null) {
-        if ( result.status.status_message !== null ) {
+        if (result.status.status_message !== null) {
             report_failed_search(result.status.status_message);
         } else {
             report_failed_search("No reach located near your click point.");
@@ -580,12 +580,25 @@ function pis_success(result) {
     }
 
     var srv_fl = result.output.ary_flowlines;
-    var newLon = srv_fl[0].shape.coordinates[Math.floor(srv_fl[0].shape.coordinates.length/2)][0];
-    var newLat = srv_fl[0].shape.coordinates[Math.floor(srv_fl[0].shape.coordinates.length/2)][1];
+    var newLon = srv_fl[0].shape.coordinates[Math.floor(srv_fl[0].shape.coordinates.length / 2)][0];
+    var newLat = srv_fl[0].shape.coordinates[Math.floor(srv_fl[0].shape.coordinates.length / 2)][1];
     comid = srv_fl[0].comid.toString();
     $('#longInput').val(newLon);
     $('#latInput').val(newLat);
     $('#comidInput').val(comid);
+
+    var element = document.getElementById('popup');
+    lonlat = ol.proj.transform([newLon, newLat], 'EPSG:4326', 'EPSG:3857');
+    map.getOverlays().item(0).setPosition(lonlat);
+    var displayContent = "<p>COMID: " + comid + "</p>";
+    $(element).popover({
+                    'placement': 'top',
+                    'html': true,
+                    'content': displayContent
+                });
+
+                $(element).popover('show');
+                $(element).next().css('cursor', 'text');
 
     //add the selected flow line to the map
     for (var i in srv_fl) {
