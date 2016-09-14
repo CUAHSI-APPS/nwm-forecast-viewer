@@ -263,7 +263,7 @@ $(function () {
     });
 
     var grid_Source = new ol.source.TileWMS({
-        url: 'http://geoserver.byu.edu/arcgis/services/NWM/grid/MapServer/WmsServer?',
+        url: 'https://geoserver.byu.edu/arcgis/services/NWM/grid/MapServer/WmsServer?',
         params: {
             LAYERS: "0",
         },
@@ -278,21 +278,21 @@ $(function () {
 
     grid.setOpacity(0.4);
 
-    var reservoir_Source =  new ol.source.TileWMS({
-        url:'http://tethys.byu.edu:8181/geoserver/wms',
-        params:{
-            LAYERS:"nwm:reservoir",
-        },
-        crossOrigin: 'Anonymous' //This is necessary for CORS security in the browser
-        });
-
-//    var reservoir_Source = new ol.source.TileWMS({
-//        url: 'http://geoserver.byu.edu/arcgis/services/NWM/reservoir/MapServer/WmsServer?',
-//        params: {
-//            LAYERS: "0",
+//    var reservoir_Source =  new ol.source.TileWMS({
+//        url:'https://tethys.byu.edu:8181/geoserver/wms',
+//        params:{
+//            LAYERS:"nwm:reservoir",
 //        },
 //        crossOrigin: 'Anonymous' //This is necessary for CORS security in the browser
-//    });
+//        });
+
+    var reservoir_Source = new ol.source.TileWMS({
+        url: 'http://geoserver.byu.edu/arcgis/services/NWM/reservoir/MapServer/WmsServer?',
+        params: {
+            LAYERS: "0",
+        },
+        crossOrigin: 'Anonymous' //This is necessary for CORS security in the browser
+    });
 
     reservoir = new ol.layer.Tile({
         source: reservoir_Source,
@@ -438,8 +438,8 @@ $(function () {
 
                 //This is for the reservoirs
                 for (i = 1; i < reservoir_Count; i++) {
-//                    var reservoirID = reservoir_Data.documentElement.children[i].attributes['lake_id'].value;
-                    var reservoirID = reservoir_Data.documentElement.children[i].children[0].children[3].innerHTML;
+                    var reservoirID = reservoir_Data.documentElement.children[i].attributes['lake_id'].value;
+//                    var reservoirID = reservoir_Data.documentElement.children[i].children[0].children[3].innerHTML;
                     $("#comidInput").val(reservoirID);
 
                     displayContent += '<tr><td>Reservoir COMID: ' + reservoirID + '</td></tr>';
