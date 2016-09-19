@@ -446,6 +446,10 @@ $(function () {
                 }
                 showPopup = true;
                 zoomToClick = false;
+
+                var coordinate = evt.coordinate;
+                lonlat = ol.proj.transform(coordinate, 'EPSG:3857', 'EPSG:4326');
+                run_point_indexing_service(lonlat);
             }
 
                 displayContent += '</table>';
@@ -470,7 +474,6 @@ $(function () {
                     mapView.setZoom(12);
                     CenterMap(lonlat[1], lonlat[0]);
                 }
-
                 run_point_indexing_service(lonlat);
             }
 
@@ -481,6 +484,7 @@ $(function () {
                     mapView.setZoom(12);
                     CenterMap(lonlat[1], lonlat[0]);
                 }
+                run_point_indexing_service(lonlat);
             }
     });
 
@@ -498,7 +502,7 @@ $(function () {
     });
 
     $("#geom").on("change", function() {
-        $(element).popover('destroy');
+//        $(element).popover('destroy');
         toggleLayers.forEach(function(layer) {
             layer.setVisible($("#geom").val() === layer.get('keyword'));
         })
