@@ -41,7 +41,6 @@ $('#config').on('change', function () {
     $("#geom").trigger("change");
 });
 
-
 $('#geom').on('change', function () {
     if ($('#geom').val() === 'channel_rt') {
         $('#comidInput').attr('disabled', false);
@@ -205,7 +204,7 @@ $(function () {
         $('#startDate').val(qDate);
         $('#time').val(qTime);
 
-        if ($('#longInput').val() !== '-98' && $('#latInput').val() !== '38.5') {
+        if (($('#geom').val() == "channel_rt") && ($('#longInput').val() !== '-98' && $('#latInput').val()) !== '38.5') {
             CenterMap(qLat, qLong);
             mapView.setZoom(12);
 
@@ -227,6 +226,12 @@ $(function () {
                 "optClientRef": "CodePen"
             };
             WATERS.Services.PointIndexingService(data, options);
+        }
+
+        if ($('#geom').val() == "land") {
+            CenterMap(qLat, qLon);
+            mapView.setZoom(12);
+            });
         }
 
         initChart(qConfig, startDate, seriesData);
@@ -315,6 +320,18 @@ $(function () {
             return [style];
         };
     };
+
+//    var createBoxStyleFunction = function() {
+//        return function(feature, resolution) {
+//            var style = new ol.style.Style({
+//                stroke: new ol.style.Stroke({
+//                    color: '#ffff00',
+//                    width: 2
+//                }),
+//            });
+//            return [style];
+//        };
+//    };
 
     var getText = function(feature, resolution) {
         var maxResolution = 100;
@@ -449,7 +466,7 @@ $(function () {
 
                 var coordinate = evt.coordinate;
                 lonlat = ol.proj.transform(coordinate, 'EPSG:3857', 'EPSG:4326');
-                run_point_indexing_service(lonlat);
+                run_point_indexing_service_other_layers(lonlat);
             }
 
                 displayContent += '</table>';
@@ -484,7 +501,8 @@ $(function () {
                     mapView.setZoom(12);
                     CenterMap(lonlat[1], lonlat[0]);
                 }
-                run_point_indexing_service(lonlat);
+                console.log(lonlat);
+                run_point_indexing_service_other_layers(lonlat);
             }
     });
 
@@ -508,8 +526,9 @@ $(function () {
         })
         if ($("#geom").val() == 'channel_rt') {
             selected_streams_layer.setVisible(true);
+            }
         }
-    })
+    )
     $("#geom").trigger("change")
 
 });
@@ -632,6 +651,83 @@ function report_failed_search(MessageText){
     //Set the message of the bad news
     $('#info').append('<strong>Search Results:</strong><br>' + MessageText);
     mapView.setZoom(4);
+}
+
+function run_point_indexing_service_other_layers(lonlat) {
+    var inputLon = lonlat[0];
+    var inputLat = lonlat[1];
+    var wktval = "POINT(" + inputLon + " " + inputLat + ")";
+
+    var options = {
+        "success" : "pis_success_other_layers",
+        "error"   : "pis_error_other_layers",
+        "timeout" : 60 * 1000
+    };
+
+    var data = {
+        "pGeometry": wktval,
+        "pGeometryMod": "WKT,SRSNAME=urn:ogc:def:crs:OGC::CRS84",
+        "pPointIndexingMethod": "DISTANCE",
+        "pPointIndexingMaxDist": 10,
+        "pOutputPathFlag": "TRUE",
+        "pReturnFlowlineGeomFlag": "FULL",
+        "optOutCS": "SRSNAME=urn:ogc:def:crs:OGC::CRS84",
+        "optOutPrettyPrint": 0,
+        "optClientRef": "CodePen"
+    };
+    WATERS.Services.PointIndexingService(data, options);
+}
+
+function pis_success_other_layers(result) {
+    var srv_rez = result.output;
+    if (srv_rez == null) {
+        if (result.status.status_message !== null) {
+            report_failed_search(result.status.status_message);
+        } else {
+            report_failed_search("No reach located near your click point.");
+        }
+        return;
+    }
+
+    var srv_fl = result.output.ary_flowlines;
+    var newLon = srv_fl[0].shape.coordinates[Math.floor(srv_fl[0].shape.coordinates.length / 2)][0];
+    var newLat = srv_fl[0].shape.coordinates[Math.floor(srv_fl[0].shape.coordinates.length / 2)][1];
+    comid = srv_fl[0].comid.toString();
+    $('#longInput').val(newLon);
+    $('#latInput').val(newLat);
+    $('#comidInput').val(comid);
+
+    var element = document.getElementById('popup');
+    lonlat = ol.proj.transform([newLon, newLat], 'EPSG:4326', 'EPSG:3857');
+    map.getOverlays().item(0).setPosition(lonlat);
+    var displayContent = "<p>COMID: " + comid + "</p>";
+    $(element).popover({
+                    'placement': 'top',
+                    'html': true,
+                    'content': displayContent
+                });
+
+                $(element).popover('show');
+                $(element).next().css('cursor', 'text');
+
+    //add the selected flow line to the map
+    for (var i in srv_fl) {
+        selected_streams_layer.getSource().clear()
+        selected_streams_layer.getSource().addFeature(geojson2feature(srv_fl[i].shape));
+    }
+}
+
+function pis_success2_pis_error_other_layers(result) {
+    var srv_fl = result.output.ary_flowlines;
+    var newLon = srv_fl[0].shape.coordinates[Math.floor(srv_fl[0].shape.coordinates.length/2)][0];
+    var newLat = srv_fl[0].shape.coordinates[Math.floor(srv_fl[0].shape.coordinates.length/2)][1];
+    comid = srv_fl[0].comid.toString();
+
+    //add the selected flow line to the map
+    for (var i in srv_fl) {
+        selected_streams_layer.getSource().clear()
+        selected_streams_layer.getSource().addFeature(geojson2feature(srv_fl[i].shape));
+    }
 }
 
 function geojson2feature(myGeoJSON) {
