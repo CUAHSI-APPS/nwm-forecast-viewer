@@ -229,9 +229,13 @@ $(function () {
         }
 
         if ($('#geom').val() == "land") {
-            CenterMap(qLat, qLon);
+            CenterMap(qLat, qLong);
             mapView.setZoom(12);
-            });
+        }
+
+        if ($('#geom').val() == "reservoir") {
+            CenterMap(qLat, qLong);
+            mapView.setZoom(6);
         }
 
         initChart(qConfig, startDate, seriesData);
@@ -320,18 +324,6 @@ $(function () {
             return [style];
         };
     };
-
-//    var createBoxStyleFunction = function() {
-//        return function(feature, resolution) {
-//            var style = new ol.style.Style({
-//                stroke: new ol.style.Stroke({
-//                    color: '#ffff00',
-//                    width: 2
-//                }),
-//            });
-//            return [style];
-//        };
-//    };
 
     var getText = function(feature, resolution) {
         var maxResolution = 100;
@@ -466,7 +458,7 @@ $(function () {
 
                 var coordinate = evt.coordinate;
                 lonlat = ol.proj.transform(coordinate, 'EPSG:3857', 'EPSG:4326');
-                run_point_indexing_service_other_layers(lonlat);
+//                run_point_indexing_service(lonlat);
             }
 
                 displayContent += '</table>';
@@ -502,7 +494,7 @@ $(function () {
                     CenterMap(lonlat[1], lonlat[0]);
                 }
                 console.log(lonlat);
-                run_point_indexing_service_other_layers(lonlat);
+//                run_point_indexing_service(lonlat);
             }
     });
 
