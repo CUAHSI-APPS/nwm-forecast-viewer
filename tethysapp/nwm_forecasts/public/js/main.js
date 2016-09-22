@@ -204,7 +204,7 @@ $(function () {
         $('#startDate').val(qDate);
         $('#time').val(qTime);
 
-        if (($('#geom').val() == "channel_rt") && ($('#longInput').val() !== '-98' && $('#latInput').val()) !== '38.5') {
+        if (($('#longInput').val() !== '-98' && $('#latInput').val()) !== '38.5') {
             CenterMap(qLat, qLong);
             mapView.setZoom(12);
 
@@ -228,20 +228,31 @@ $(function () {
             WATERS.Services.PointIndexingService(data, options);
         }
 
-        if ($('#geom').val() == "land") {
-            CenterMap(qLat, qLong);
-            mapView.setZoom(12);
-        }
-
-        if ($('#geom').val() == "reservoir") {
-            CenterMap(qLat, qLong);
-            mapView.setZoom(6);
-        }
+//        if ($('#geom').val() == "land") {
+//            CenterMap(qLat, qLong);
+//            mapView.setZoom(12);
+//        }
+//
+//        if ($('#geom').val() == "reservoir") {
+//            CenterMap(qLat, qLong);
+//            mapView.setZoom(6);
+//        }
 
         initChart(qConfig, startDate, seriesData);
 
         get_netcdf_chart_data(qConfig, qGeom, qVar, qCOMID, qDate, qTime, qLag, qDateEnd);
     }
+
+    if (window.location.search.includes('land')) {
+            CenterMap(qLat, qLong);
+            mapView.setZoom(12);
+    }
+
+    if (window.location.search.includes('reservoir')) {
+        CenterMap(qLat, qLong);
+        mapView.setZoom(10);
+    }
+
 
     $("#config").trigger("change");
     $("#geom").trigger("change");
@@ -458,7 +469,7 @@ $(function () {
 
                 var coordinate = evt.coordinate;
                 lonlat = ol.proj.transform(coordinate, 'EPSG:3857', 'EPSG:4326');
-//                run_point_indexing_service(lonlat);
+                run_point_indexing_service(lonlat);
             }
 
                 displayContent += '</table>';
@@ -493,8 +504,7 @@ $(function () {
                     mapView.setZoom(12);
                     CenterMap(lonlat[1], lonlat[0]);
                 }
-                console.log(lonlat);
-//                run_point_indexing_service(lonlat);
+                run_point_indexing_service(lonlat);
             }
     });
 
@@ -524,7 +534,6 @@ $(function () {
     $("#geom").trigger("change")
 
 });
-
 
 /****************************
  ***Popup Displaying Info***
@@ -561,6 +570,7 @@ function CenterMap(lat,lon){
 function run_point_indexing_service(lonlat) {
     var inputLon = lonlat[0];
     var inputLat = lonlat[1];
+//    console.log(lonlat);
     var wktval = "POINT(" + inputLon + " " + inputLat + ")";
 
     var options = {
@@ -682,8 +692,8 @@ function pis_success_other_layers(result) {
     }
 
     var srv_fl = result.output.ary_flowlines;
-    var newLon = srv_fl[0].shape.coordinates[Math.floor(srv_fl[0].shape.coordinates.length / 2)][0];
-    var newLat = srv_fl[0].shape.coordinates[Math.floor(srv_fl[0].shape.coordinates.length / 2)][1];
+    var newLon = srv_fl[0].shape.coordinates[Math.floor(srv_fl[0].shape.coordinates.length/2)][0];
+    var newLat = srv_fl[0].shape.coordinates[Math.floor(srv_fl[0].shape.coordinates.length/2)][1];
     comid = srv_fl[0].comid.toString();
     $('#longInput').val(newLon);
     $('#latInput').val(newLat);

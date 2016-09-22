@@ -2,7 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="5f96908b-da9e-42d0-b66f-6e7e2ee7e458" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tethysapp/nwm_forecasts/public/js/main.js" afterPath="$PROJECT_DIR$/tethysapp/nwm_forecasts/public/js/main.js" />
     </list>
     <ignored path="nwm-forecast-viewer.iws" />
@@ -37,8 +36,8 @@
       <file leaf-file-name="main.js" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/tethysapp/nwm_forecasts/public/js/main.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="247">
-              <caret line="560" column="23" selection-start-line="560" selection-start-column="13" selection-end-line="560" selection-end-column="23" />
+            <state relative-caret-position="502">
+              <caret line="656" column="0" selection-start-line="656" selection-start-column="0" selection-end-line="656" selection-end-column="0" />
               <folding />
             </state>
           </provider>
@@ -541,8 +540,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/tethysapp/nwm_forecasts/public/js/main.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="247">
-          <caret line="560" column="23" selection-start-line="560" selection-start-column="13" selection-end-line="560" selection-end-column="23" />
+        <state relative-caret-position="502">
+          <caret line="656" column="0" selection-start-line="656" selection-start-column="0" selection-end-line="656" selection-end-column="0" />
           <folding />
         </state>
       </provider>
