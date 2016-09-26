@@ -494,6 +494,8 @@ $(function () {
                 }
 //                run_point_indexing_service(lonlat);
             }
+        $('#longInput').val(lonlat[0]);
+        $('#latInput').val(lonlat[1]);
     });
 
     map.on('pointermove', function(evt) {
