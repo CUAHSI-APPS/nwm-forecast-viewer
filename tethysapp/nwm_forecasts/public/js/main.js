@@ -11,7 +11,6 @@ var nc_chart, seriesData, startDate, seriesDataGroup = [];
 var $btnLoadWatershed;
 var $popupLoadWatershed;
 
-
 $('#config').on('change', function () {
     if ($('#config').val() === 'medium_range') {
         $('#endDate,#endDateLabel,#timeLag').addClass('hidden');
@@ -769,7 +768,7 @@ function initChart(config, startDate) {
             },
             xAxis: {
                 type: 'datetime',
-                title: {text: 'Time'},
+                title: {text: 'Time (UTC)'},
                 minRange: 14 * 3600000 // one day
             },
             yAxis: {
