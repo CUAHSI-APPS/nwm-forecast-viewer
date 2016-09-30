@@ -11,6 +11,22 @@ var nc_chart, seriesData, startDate, seriesDataGroup = [];
 var $btnLoadWatershed;
 var $popupLoadWatershed;
 
+(function () {
+    var target, observer, config;
+    // select the target node
+    target = $('#app-content-wrapper')[0];
+
+    observer = new MutationObserver(function () {
+        window.setTimeout(function () {
+            map.updateSize();
+        }, 350);
+    });
+
+    config = {attributes: true};
+
+    observer.observe(target, config);
+}());
+
 $('#config').on('change', function () {
     if ($('#config').val() === 'medium_range') {
         $('#endDate,#endDateLabel,#timeLag').addClass('hidden');
@@ -116,7 +132,7 @@ $('#geom').on('change', function () {
 
 $(function () {
     //turns toggle navigation icon off
-    $(".toggle-nav").removeClass('toggle-nav');
+//    $(".toggle-nav").removeClass('toggle-nav');
 
     $btnLoadWatershed = $('#btn-load-watershed');
     getHSWatershedList();
@@ -203,7 +219,7 @@ $(function () {
         $('#startDate').val(qDate);
         $('#time').val(qTime);
 
-        if (($('#longInput').val() !== '-98' && $('#latInput').val()) !== '38.5') {
+        if (($('#longInput').val() !== '-98' && $('#latInput').val() !== '38.5') && qGeom!== 'channel_rt') {
             CenterMap(qLat, qLong);
             mapView.setZoom(12);
 
@@ -226,22 +242,48 @@ $(function () {
             };
             WATERS.Services.PointIndexingService(data, options);
         }
+        if (qCOMID) {
+            $.ajax({
+                url: 'https://watersgeo.epa.gov/arcgis/rest/services/NHDPlus_NP21/NHDSnapshot_NP21_Labeled/MapServer/0/query',
+                data: {
+                    where: 'COMID=' + qCOMID,
+                    returnGeometry: true,
+                    f: 'json'
+                },
+                dataType: 'json',
+                success: function (data) {
+                    var geometry = data.features[0].geometry;
+                    geometry['coordinates'] = geometry['paths'][0]
+                    delete geometry['paths']
+                    geometry['type'] = 'LineString'
+                    selected_streams_layer.getSource().clear()
+                    var geojsonformatter = new ol.format.GeoJSON;
+                    var myGeometry = geojsonformatter.readGeometry(geometry);
+                    //name the feature according to COMID
+                    var newFeatureName = 'COMID: ' + comid;
+
+                    var newFeature = new ol.Feature({
+                        geometry: myGeometry,
+                        name: newFeatureName
+                    });
+                    selected_streams_layer.getSource().addFeature(newFeature);
+                    var newLon = geometry.coordinates[Math.floor(geometry.coordinates.length / 2)][0];
+                    var newLat = geometry.coordinates[Math.floor(geometry.coordinates.length / 2)][1];
+                    lonlat = ol.proj.transform([newLon, newLat], 'EPSG:3857', 'EPSG:4326');
+                    $('#longInput').val(lonlat[0]);
+                    $('#latInput').val(lonlat[1]);
+                    CenterMap(lonlat[1], lonlat[0]);
+                    mapView.setZoom(12);
+
+                }
+            })
+
+        }
 
         initChart(qConfig, startDate, seriesData);
 
         get_netcdf_chart_data(qConfig, qGeom, qVar, qCOMID, qDate, qTime, qLag, qDateEnd);
     }
-
-//    if (window.location.search.includes('land')) {
-//            CenterMap(qLat, qLong);
-//            mapView.setZoom(12);
-//    }
-//
-//    if (window.location.search.includes('reservoir')) {
-//        CenterMap(qLat, qLong);
-//        mapView.setZoom(10);
-//    }
-
 
     $("#config").trigger("change");
     $("#geom").trigger("change");
@@ -455,7 +497,6 @@ $(function () {
 
                 var coordinate = evt.coordinate;
                 lonlat = ol.proj.transform(coordinate, 'EPSG:3857', 'EPSG:4326');
-//                run_point_indexing_service(lonlat);
             }
 
                 displayContent += '</table>';
@@ -491,7 +532,6 @@ $(function () {
                     mapView.setZoom(12);
                     CenterMap(lonlat[1], lonlat[0]);
                 }
-//                run_point_indexing_service(lonlat);
             }
         $('#longInput').val(lonlat[0]);
         $('#latInput').val(lonlat[1]);
