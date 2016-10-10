@@ -809,90 +809,110 @@ def download_subset(request):
         'success': False,
         'results': {}
     }
+
     if request.POST:
-        esri_geom_json_str = request.POST["esri_geom_json_str"]
-        url = "http://geoserver.byu.edu/arcgis/rest/services/NWM/grid/MapServer/0/query"
-        params = {
-            'geometry': esri_geom_json_str,
-            'geometryType': 'esriGeometryPolygon',
-            'returnGeometry': 'false',
-            'spatialRel': 'esriSpatialRelIntersects',
-            'outFields': 'south_north, west_east',
-            'f': 'json'
-        }
+        root_dir = '/projects/water/nwm/data/'
+        # config = request.POST['config']
+        # date = request.POST['date'].replace('-', '')
+        config = 'fe_medium_range'
+        date = '20160919'
+        username = request.user.username
+        data_dir = os.path.join(root_dir, config, date)
+        temp_dir = get_temp_dir(username)
+        output_fname = '%s_%s_combined.nc' % (config, date)
+        output_fpath = os.path.join(get_public_tempdir(), output_fname)
+        subset_url = '{0}{1}/static/nwm_forecasts/temp/{2}'.format('https://' if request.is_secure() else 'http://',
+                                                                   request.get_host(),
+                                                                   output_fname)
 
-        r_json = post(url, data=params).json()
+        if not os.path.exists(output_fpath):
+            url = "http://geoserver.byu.edu/arcgis/rest/services/NWM/grid/MapServer/0/query"
+            esri_geom_json_str = request.POST["esri_geom_json_str"]
+            params = {
+                'geometry': esri_geom_json_str,
+                'geometryType': 'esriGeometryPolygon',
+                'returnGeometry': 'false',
+                'spatialRel': 'esriSpatialRelIntersects',
+                'outFields': 'south_north, west_east',
+                'f': 'json'
+            }
 
-        grid_cells_json = r_json['features']
-        grid_cells_indices_list = []
+            r_json = post(url, data=params).json()
 
-        for grid_cell_json in grid_cells_json:
-            attributes = grid_cell_json['attributes']
-            grid_cells_indices_list.append([attributes['west_east'], attributes['south_north']])
+            grid_cells_json = r_json['features']
+            grid_cells_indices_list = []
 
-        unique_x_vals, unique_y_vals, x_length, y_length, grid_cells_mapping = get_subset_dimensions_size(grid_cells_indices_list)
+            for grid_cell_json in grid_cells_json:
+                attributes = grid_cell_json['attributes']
+                grid_cells_indices_list.append([attributes['west_east'], attributes['south_north']])
 
-        fname = 'nwm.t06z.fe_medium_range.f001.conus.nc_georeferenced.nc'
-        test_file = '/home/alan/Downloads/%s' % fname
-        subset_fpath = os.path.join(get_public_tempdir(), fname)
-        prefix = 'https://' if request.is_secure() else 'http://'
-        subset_url = prefix + request.get_host() + '/static/nwm_forecasts/temp/' + fname
+            unique_x_indices, unique_y_indices, index_mapping = get_unique_indices_and_mapping(grid_cells_indices_list)
 
-        in_nc = nc.Dataset(test_file, mode='r')
+            for f in os.listdir(data_dir):
+                orig_fpath = os.path.join(data_dir, f)
+                subset_fpath = os.path.join(temp_dir, f)
+                in_nc = nc.Dataset(orig_fpath, mode='r')
 
-        with nc.Dataset(subset_fpath, mode='w', format=in_nc.data_model) as out_nc:
-            out_nc.setncatts({k: in_nc.getncattr(k) for k in in_nc.ncattrs()})
-            for name, dim in in_nc.dimensions.iteritems():
-                length = x_length if name == 'x' else y_length
-                out_nc.createDimension(name, length)
+                with nc.Dataset(subset_fpath, mode='w', format=in_nc.data_model) as out_nc:
+                    out_nc.setncatts({k: in_nc.getncattr(k) for k in in_nc.ncattrs()})
+                    for name, dim in in_nc.dimensions.iteritems():
+                        length = len(unique_x_indices) if name == 'x' else len(unique_y_indices)
+                        out_nc.createDimension(name, length)
 
-            for name, var in in_nc.variables.iteritems():
-                out_var = out_nc.createVariable(name, var.datatype, var.dimensions)
-                attributes = {k: var.getncattr(k) for k in var.ncattrs()}
-                out_var.setncatts(attributes)
+                    for name, var in in_nc.variables.iteritems():
+                        out_var = out_nc.createVariable(name, var.datatype, var.dimensions)
+                        attributes = {k: var.getncattr(k) for k in var.ncattrs()}
+                        out_var.setncatts(attributes)
 
-                for grid_cells_indices in grid_cells_indices_list:
-                    x_index_old = grid_cells_indices[0]
-                    y_index_old = grid_cells_indices[1]
-                    x_index_new = grid_cells_mapping['x'][x_index_old]
-                    y_index_new = grid_cells_mapping['y'][y_index_old]
-
-                    if len(var.dimensions) == 2:
-                        out_var[y_index_new, x_index_new] = var[y_index_old][x_index_old]
-                    else:
                         if name == 'x':
-                            out_var[x_index_new] = var[x_index_old]
+                            for x_index in unique_x_indices:
+                                new_val = index_mapping['x'][x_index]
+                                out_var[new_val] = x_index
+                        elif name == 'y':
+                            for y_index in unique_y_indices:
+                                new_val = index_mapping['y'][y_index]
+                                out_var[new_val] = y_index
                         else:
-                            out_var[y_index_new] = var[y_index_old]
+                            for grid_cells_indices in grid_cells_indices_list:
+                                x_index_old = grid_cells_indices[0]
+                                y_index_old = grid_cells_indices[1]
+                                x_index_new = index_mapping['x'][x_index_old]
+                                y_index_new = index_mapping['y'][y_index_old]
 
+                                if len(var.dimensions) == 2:
+                                    out_var[y_index_new, x_index_new] = var[y_index_old][x_index_old]
+
+            combine_files(temp_dir, output_fpath)
+
+        remove_temp_files(username)
         response_obj['results']['subset_url'] = subset_url
         response_obj['success'] = True
 
         return JsonResponse(response_obj)
 
 
-def get_subset_dimensions_size(grid_indices_list):
-    unique_x_vals = []
-    unique_y_vals = []
+def get_unique_indices_and_mapping(grid_indices_list):
+    unique_x_indices = []
+    unique_y_indices = []
     orig_to_new_mapping = {
         'x': {},
         'y': {}
     }
     for grid_indices in grid_indices_list:
-        if grid_indices[0] not in unique_x_vals:
-            unique_x_vals.append(int(grid_indices[0]))
-        if grid_indices[1] not in unique_y_vals:
-            unique_y_vals.append(int(grid_indices[1]))
+        if grid_indices[0] not in unique_x_indices:
+            unique_x_indices.append(int(grid_indices[0]))
+        if grid_indices[1] not in unique_y_indices:
+            unique_y_indices.append(int(grid_indices[1]))
 
-    unique_x_vals.sort()
-    unique_y_vals.sort()
-    for i, x in enumerate(unique_x_vals):
+    unique_x_indices.sort()
+    unique_y_indices.sort()
+    for i, x in enumerate(unique_x_indices):
         orig_to_new_mapping['x'][x] = i
 
-    for i, y in enumerate(unique_y_vals):
+    for i, y in enumerate(unique_y_indices):
         orig_to_new_mapping['y'][y] = i
 
-    return unique_x_vals, unique_y_vals, len(unique_x_vals), len(unique_y_vals), orig_to_new_mapping
+    return unique_x_indices, unique_y_indices, orig_to_new_mapping
 
 
 def get_public_tempdir():
@@ -902,3 +922,22 @@ def get_public_tempdir():
         os.makedirs(public_tempdir)
 
     return public_tempdir
+
+
+def get_temp_dir(username):
+    temp_dir = '/tmp/nwm-data/%s' % username
+
+    if not os.path.exists(temp_dir):
+        os.makedirs(temp_dir)
+
+    return temp_dir
+
+
+def combine_files(nc_files_dir, output_file_path):
+    os.system('ncecat -h %s/* %s' % (nc_files_dir, output_file_path))
+
+
+def remove_temp_files(username):
+    temp_dir = '/tmp/nwm-data/%s' % username
+
+    os.system('rm -rf %s' % temp_dir)

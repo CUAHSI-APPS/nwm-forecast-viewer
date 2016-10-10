@@ -1137,7 +1137,9 @@ function onClickDownloadSubset() {
     esriGeomJson = {"hasZ": false, "hasM": false, "rings": watershedCoords, "spatialReference" : {"wkid" : 3857}};
 
     data = {
-        "esri_geom_json_str": JSON.stringify(esriGeomJson)
+        "esri_geom_json_str": JSON.stringify(esriGeomJson),
+        "config": $('#config').val(),
+        "date": $('#startDate').val()
     };
 
     // window.open('download-subset/?esri_geom_json_str=' + encodeURIComponent(JSON.stringify(esriGeomJson)));
