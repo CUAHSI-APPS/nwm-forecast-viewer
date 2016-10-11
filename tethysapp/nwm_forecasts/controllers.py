@@ -866,20 +866,20 @@ def download_subset(request):
 
                         if name == 'x':
                             for x_index in unique_x_indices:
-                                new_val = index_mapping['x'][x_index]
-                                out_var[new_val] = x_index
+                                new_index = index_mapping['x'][x_index]
+                                out_var[new_index] = var[x_index]
                         elif name == 'y':
                             for y_index in unique_y_indices:
-                                new_val = index_mapping['y'][y_index]
-                                out_var[new_val] = y_index
+                                new_index = index_mapping['y'][y_index]
+                                out_var[new_index] = var[y_index]
                         else:
-                            for grid_cells_indices in grid_cells_indices_list:
-                                x_index_old = grid_cells_indices[0]
-                                y_index_old = grid_cells_indices[1]
-                                x_index_new = index_mapping['x'][x_index_old]
-                                y_index_new = index_mapping['y'][y_index_old]
+                            if len(var.dimensions) == 2:
+                                for grid_cells_indices in grid_cells_indices_list:
+                                    x_index_old = grid_cells_indices[0]
+                                    y_index_old = grid_cells_indices[1]
+                                    x_index_new = index_mapping['x'][x_index_old]
+                                    y_index_new = index_mapping['y'][y_index_old]
 
-                                if len(var.dimensions) == 2:
                                     out_var[y_index_new, x_index_new] = var[y_index_old][x_index_old]
 
             combine_files(temp_dir, output_fpath)
