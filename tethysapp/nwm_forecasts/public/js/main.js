@@ -36,7 +36,7 @@ $('#config').on('change', function () {
         };
         $('#time').val('06')
     } else if ($('#config').val() === 'long_range') {
-        $('#endDate,endDateLabel,#velocVar').addClass('hidden');
+        $('#endDate,#endDateLabel,#velocVar').addClass('hidden');
         $('#time').parent().addClass('hidden');
         $('#timeLag').removeClass('hidden');
     } else if ($('#config').val() === 'short_range') {
