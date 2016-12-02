@@ -708,7 +708,7 @@ function geojson2feature(myGeoJSON) {
 function get_netcdf_chart_data(config, geom, variable, comid, date, time, lag, endDate) {
     $.ajax({
         type: 'GET',
-        url: 'get-netcdf-data',
+        url: 'get-netcdf-data/',
         dataType: 'json',
         data: {
             'config': config,
