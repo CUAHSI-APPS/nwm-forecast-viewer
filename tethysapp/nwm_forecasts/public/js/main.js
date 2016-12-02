@@ -36,7 +36,7 @@ $('#config').on('change', function () {
         };
         $('#time').val('06')
     } else if ($('#config').val() === 'long_range') {
-        $('#endDate,endDateLabel,#velocVar').addClass('hidden');
+        $('#endDate,#endDateLabel,#velocVar').addClass('hidden');
         $('#time').parent().addClass('hidden');
         $('#timeLag').removeClass('hidden');
     } else if ($('#config').val() === 'short_range') {
@@ -708,7 +708,7 @@ function geojson2feature(myGeoJSON) {
 function get_netcdf_chart_data(config, geom, variable, comid, date, time, lag, endDate) {
     $.ajax({
         type: 'GET',
-        url: 'get-netcdf-data',
+        url: 'get-netcdf-data/',
         dataType: 'json',
         data: {
             'config': config,
