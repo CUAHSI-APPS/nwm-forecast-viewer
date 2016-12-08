@@ -1,3 +1,7 @@
+$(document).ready(function () {
+    $("#welcome-popup").modal("show");
+});
+
 //Map variables
 var map, mapView, base_layer, all_streams_layer, selected_streams_layer;
 

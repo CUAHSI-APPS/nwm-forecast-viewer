@@ -12,6 +12,45 @@
 {% endblock %}
 
 {% block app_content_wrapper_override %}
+
+<!-- Modal3 -->
+<div class="modal fade" id="welcome-popup" role="dialog">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <center><h4 class="modal-title">National Water Model Forecast Viewer Guide</h4></center>
+      </div>
+      <div class="modal-body">
+        <div id="welcome-info">
+          <ol>
+            <b>About the App</b>
+          <p><span class="sub">Users can obtain forecasts of different hydrologic variables available from any of the
+            associated National Hydrography Datasets (e.g., channel, rivers, land surface grids, reservoir).</span></p>
+
+            <b>How to Use the App</b>
+          <li class="modalList">Under <b>Enter Configuration</b> - Select a forecast range: Short, Medium, Long, or Analyis & Assimilation</li>
+          <li class="modalList">Under <b>Enter Geometry</b> - Select a geometry: Channel, Land, or Reservoir</li>
+          <li class="modalList">Under <b>Enter Variable</b> - Select a variable: This list will change depending on the type of geometry</li>
+          <li class="modalList">Under <b>Enter COMID</b> - Click a feature on the map: Clicking on a feature will populate this
+            field (you may need to zoom in to be able to see some features)</li>
+          <li class="modalList">Select <b>Date and Time</b> - Select a date: The date and time options will vary depending on the forecast type</li>
+          <li class="modalList">Click <b>Submit</b> - Click submit to view the forecast</li>
+          </ol>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <div id="byu-logo-container">
+          <span><i>Developed at the BYU Hydroinformatics Lab</i></span>
+          <img src="{% static 'nwm_forecasts/images/byu-logo.png' %}"/>
+        </div>
+        <button type="button" class="btn btn-default" id="close-popup" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- End Modal -->
+
   <!-- Modal1  -->
   <div class="modal fade" id="popup-load-watershed" role="dialog">
     <div class="modal-dialog">
@@ -91,9 +130,10 @@
     </div>
   </div>
   <!-- End Modal -->
-
-  {{block.super}}
+{{block.super}}
 {% endblock %}
+
+
 
 {% block app_actions %}
   <div id="actionBtns" class="hidden">
