@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, Http404
 from django.shortcuts import render_to_response
-from tethys_sdk.gizmos import SelectInput, ToggleSwitch, Button
+from tethys_sdk.gizmos import SelectInput, ToggleSwitch, Button, DatePicker
 from django.conf import settings
 from hs_restclient import HydroShare, HydroShareAuthOAuth2, HydroShareNotAuthorized, HydroShareNotFound
 
@@ -42,27 +42,24 @@ def home(request):
                              initial=['Channel'],
                              original=True)
 
-    start_date = {
-        'display_text': 'Enter Beginning Date',
-        'name': 'startDate',
-        'end_date': '0d',
-        'autoclose': True,
-        'format': 'yyyy-mm-dd',
-        'start_date': '2016-05-01',
-        'today_button': True,
-        'initial': dt.datetime.utcnow().strftime("%Y-%m-%d")
-    }
 
-    end_date = {
-        'name': 'endDate',
-        'end_date': '0d',
-        'autoclose': True,
-        'format': 'yyyy-mm-dd',
-        'start_date': '2016-05-01',
-        'today_button': True,
-        'classes': 'hidden',
-        'initial': dt.datetime.utcnow().strftime("%Y-%m-%d")
-    }
+    start_date = DatePicker(name='startDate',
+                            display_text='Enter Beginning Date',
+                            end_date='0d',
+                            autoclose=True,
+                            format='yyyy-mm-dd',
+                            start_date='2016-05-01',
+                            today_button=True,
+                            initial=dt.datetime.utcnow().strftime("%Y-%m-%d"))
+
+    end_date = DatePicker(name='endDate',
+                          end_date='0d',
+                          autoclose=True,
+                          format='yyyy-mm-dd',
+                          start_date='2016-05-01',
+                          today_button=True,
+                          initial=dt.datetime.utcnow().strftime("%Y-%m-%d"),
+                          classes="hidden")
 
     start_time = SelectInput(display_text='Enter Initialization Time (UTC)',
                              name='time',
