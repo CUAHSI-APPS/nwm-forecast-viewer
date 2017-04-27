@@ -92,6 +92,17 @@ def home(request):
     if request.GET:
         # Make the waterml url query string
         config = request.GET['config']
+        if config == "medium_range":
+            start_time = SelectInput(display_text='Enter Initialization Time (UTC)',
+                                     name='time',
+                                     multiple=False,
+                                     options=[('00:00', '00'),
+                                              ('06:00', '06'),
+                                              ('12:00', '12'),
+                                              ('18:00', '18')],
+                                     initial=['00:00'],
+                                     original=True)
+
         geom = request.GET['geom']
         variable = request.GET['variable']
         if geom != 'land':
@@ -181,7 +192,7 @@ def get_netcdf_data(request):
                 app_dir = '/projects/water/nwm/data/'
                 dateDir = startDate.replace('-', '')
                 localFileDir = os.path.join(app_dir, config, dateDir)
-                nc_files = sorted([x for x in os.listdir(localFileDir) if geom in x and timeCheck in x and 'georeferenced' in x])
+                nc_files = sorted([x for x in os.listdir(localFileDir) if geom in x and timeCheck in x])
 
                 ts_pairs_data[str(comid)] = processNCFiles(localFileDir, nc_files, geom, comid, var)
 
@@ -197,9 +208,9 @@ def get_netcdf_data(request):
                 app_dir = '/projects/water/nwm/data/'
                 dateDir = startDate.replace('-', '')
                 localFileDir = os.path.join(app_dir, config)
-                nc_files = sorted([x for x in os.listdir(localFileDir) if geom in x and
-                                   int(x.split('.')[1]) >= int(dateDir) and int(x.split('.')[1]) < int(endDate) and
-                                   'georeferenced' in x])
+                nc_files = sorted([x for x in os.listdir(localFileDir) if geom in x
+                                   and int(x.split('.')[1]) >= int(dateDir) and int(x.split('.')[1]) <= int(endDate)
+                                   and 'tm00' in x])
 
                 ts_pairs_data[str(comid)] = processNCFiles(localFileDir, nc_files, geom, comid, var)
 
@@ -219,19 +230,20 @@ def get_netcdf_data(request):
 
                     q_out_1 = []; q_out_2 = []; q_out_3 = []; q_out_4 = []
                     if geom == 'channel_rt':
+
                         nc_files_1 = sorted([x for x in os.listdir(localFileDir) if
-                                             'channel_rt_1' in x and timeCheck in x and 'georeferenced' in x])
+                                             'channel_rt_1' in x and timeCheck in x ])
                         nc_files_2 = sorted([x for x in os.listdir(localFileDir) if
-                                             'channel_rt_2' in x and timeCheck in x and 'georeferenced' in x])
+                                             'channel_rt_2' in x and timeCheck in x ])
                         nc_files_3 = sorted([x for x in os.listdir(localFileDir) if
-                                             'channel_rt_3' in x and timeCheck in x and 'georeferenced' in x])
+                                             'channel_rt_3' in x and timeCheck in x ])
                         nc_files_4 = sorted([x for x in os.listdir(localFileDir) if
-                                             'channel_rt_4' in x and timeCheck in x and 'georeferenced' in x])
+                                             'channel_rt_4' in x and timeCheck in x ])
 
                         local_file_path = os.path.join(localFileDir, nc_files_1[0])
                         prediction_data = nc.Dataset(local_file_path, mode="r")
 
-                        comidList = prediction_data.variables['station_id'][:]
+                        comidList = prediction_data.variables['feature_id'][:]
                         comidIndex = int(np.where(comidList == comid)[0])
 
                         loopThroughFiles(localFileDir, q_out_1, nc_files_1, var, comidIndex)
@@ -241,18 +253,18 @@ def get_netcdf_data(request):
 
                     elif geom == 'reservoir':
                         nc_files_1 = sorted([x for x in os.listdir(localFileDir) if
-                                             'reservoir_1' in x and timeCheck in x and 'georeferenced' in x])
+                                             'reservoir_1' in x and timeCheck in x])
                         nc_files_2 = sorted([x for x in os.listdir(localFileDir) if
-                                             'reservoir_2' in x and timeCheck in x and 'georeferenced' in x])
+                                             'reservoir_2' in x and timeCheck in x])
                         nc_files_3 = sorted([x for x in os.listdir(localFileDir) if
-                                             'reservoir_3' in x and timeCheck in x and 'georeferenced' in x])
+                                             'reservoir_3' in x and timeCheck in x])
                         nc_files_4 = sorted([x for x in os.listdir(localFileDir) if
-                                             'reservoir_4' in x and timeCheck in x and 'georeferenced' in x])
+                                             'reservoir_4' in x and timeCheck in x])
 
                         local_file_path = os.path.join(localFileDir, nc_files_1[0])
                         prediction_data = nc.Dataset(local_file_path, mode="r")
 
-                        comidList = prediction_data.variables['lake_id'][:]
+                        comidList = prediction_data.variables['feature_id'][:]
                         comidIndex = int(np.where(comidList == comid)[0])
 
                         loopThroughFiles(localFileDir, q_out_1, nc_files_1, var, comidIndex)
@@ -262,13 +274,13 @@ def get_netcdf_data(request):
 
                     elif geom == 'land':
                         nc_files_1 = sorted([x for x in os.listdir(localFileDir) if
-                                             'land_1' in x and timeCheck in x and 'georeferenced' in x])
+                                             'land_1' in x and timeCheck in x])
                         nc_files_2 = sorted([x for x in os.listdir(localFileDir) if
-                                             'land_2' in x and timeCheck in x and 'georeferenced' in x])
+                                             'land_2' in x and timeCheck in x])
                         nc_files_3 = sorted([x for x in os.listdir(localFileDir) if
-                                             'land_3' in x and timeCheck in x and 'georeferenced' in x])
+                                             'land_3' in x and timeCheck in x])
                         nc_files_4 = sorted([x for x in os.listdir(localFileDir) if
-                                             'land_4' in x and timeCheck in x and 'georeferenced' in x])
+                                             'land_4' in x and timeCheck in x])
 
                         local_file_path = os.path.join(localFileDir, nc_files_1[0])
                         prediction_data = nc.Dataset(local_file_path, mode="r")
@@ -287,10 +299,11 @@ def get_netcdf_data(request):
 
                     variables = prediction_data.variables.keys()
                     if 'time' in variables:
-                        time = [int(nc.num2date(0, prediction_data.variables['time'].units).strftime('%s'))]
+                        time = [int(nc.num2date(prediction_data.variables['time'][0], prediction_data.variables['time'].units).strftime('%s'))]
                     else:
                         return JsonResponse({'error': "Invalid netCDF file"})
-
+                    print time
+                    print q_out_1
                     q_out_group.append([time, q_out_1, q_out_2, q_out_3, q_out_4, timeCheck])
 
                 ts_pairs_data[str(comid)] = q_out_group
@@ -313,11 +326,11 @@ def processNCFiles(localFileDir, nc_files, geom, comid, var):
 
     q_out = []
     if geom == 'channel_rt':
-        comidList = prediction_data.variables['station_id'][:]
+        comidList = prediction_data.variables['feature_id'][:]
         comidIndex = int(np.where(comidList == comid)[0])
         loopThroughFiles(localFileDir, q_out, nc_files, var, comidIndex)
     elif geom == 'reservoir':
-        comidList = prediction_data.variables['lake_id'][:]
+        comidList = prediction_data.variables['feature_id'][:]
         comidIndex = int(np.where(comidList == comid)[0])
         loopThroughFiles(localFileDir, q_out, nc_files, var, comidIndex)
     elif geom == 'land':
@@ -330,10 +343,11 @@ def processNCFiles(localFileDir, nc_files, geom, comid, var):
 
     variables = prediction_data.variables.keys()
     if 'time' in variables:
-        time = [int(nc.num2date(0, prediction_data.variables['time'].units).strftime('%s'))]
+        time = [int(nc.num2date(prediction_data.variables["time"][0], prediction_data.variables['time'].units).strftime('%s'))]
     else:
         return JsonResponse({'error': "Invalid netCDF file"})
-
+    print time
+    print q_out
     return [time, q_out, 'notLong']
 
 
@@ -363,7 +377,6 @@ def loopThroughFiles(localFileDir, q_out, nc_files, var, comidIndex=None, comidI
         elif var in ['ACCET', 'UGDRNOFF', 'SFCRNOFF', 'ACCECAN', 'CANWAT']:
             q_outT = np.ma.getdata(prediction_dataTemp.variables[var][0][comidIndexY][comidIndexX]).tolist()
             q_out.append(round(q_outT * 0.0393701, 4))
-
     return q_out
 
 
@@ -582,22 +595,21 @@ def getTimeSeries(config, geom, var, comid, date, endDate, time, member=''):
         if config in ['short_range', 'medium_range']:
             localFileDir = os.path.join(app_dir, config, dateDir)
             nc_files = sorted([x for x in os.listdir(localFileDir) if geom in x and
-                               timeCheck in x and 'georeferenced' in x])
+                               timeCheck in x])
         elif config == 'analysis_assim':
             localFileDir = os.path.join(app_dir, config)
             nc_files = sorted([x for x in os.listdir(localFileDir) if geom in x and
                                int(x.split('.')[1]) >= int(dateDir) and
-                               int(x.split('.')[1]) < int(endDate.replace('-', '')) and
-                               'georeferenced' in x])
+                               int(x.split('.')[1]) < int(endDate.replace('-', ''))])
 
         ncFile = nc.Dataset(os.path.join(localFileDir, nc_files[0]), mode="r")
 
         if geom == 'channel_rt':
-            comidList = ncFile.variables['station_id'][:]
+            comidList = ncFile.variables['feature_id'][:]
             comidIndex = int(np.where(comidList == comid)[0])
             loopThroughFiles(localFileDir, ts, nc_files, var, comidIndex)
         elif geom == 'reservoir':
-            comidList = ncFile.variables['lake_id'][:]
+            comidList = ncFile.variables['feature_id'][:]
             comidIndex = int(np.where(comidList == comid)[0])
             loopThroughFiles(localFileDir, ts, nc_files, var, comidIndex)
         elif geom == 'land':
@@ -617,16 +629,16 @@ def getTimeSeries(config, geom, var, comid, date, endDate, time, member=''):
         localFileDir = os.path.join(app_dir, config, dateDir)
 
         nc_files = sorted([x for x in os.listdir(localFileDir) if
-                           '_'.join([geom, member]) in x and time in x and 'georeferenced' in x])
+                           '_'.join([geom, member]) in x and time in x])
 
         ncFile = nc.Dataset(os.path.join(localFileDir, nc_files[0]), mode="r")
 
         if geom == 'channel_rt':
-            comidList = ncFile.variables['station_id'][:]
+            comidList = ncFile.variables['feature_id'][:]
             comidIndex = int(np.where(comidList == comid)[0])
             loopThroughFiles(localFileDir, ts, nc_files, var, comidIndex)
         elif geom == 'reservoir':
-            comidList = ncFile.variables['lake_id'][:]
+            comidList = ncFile.variables['feature_id'][:]
             comidIndex = int(np.where(comidList == comid)[0])
             loopThroughFiles(localFileDir, ts, nc_files, var, comidIndex)
         elif geom == 'land':
