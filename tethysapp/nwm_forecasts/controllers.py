@@ -300,10 +300,15 @@ def get_netcdf_data(request):
                     variables = prediction_data.variables.keys()
                     if 'time' in variables:
                         time = [int(nc.num2date(prediction_data.variables['time'][0], prediction_data.variables['time'].units).strftime('%s'))]
+                        #time = [int(prediction_data.variables['time'][0])]
+
                     else:
                         return JsonResponse({'error': "Invalid netCDF file"})
                     print time
                     print q_out_1
+                    print q_out_2
+                    print q_out_3
+                    print q_out_4
                     q_out_group.append([time, q_out_1, q_out_2, q_out_3, q_out_4, timeCheck])
 
                 ts_pairs_data[str(comid)] = q_out_group
@@ -344,6 +349,7 @@ def processNCFiles(localFileDir, nc_files, geom, comid, var):
     variables = prediction_data.variables.keys()
     if 'time' in variables:
         time = [int(nc.num2date(prediction_data.variables["time"][0], prediction_data.variables['time'].units).strftime('%s'))]
+        #time = [int(prediction_data.variables["time"][0])]
     else:
         return JsonResponse({'error': "Invalid netCDF file"})
     print time
@@ -363,19 +369,19 @@ def loopThroughFiles(localFileDir, q_out, nc_files, var, comidIndex=None, comidI
             q_outT = prediction_dataTemp.variables[var][comidIndex].tolist()
             q_out.append(round(q_outT * 3.28084, 4))
         elif var == 'SNOWH':
-            q_outT = np.ma.getdata(prediction_dataTemp.variables[var][0][comidIndexY][comidIndexX]).tolist()
+            q_outT = prediction_dataTemp.variables[var][0, comidIndexY, comidIndexX].tolist()
             q_out.append(round(q_outT * 3.28084, 4))
         elif var == 'SNEQV':
-            q_outT = np.ma.getdata(prediction_dataTemp.variables[var][0][comidIndexY][comidIndexX]).tolist()
+            q_outT = prediction_dataTemp.variables[var][0, comidIndexY, comidIndexX].tolist()
             q_out.append(round((q_outT / 1000) * 3.28084, 4))
         elif var in ['FSNO', 'SOILSAT_TOP', 'SOILSAT', 'CANWAT', 'SNOWT_AVG']:
-            q_outT = np.ma.getdata(prediction_dataTemp.variables[var][0][comidIndexY][comidIndexX]).tolist()
+            q_outT = prediction_dataTemp.variables[var][0, comidIndexY, comidIndexX].tolist()
             q_out.append(round(q_outT, 4))
         elif var in ['SOIL_M', 'SOIL_T']:
-            q_outT = np.ma.getdata(prediction_dataTemp.variables[var][0][comidIndexY][3][comidIndexX]).tolist()
+            q_outT = prediction_dataTemp.variables[var][0, comidIndexY, 3, comidIndexX].tolist()
             q_out.append(round(q_outT, 4))
         elif var in ['ACCET', 'UGDRNOFF', 'SFCRNOFF', 'ACCECAN', 'CANWAT']:
-            q_outT = np.ma.getdata(prediction_dataTemp.variables[var][0][comidIndexY][comidIndexX]).tolist()
+            q_outT = prediction_dataTemp.variables[var][0, comidIndexY, comidIndexX].tolist()
             q_out.append(round(q_outT * 0.0393701, 4))
     return q_out
 

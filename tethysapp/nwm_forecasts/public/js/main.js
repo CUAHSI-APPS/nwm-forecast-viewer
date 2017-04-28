@@ -532,7 +532,10 @@ $(function () {
             else if (reservoir_url) {
                 var reservoir_Data = dataCall(reservoir_url);
                 var reservoir_Count = reservoir_Data.documentElement.childElementCount;
-
+                if (reservoir_Count < 1)
+                {
+                    return;
+                }
                 //This is for the reservoirs
                 for (i = 0; i < reservoir_Count; i++) {
                     var reservoirID = reservoir_Data.documentElement.children[i].attributes['lake_id'].value;
@@ -882,7 +885,7 @@ function initChart(config, startDate) {
             xAxis: {
                 type: 'datetime',
                 title: {text: 'Time (UTC)'},
-                minRange: 14 * 3600000 // one day
+                minRange: 24 * 3600000 // one day
             },
             yAxis: {
                 title: {text: 'Flow (cfs)'},
@@ -952,7 +955,7 @@ var plotData = function(config, geom, variable, data, start, colorIndex, seriesD
     if (config !== 'long_range') {
         $('#actionBtns').removeClass('hidden');
     };
-    var calib = calibrateModel(config, start)
+    var calib = calibrateModel(config, geom, start)
 
     if (variable === 'streamflow' || variable === 'inflow' || variable === 'outflow') {
         var units = 'Flow (cfs)';
@@ -1030,7 +1033,7 @@ function clearErrorSelection() {
 
 function changeUnits(config) {
     if (config !== 'long_range') {
-        var calib = calibrateModel(config, startDate);
+        var calib = calibrateModel(config, geom, startDate);
         if (nc_chart.yAxis[0].axisTitle.textStr === 'Flow (cfs)') {
             var newSeries = [];
             seriesData.forEach(function (i) {
@@ -1073,12 +1076,12 @@ function changeUnits(config) {
                 seriesDataGroup[i][0].forEach(function (j) {
                     newSeries.push(j * 0.0283168);
                 });
-                var calib = calibrateModel(config);
+                var calib = calibrateModel(config, geom);
                 var data_series = {
                     type: 'area',
                     name: seriesDataGroup[i][1] + ' Flow (cms)',
                     data: newSeries,
-                    pointStart: seriesDataGroup[i][2] + (3600 * 1000 * 6),
+                    pointStart: seriesDataGroup[i][2],
                     pointInterval: calib['interval']
                 };
                 nc_chart.addSeries(data_series);
@@ -1090,12 +1093,12 @@ function changeUnits(config) {
             nc_chart.yAxis[0].setTitle({text: 'Flow (cfs)'});
 
             for (i = 0; i < seriesDataGroup.length; i++) {
-                var calib = calibrateModel(config)
+                var calib = calibrateModel(config, geom);
                 var data_series = {
                     type: 'area',
                     name: seriesDataGroup[i][1] + ' Flow (cfs)',
                     data: seriesDataGroup[i][0],
-                    pointStart: seriesDataGroup[i][2] + (3600 * 1000 * 6),
+                    pointStart: seriesDataGroup[i][2],
                     pointInterval: calib['interval']
                 };
                 nc_chart.addSeries(data_series);
@@ -1104,7 +1107,7 @@ function changeUnits(config) {
     };
 };
 
-function calibrateModel(config, date) {
+function calibrateModel(config, geom, date) {
     var interval;
     var start = date;
     if (config === 'short_range') {
@@ -1117,7 +1120,14 @@ function calibrateModel(config, date) {
         interval = 3600 * 1000 * 3; // three hours
         // start = date + (3600 * 1000 * 3); // calibrates medium range;
     } else {
-        interval = 3600 * 1000 * 6; // six hours
+        if (geom != 'land')
+        {
+            interval = 3600 * 1000 * 6; // six hours
+        }
+        else
+        {
+            interval = 3600 * 1000 * 24; // 24 hours
+        }
     };
     return {'interval': interval, 'start': start}
 }
