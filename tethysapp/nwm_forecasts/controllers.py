@@ -15,7 +15,7 @@ import shapefile
 import tempfile
 
 hs_hostname = 'www.hydroshare.org'
-
+app_dir = '/projects/water/nwm/data/'
 
 @login_required()
 def home(request):
@@ -189,7 +189,6 @@ def get_netcdf_data(request):
 
                 timeCheck = ''.join(['t', time, 'z'])
 
-                app_dir = '/projects/water/nwm/data/'
                 dateDir = startDate.replace('-', '')
                 localFileDir = os.path.join(app_dir, config, dateDir)
                 nc_files = sorted([x for x in os.listdir(localFileDir) if geom in x and timeCheck in x])
@@ -205,7 +204,6 @@ def get_netcdf_data(request):
 
                 endDate = get_data['endDate'].replace('-', '')
 
-                app_dir = '/projects/water/nwm/data/'
                 dateDir = startDate.replace('-', '')
                 localFileDir = os.path.join(app_dir, config)
                 nc_files = sorted([x for x in os.listdir(localFileDir) if geom in x
@@ -224,7 +222,6 @@ def get_netcdf_data(request):
                 for lg in lag:
                     timeCheck = ''.join(['t', lg])
 
-                    app_dir = '/projects/water/nwm/data/'
                     dateDir = startDate.replace('-', '')
                     localFileDir = os.path.join(app_dir, config, dateDir)
 
@@ -595,7 +592,6 @@ def getTimeSeries(config, geom, var, comid, date, endDate, time, member=''):
 
         ts = []
 
-        app_dir = '/projects/water/nwm/data/'
         dateDir = date.replace('-', '')
 
         if config in ['short_range', 'medium_range']:
@@ -630,7 +626,6 @@ def getTimeSeries(config, geom, var, comid, date, endDate, time, member=''):
 
         ts = []
 
-        app_dir = '/projects/water/nwm/data/'
         dateDir = date.replace('-', '')
         localFileDir = os.path.join(app_dir, config, dateDir)
 
