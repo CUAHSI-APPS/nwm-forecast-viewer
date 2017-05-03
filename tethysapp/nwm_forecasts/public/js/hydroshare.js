@@ -1,4 +1,4 @@
-var resource_url
+var resource_url;
 
 $(function(){
     $("input[name='time_period']").click(function () {
@@ -30,13 +30,17 @@ $('#HSbtn').on('click', function () {
 });
 
 $('#hydroshare-proceed').on('click', function ()  {
-    if ($("#time_selection").length > 0) {
-        if ($("input[name='time_period']:checked").val() == 'preceding') {
+
+    if ($("#time_selection").length > 0)
+    {
+        if ($("input[name='time_period']:checked").val() == 'preceding')
+        {
             var period = $("input[name='period']").val();
             var units = $('#time_period_units').val();
             var span = period + '-' + units;
             resource_url = "/apps/gaugeviewwml/waterml/?type=usgsiv&gaugeid=" + id + "&span=" + span;
-    };
+        }
+    }
 
     //now we construct the WaterML..
     var waterml_link = resource_url;
@@ -56,7 +60,7 @@ $('#hydroshare-proceed').on('click', function ()  {
         $('#display-status').removeClass('uploading');
         $('#display-status').addClass('error');
         $('#display-status').html('<em>You must provide all metadata information.</em>');
-        return
+        return;
     }
 
     var csrf_token = getCookie('csrftoken');

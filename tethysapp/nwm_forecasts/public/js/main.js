@@ -100,7 +100,6 @@ $('#config').on('change', function () {
         if ($('#geom').val() === 'channel_rt' && $('#config').val() !== 'long_range') {
             $('#velocVar').removeClass('hidden');
         };
-        //$('#time').val('06')
     } else if ($('#config').val() === 'long_range') {
         $('#endDate,#endDateLabel,#velocVar').addClass('hidden');
         $('#time').parent().addClass('hidden');
@@ -303,10 +302,10 @@ $(function () {
                 dataType: 'json',
                 success: function (data) {
                     var geometry = data.features[0].geometry;
-                    geometry['coordinates'] = geometry['paths'][0]
-                    delete geometry['paths']
-                    geometry['type'] = 'LineString'
-                    selected_streams_layer.getSource().clear()
+                    geometry['coordinates'] = geometry['paths'][0];
+                    delete geometry['paths'];
+                    geometry['type'] = 'LineString';
+                    selected_streams_layer.getSource().clear();
                     var geojsonformatter = new ol.format.GeoJSON;
                     var myGeometry = geojsonformatter.readGeometry(geometry);
                     //name the feature according to COMID
@@ -512,7 +511,7 @@ $(function () {
                 var grid_Count = grid_Data.documentElement.childElementCount;
 
                 //This is for the land grid
-                for (i = 0; i < grid_Count; i++) {
+                for (var i = 0; i < grid_Count; i++) {
                     var south_north = grid_Data.documentElement.children[i].attributes['south_north'].value;
                     var west_east = grid_Data.documentElement.children[i].attributes['west_east'].value;
                     var lon_layer = grid_Data.documentElement.children[i].attributes['XLONG_M'].value;
@@ -610,8 +609,8 @@ $(function () {
             selected_streams_layer.setVisible(true);
             }
         }
-    )
-    $("#geom").trigger("change")
+    );
+    $("#geom").trigger("change");
 
 });
 
@@ -838,7 +837,7 @@ function get_netcdf_chart_data(config, geom, variable, comid, date, time, lag, e
                     };
                 };
             } else if ("error" in data) {
-                $('#nc-chart').addClass('hidden')
+                $('#nc-chart').addClass('hidden');
                 $('#info').html('<p class="alert alert-danger" style="text-align: center"><strong>' + data['error'] + '</strong></p>').removeClass('hidden').addClass('error');
 
                 // Hide error message 5 seconds after showing it
@@ -885,7 +884,8 @@ function initChart(config, startDate) {
             xAxis: {
                 type: 'datetime',
                 title: {text: 'Time (UTC)'},
-                minRange: 24 * 3600000 // one day
+                minRange: 3600000,
+                startDate: startDate
             },
             yAxis: {
                 title: {text: 'Flow (cfs)'},
@@ -910,7 +910,7 @@ function initChart(config, startDate) {
         $('#nc-chart').highcharts(default_chart_settings);
         nc_chart = $('#nc-chart').highcharts();
     } else {
-        default_chart_settings = {
+        var default_chart_settings = {
             title: {text: "NWM Forecast"},
             chart: {zoomType: 'x'},
             plotOptions: {
@@ -924,7 +924,8 @@ function initChart(config, startDate) {
             xAxis: {
                 type: 'datetime',
                 title: {text: 'Time'},
-                minRange: 14 * 3600000 // one day
+                minRange: 14 * 3600000,
+                min: startDate
             },
             yAxis: {
                 title: {text: 'Flow (cfs)'},
@@ -955,7 +956,7 @@ var plotData = function(config, geom, variable, data, start, colorIndex, seriesD
     if (config !== 'long_range') {
         $('#actionBtns').removeClass('hidden');
     };
-    var calib = calibrateModel(config, geom, start)
+    var calib = calibrateModel(config, geom, start);
 
     if (variable === 'streamflow' || variable === 'inflow' || variable === 'outflow') {
         var units = 'Flow (cfs)';
@@ -1112,13 +1113,10 @@ function calibrateModel(config, geom, date) {
     var start = date;
     if (config === 'short_range') {
         interval = 3600 * 1000; // one hour
-        // start = date + (3600 * 1000); // calibrates short range;
     } else if (config === 'analysis_assim') {
         interval = 3600 * 1000; // one hour
-        // start = date + (3600 * 1000 * 3); // calibrates analysis assimilation
     } else if (config === 'medium_range') {
         interval = 3600 * 1000 * 3; // three hours
-        // start = date + (3600 * 1000 * 3); // calibrates medium range;
     } else {
         if (geom != 'land')
         {

@@ -7,6 +7,7 @@ from django.conf import settings
 from hs_restclient import HydroShare, HydroShareAuthOAuth2, HydroShareNotAuthorized, HydroShareNotFound
 
 import os
+import datetime
 import netCDF4 as nc
 import json
 import datetime as dt
@@ -16,6 +17,7 @@ import tempfile
 
 hs_hostname = 'www.hydroshare.org'
 app_dir = '/projects/water/nwm/data/'
+transition_date_v11 = "20170508"
 
 @login_required()
 def home(request):
@@ -203,12 +205,29 @@ def get_netcdf_data(request):
             elif config == 'analysis_assim':
 
                 endDate = get_data['endDate'].replace('-', '')
+                endDate_obj = datetime.datetime.strptime(endDate + " UTC", '%Y%m%d %Z')
+                endDate_obj = endDate_obj + datetime.timedelta(days=1)
+                endDate = endDate_obj.strftime("%Y%m%d")
 
                 dateDir = startDate.replace('-', '')
                 localFileDir = os.path.join(app_dir, config)
-                nc_files = sorted([x for x in os.listdir(localFileDir) if geom in x
-                                   and int(x.split('.')[1]) >= int(dateDir) and int(x.split('.')[1]) <= int(endDate)
-                                   and 'tm00' in x])
+
+
+                nc_files_v10 = sorted([x for x in os.listdir(localFileDir) if geom in x
+                                       and int(x.split('.')[1]) >= int(dateDir)
+                                       and int(x.split('.')[1]) < min(int(transition_date_v11), int(endDate))
+                                       and 'tm00' in x
+                                       and "georeferenced" in x])
+
+                nc_files_v11 = sorted([x for x in os.listdir(localFileDir) if geom in x
+                                       and int(x.split('.')[1]) >= max(int(dateDir), int(transition_date_v11))
+                                       and int(x.split('.')[1]) < int(endDate)
+                                       and 'tm00' in x])
+                if len(nc_files_v10) > 0:
+                    processNCFiles(localFileDir, nc_files_v10, geom, comid, var)
+
+                if len(nc_files_v11) > 0:
+                    processNCFiles(localFileDir, nc_files_v11, geom, comid, var)
 
                 ts_pairs_data[str(comid)] = processNCFiles(localFileDir, nc_files, geom, comid, var)
 
@@ -297,15 +316,8 @@ def get_netcdf_data(request):
                     variables = prediction_data.variables.keys()
                     if 'time' in variables:
                         time = [int(nc.num2date(prediction_data.variables['time'][0], prediction_data.variables['time'].units).strftime('%s'))]
-                        #time = [int(prediction_data.variables['time'][0])]
-
                     else:
                         return JsonResponse({'error': "Invalid netCDF file"})
-                    print time
-                    print q_out_1
-                    print q_out_2
-                    print q_out_3
-                    print q_out_4
                     q_out_group.append([time, q_out_1, q_out_2, q_out_3, q_out_4, timeCheck])
 
                 ts_pairs_data[str(comid)] = q_out_group
@@ -322,17 +334,23 @@ def get_netcdf_data(request):
         return JsonResponse({'error': "Bad request. Must be a GET request."})
 
 
-def processNCFiles(localFileDir, nc_files, geom, comid, var):
+def processNCFiles(localFileDir, nc_files, geom, comid, var, version="v1.1"):
     local_file_path = os.path.join(localFileDir, nc_files[0])
     prediction_data = nc.Dataset(local_file_path, mode="r")
 
     q_out = []
     if geom == 'channel_rt':
-        comidList = prediction_data.variables['feature_id'][:]
+        if version == "v1.1":
+            comidList = prediction_data.variables['feature_id'][:]
+        else:
+            comidList = prediction_data.variables['station_id'][:]
         comidIndex = int(np.where(comidList == comid)[0])
         loopThroughFiles(localFileDir, q_out, nc_files, var, comidIndex)
     elif geom == 'reservoir':
-        comidList = prediction_data.variables['feature_id'][:]
+        if version == "v1.1":
+            comidList = prediction_data.variables['feature_id'][:]
+        else:
+            comidList = prediction_data.variables['station_id'][:]
         comidIndex = int(np.where(comidList == comid)[0])
         loopThroughFiles(localFileDir, q_out, nc_files, var, comidIndex)
     elif geom == 'land':
@@ -346,11 +364,8 @@ def processNCFiles(localFileDir, nc_files, geom, comid, var):
     variables = prediction_data.variables.keys()
     if 'time' in variables:
         time = [int(nc.num2date(prediction_data.variables["time"][0], prediction_data.variables['time'].units).strftime('%s'))]
-        #time = [int(prediction_data.variables["time"][0])]
     else:
         return JsonResponse({'error': "Invalid netCDF file"})
-    print time
-    print q_out
     return [time, q_out, 'notLong']
 
 
