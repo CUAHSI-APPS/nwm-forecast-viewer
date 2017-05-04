@@ -193,7 +193,8 @@ def get_netcdf_data(request):
 
                 dateDir = startDate.replace('-', '')
                 localFileDir = os.path.join(app_dir, config, dateDir)
-                nc_files = sorted([x for x in os.listdir(localFileDir) if geom in x and timeCheck in x])
+                nc_files = sorted([x for x in os.listdir(localFileDir) if geom in x and timeCheck in x
+                                   and "georeferenced" not in x])
 
                 ts_pairs_data[str(comid)] = processNCFiles(localFileDir, nc_files, geom, comid, var)
 
@@ -257,13 +258,17 @@ def get_netcdf_data(request):
                     if geom == 'channel_rt':
 
                         nc_files_1 = sorted([x for x in os.listdir(localFileDir) if
-                                             'channel_rt_1' in x and timeCheck in x ])
+                                             'channel_rt_1' in x and timeCheck in x
+                                             and "georeferenced" not in x])
                         nc_files_2 = sorted([x for x in os.listdir(localFileDir) if
-                                             'channel_rt_2' in x and timeCheck in x ])
+                                             'channel_rt_2' in x and timeCheck in x
+                                             and "georeferenced" not in x])
                         nc_files_3 = sorted([x for x in os.listdir(localFileDir) if
-                                             'channel_rt_3' in x and timeCheck in x ])
+                                             'channel_rt_3' in x and timeCheck in x
+                                             and "georeferenced" not in x])
                         nc_files_4 = sorted([x for x in os.listdir(localFileDir) if
-                                             'channel_rt_4' in x and timeCheck in x ])
+                                             'channel_rt_4' in x and timeCheck in x
+                                             and "georeferenced" not in x])
 
                         local_file_path = os.path.join(localFileDir, nc_files_1[0])
                         prediction_data = nc.Dataset(local_file_path, mode="r")
@@ -278,13 +283,17 @@ def get_netcdf_data(request):
 
                     elif geom == 'reservoir':
                         nc_files_1 = sorted([x for x in os.listdir(localFileDir) if
-                                             'reservoir_1' in x and timeCheck in x])
+                                             'reservoir_1' in x and timeCheck in x
+                                             and "georeferenced" not in x])
                         nc_files_2 = sorted([x for x in os.listdir(localFileDir) if
-                                             'reservoir_2' in x and timeCheck in x])
+                                             'reservoir_2' in x and timeCheck in x
+                                             and "georeferenced" not in x])
                         nc_files_3 = sorted([x for x in os.listdir(localFileDir) if
-                                             'reservoir_3' in x and timeCheck in x])
+                                             'reservoir_3' in x and timeCheck in x
+                                             and "georeferenced" not in x])
                         nc_files_4 = sorted([x for x in os.listdir(localFileDir) if
-                                             'reservoir_4' in x and timeCheck in x])
+                                             'reservoir_4' in x and timeCheck in x
+                                             and "georeferenced" not in x])
 
                         local_file_path = os.path.join(localFileDir, nc_files_1[0])
                         prediction_data = nc.Dataset(local_file_path, mode="r")
@@ -299,13 +308,17 @@ def get_netcdf_data(request):
 
                     elif geom == 'land':
                         nc_files_1 = sorted([x for x in os.listdir(localFileDir) if
-                                             'land_1' in x and timeCheck in x])
+                                             'land_1' in x and timeCheck in x
+                                             and "georeferenced" not in x])
                         nc_files_2 = sorted([x for x in os.listdir(localFileDir) if
-                                             'land_2' in x and timeCheck in x])
+                                             'land_2' in x and timeCheck in x
+                                             and "georeferenced" not in x])
                         nc_files_3 = sorted([x for x in os.listdir(localFileDir) if
-                                             'land_3' in x and timeCheck in x])
+                                             'land_3' in x and timeCheck in x
+                                             and "georeferenced" not in x])
                         nc_files_4 = sorted([x for x in os.listdir(localFileDir) if
-                                             'land_4' in x and timeCheck in x])
+                                             'land_4' in x and timeCheck in x
+                                             and "georeferenced" not in x])
 
                         local_file_path = os.path.join(localFileDir, nc_files_1[0])
                         prediction_data = nc.Dataset(local_file_path, mode="r")
