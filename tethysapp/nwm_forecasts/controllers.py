@@ -230,7 +230,7 @@ def get_netcdf_data(request):
                     v10_data = processNCFiles(localFileDir, nc_files_v10, geom, comid, var, version="v1.0")
                     start_time = v10_data[0]
                     q_list = v10_data[1]
-                
+
                 if len(nc_files_v11) > 0:
                     v11_data = processNCFiles(localFileDir, nc_files_v11, geom, comid, var)
                     if start_time is None:
@@ -356,10 +356,10 @@ def processNCFiles(localFileDir, nc_files, geom, comid, var, version="v1.1"):
         comidIndex = int(np.where(comidList == comid)[0])
         loopThroughFiles(localFileDir, q_out, nc_files, var, comidIndex)
     elif geom == 'reservoir':
-        if version == "v1.1":
-            comidList = prediction_data.variables['feature_id'][:]
+        if version == "v1.0":
+            comidList = prediction_data.variables['lake_id'][:]
         else:
-            comidList = prediction_data.variables['station_id'][:]
+            comidList = prediction_data.variables['feature_id'][:]
         comidIndex = int(np.where(comidList == comid)[0])
         loopThroughFiles(localFileDir, q_out, nc_files, var, comidIndex)
     elif geom == 'land':
