@@ -17,7 +17,7 @@ import tempfile
 
 hs_hostname = 'www.hydroshare.org'
 app_dir = '/projects/water/nwm/data/'
-transition_date_v11 = "20170508"
+transition_date_v11 = "20170503"
 
 @login_required()
 def home(request):
@@ -222,14 +222,22 @@ def get_netcdf_data(request):
                 nc_files_v11 = sorted([x for x in os.listdir(localFileDir) if geom in x
                                        and int(x.split('.')[1]) >= max(int(dateDir), int(transition_date_v11))
                                        and int(x.split('.')[1]) < int(endDate)
-                                       and 'tm00' in x])
+                                       and 'tm00' in x
+                                       and "georeferenced" not in x])
+                start_time = None
+                q_list = []
                 if len(nc_files_v10) > 0:
-                    processNCFiles(localFileDir, nc_files_v10, geom, comid, var)
-
+                    v10_data = processNCFiles(localFileDir, nc_files_v10, geom, comid, var, version="v1.0")
+                    start_time = v10_data[0]
+                    q_list = v10_data[1]
                 if len(nc_files_v11) > 0:
-                    processNCFiles(localFileDir, nc_files_v11, geom, comid, var)
+                    v11_data = processNCFiles(localFileDir, nc_files_v11, geom, comid, var)
+                    if start_time is not None:
+                        start_time = v11_data[0]
+                    q_list = q_list + v10_data[1]
 
-                ts_pairs_data[str(comid)] = processNCFiles(localFileDir, nc_files, geom, comid, var)
+                ts_pairs_data[str(comid)] = [start_time, q_list, "notLong"]
+                # ts_pairs_data[str(comid)] = processNCFiles(localFileDir, nc_files, geom, comid, var)
 
                 return JsonResponse({
                     "success": "Data analysis complete!",
@@ -340,10 +348,10 @@ def processNCFiles(localFileDir, nc_files, geom, comid, var, version="v1.1"):
 
     q_out = []
     if geom == 'channel_rt':
-        if version == "v1.1":
-            comidList = prediction_data.variables['feature_id'][:]
-        else:
+        if version == "v1.0":
             comidList = prediction_data.variables['station_id'][:]
+        else:
+            comidList = prediction_data.variables['feature_id'][:]
         comidIndex = int(np.where(comidList == comid)[0])
         loopThroughFiles(localFileDir, q_out, nc_files, var, comidIndex)
     elif geom == 'reservoir':
