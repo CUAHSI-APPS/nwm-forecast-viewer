@@ -230,11 +230,12 @@ def get_netcdf_data(request):
                     v10_data = processNCFiles(localFileDir, nc_files_v10, geom, comid, var, version="v1.0")
                     start_time = v10_data[0]
                     q_list = v10_data[1]
+                
                 if len(nc_files_v11) > 0:
                     v11_data = processNCFiles(localFileDir, nc_files_v11, geom, comid, var)
-                    if start_time is not None:
+                    if start_time is None:
                         start_time = v11_data[0]
-                    q_list = q_list + v10_data[1]
+                    q_list = q_list + v11_data[1]
 
                 ts_pairs_data[str(comid)] = [start_time, q_list, "notLong"]
                 # ts_pairs_data[str(comid)] = processNCFiles(localFileDir, nc_files, geom, comid, var)
