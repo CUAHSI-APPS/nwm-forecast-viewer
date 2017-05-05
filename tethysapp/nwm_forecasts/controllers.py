@@ -458,8 +458,6 @@ def processNCFiles(localFileDir, nc_files, geom, comid, var, version="v1.1"):
     else:
         return JsonResponse({'error': "Invalid netCDF file"})
 
-    print "comid index: {0}".format(comidIndex)
-
     variables = prediction_data.variables.keys()
     if 'time' in variables:
         time = [int(nc.num2date(prediction_data.variables["time"][0], prediction_data.variables['time'].units).strftime('%s'))]
