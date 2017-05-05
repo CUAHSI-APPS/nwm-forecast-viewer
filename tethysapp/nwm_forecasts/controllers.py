@@ -194,7 +194,7 @@ def get_netcdf_data(request):
                 dateDir = startDate.replace('-', '')
                 localFileDir = os.path.join(app_dir, config, dateDir)
 
-                if dateDir < int(transition_date_v11):
+                if int(dateDir) < int(transition_date_v11):
                     # v1.0
                     nc_files = sorted([x for x in os.listdir(localFileDir) if geom in x and timeCheck in x
                                     and "georeferenced" in x])
@@ -390,9 +390,12 @@ def processNCFiles(localFileDir, nc_files, geom, comid, var, version="v1.1"):
     else:
         return JsonResponse({'error': "Invalid netCDF file"})
 
+    print "comid index: {0}".format(comidIndex)
+
     variables = prediction_data.variables.keys()
     if 'time' in variables:
         time = [int(nc.num2date(prediction_data.variables["time"][0], prediction_data.variables['time'].units).strftime('%s'))]
+        print "start epoch time: {0}".format(time[0])
     else:
         return JsonResponse({'error': "Invalid netCDF file"})
     return [time, q_out, 'notLong']
