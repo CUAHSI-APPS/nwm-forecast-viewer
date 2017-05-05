@@ -193,10 +193,17 @@ def get_netcdf_data(request):
 
                 dateDir = startDate.replace('-', '')
                 localFileDir = os.path.join(app_dir, config, dateDir)
-                nc_files = sorted([x for x in os.listdir(localFileDir) if geom in x and timeCheck in x
-                                   and "georeferenced" not in x])
 
-                ts_pairs_data[str(comid)] = processNCFiles(localFileDir, nc_files, geom, comid, var)
+                if dateDir < int(transition_date_v11):
+                    # v1.0
+                    nc_files = sorted([x for x in os.listdir(localFileDir) if geom in x and timeCheck in x
+                                    and "georeferenced" in x])
+                    ts_pairs_data[str(comid)] = processNCFiles(localFileDir, nc_files, geom, comid, var, version="v1.0")
+                else:
+                    # v1.1
+                    nc_files = sorted([x for x in os.listdir(localFileDir) if geom in x and timeCheck in x
+                                       and "georeferenced" not in x])
+                    ts_pairs_data[str(comid)] = processNCFiles(localFileDir, nc_files, geom, comid, var)
 
                 return JsonResponse({
                     "success": "Data analysis complete!",
