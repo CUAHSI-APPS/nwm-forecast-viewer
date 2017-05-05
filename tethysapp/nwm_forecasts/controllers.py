@@ -196,6 +196,8 @@ def get_netcdf_data(request):
 
                 if int(dateDir) < int(transition_date_v11):
                     # v1.0
+                    if config == 'medium_range':
+                        timeCheck = "t06z"  # v1.0 medium range only has t06z
                     nc_files = sorted([x for x in os.listdir(localFileDir) if geom in x and timeCheck in x
                                     and "georeferenced" in x])
                     ts_pairs_data[str(comid)] = processNCFiles(localFileDir, nc_files, geom, comid, var, version="v1.0")
@@ -261,27 +263,53 @@ def get_netcdf_data(request):
                     dateDir = startDate.replace('-', '')
                     localFileDir = os.path.join(app_dir, config, dateDir)
 
-                    q_out_1 = []; q_out_2 = []; q_out_3 = []; q_out_4 = []
+                    q_out_1 = []
+                    q_out_2 = []
+                    q_out_3 = []
+                    q_out_4 = []
+
                     if geom == 'channel_rt':
+                        if int(dateDir) < int(transition_date_v11):
+                            # v1.0
+                            nc_files_1 = sorted([x for x in os.listdir(localFileDir) if
+                                                 'channel_rt_1' in x and timeCheck in x
+                                                 and "georeferenced" in x])
+                            nc_files_2 = sorted([x for x in os.listdir(localFileDir) if
+                                                 'channel_rt_2' in x and timeCheck in x
+                                                 and "georeferenced" in x])
+                            nc_files_3 = sorted([x for x in os.listdir(localFileDir) if
+                                                 'channel_rt_3' in x and timeCheck in x
+                                                 and "georeferenced" in x])
+                            nc_files_4 = sorted([x for x in os.listdir(localFileDir) if
+                                                 'channel_rt_4' in x and timeCheck in x
+                                                 and "georeferenced" in x])
 
-                        nc_files_1 = sorted([x for x in os.listdir(localFileDir) if
-                                             'channel_rt_1' in x and timeCheck in x
-                                             and "georeferenced" not in x])
-                        nc_files_2 = sorted([x for x in os.listdir(localFileDir) if
-                                             'channel_rt_2' in x and timeCheck in x
-                                             and "georeferenced" not in x])
-                        nc_files_3 = sorted([x for x in os.listdir(localFileDir) if
-                                             'channel_rt_3' in x and timeCheck in x
-                                             and "georeferenced" not in x])
-                        nc_files_4 = sorted([x for x in os.listdir(localFileDir) if
-                                             'channel_rt_4' in x and timeCheck in x
-                                             and "georeferenced" not in x])
+                            local_file_path = os.path.join(localFileDir, nc_files_1[0])
+                            prediction_data = nc.Dataset(local_file_path, mode="r")
 
-                        local_file_path = os.path.join(localFileDir, nc_files_1[0])
-                        prediction_data = nc.Dataset(local_file_path, mode="r")
+                            comidList = prediction_data.variables['station_id'][:]
+                            comidIndex = int(np.where(comidList == comid)[0])
 
-                        comidList = prediction_data.variables['feature_id'][:]
-                        comidIndex = int(np.where(comidList == comid)[0])
+                        else:
+                            # v1.1
+                            nc_files_1 = sorted([x for x in os.listdir(localFileDir) if
+                                                 'channel_rt_1' in x and timeCheck in x
+                                                 and "georeferenced" not in x])
+                            nc_files_2 = sorted([x for x in os.listdir(localFileDir) if
+                                                 'channel_rt_2' in x and timeCheck in x
+                                                 and "georeferenced" not in x])
+                            nc_files_3 = sorted([x for x in os.listdir(localFileDir) if
+                                                 'channel_rt_3' in x and timeCheck in x
+                                                 and "georeferenced" not in x])
+                            nc_files_4 = sorted([x for x in os.listdir(localFileDir) if
+                                                 'channel_rt_4' in x and timeCheck in x
+                                                 and "georeferenced" not in x])
+
+                            local_file_path = os.path.join(localFileDir, nc_files_1[0])
+                            prediction_data = nc.Dataset(local_file_path, mode="r")
+
+                            comidList = prediction_data.variables['feature_id'][:]
+                            comidIndex = int(np.where(comidList == comid)[0])
 
                         loopThroughFiles(localFileDir, q_out_1, nc_files_1, var, comidIndex)
                         loopThroughFiles(localFileDir, q_out_2, nc_files_2, var, comidIndex)
@@ -289,24 +317,48 @@ def get_netcdf_data(request):
                         loopThroughFiles(localFileDir, q_out_4, nc_files_4, var, comidIndex)
 
                     elif geom == 'reservoir':
-                        nc_files_1 = sorted([x for x in os.listdir(localFileDir) if
-                                             'reservoir_1' in x and timeCheck in x
-                                             and "georeferenced" not in x])
-                        nc_files_2 = sorted([x for x in os.listdir(localFileDir) if
-                                             'reservoir_2' in x and timeCheck in x
-                                             and "georeferenced" not in x])
-                        nc_files_3 = sorted([x for x in os.listdir(localFileDir) if
-                                             'reservoir_3' in x and timeCheck in x
-                                             and "georeferenced" not in x])
-                        nc_files_4 = sorted([x for x in os.listdir(localFileDir) if
-                                             'reservoir_4' in x and timeCheck in x
-                                             and "georeferenced" not in x])
 
-                        local_file_path = os.path.join(localFileDir, nc_files_1[0])
-                        prediction_data = nc.Dataset(local_file_path, mode="r")
+                        if int(dateDir) < int(transition_date_v11):
+                            # v1.0
+                            nc_files_1 = sorted([x for x in os.listdir(localFileDir) if
+                                                 'reservoir_1' in x and timeCheck in x
+                                                 and "georeferenced" in x])
+                            nc_files_2 = sorted([x for x in os.listdir(localFileDir) if
+                                                 'reservoir_2' in x and timeCheck in x
+                                                 and "georeferenced" in x])
+                            nc_files_3 = sorted([x for x in os.listdir(localFileDir) if
+                                                 'reservoir_3' in x and timeCheck in x
+                                                 and "georeferenced" in x])
+                            nc_files_4 = sorted([x for x in os.listdir(localFileDir) if
+                                                 'reservoir_4' in x and timeCheck in x
+                                                 and "georeferenced" in x])
 
-                        comidList = prediction_data.variables['feature_id'][:]
-                        comidIndex = int(np.where(comidList == comid)[0])
+                            local_file_path = os.path.join(localFileDir, nc_files_1[0])
+                            prediction_data = nc.Dataset(local_file_path, mode="r")
+
+                            comidList = prediction_data.variables['lake_id'][:]
+                            comidIndex = int(np.where(comidList == comid)[0])
+
+                        else:
+                            # v1.1
+                            nc_files_1 = sorted([x for x in os.listdir(localFileDir) if
+                                                 'reservoir_1' in x and timeCheck in x
+                                                 and "georeferenced" not in x])
+                            nc_files_2 = sorted([x for x in os.listdir(localFileDir) if
+                                                 'reservoir_2' in x and timeCheck in x
+                                                 and "georeferenced" not in x])
+                            nc_files_3 = sorted([x for x in os.listdir(localFileDir) if
+                                                 'reservoir_3' in x and timeCheck in x
+                                                 and "georeferenced" not in x])
+                            nc_files_4 = sorted([x for x in os.listdir(localFileDir) if
+                                                 'reservoir_4' in x and timeCheck in x
+                                                 and "georeferenced" not in x])
+
+                            local_file_path = os.path.join(localFileDir, nc_files_1[0])
+                            prediction_data = nc.Dataset(local_file_path, mode="r")
+
+                            comidList = prediction_data.variables['feature_id'][:]
+                            comidIndex = int(np.where(comidList == comid)[0])
 
                         loopThroughFiles(localFileDir, q_out_1, nc_files_1, var, comidIndex)
                         loopThroughFiles(localFileDir, q_out_2, nc_files_2, var, comidIndex)
@@ -314,18 +366,34 @@ def get_netcdf_data(request):
                         loopThroughFiles(localFileDir, q_out_4, nc_files_4, var, comidIndex)
 
                     elif geom == 'land':
-                        nc_files_1 = sorted([x for x in os.listdir(localFileDir) if
-                                             'land_1' in x and timeCheck in x
-                                             and "georeferenced" not in x])
-                        nc_files_2 = sorted([x for x in os.listdir(localFileDir) if
-                                             'land_2' in x and timeCheck in x
-                                             and "georeferenced" not in x])
-                        nc_files_3 = sorted([x for x in os.listdir(localFileDir) if
-                                             'land_3' in x and timeCheck in x
-                                             and "georeferenced" not in x])
-                        nc_files_4 = sorted([x for x in os.listdir(localFileDir) if
-                                             'land_4' in x and timeCheck in x
-                                             and "georeferenced" not in x])
+                        if int(dateDir) < int(transition_date_v11):
+                            # v1.0
+                            nc_files_1 = sorted([x for x in os.listdir(localFileDir) if
+                                                 'land_1' in x and timeCheck in x
+                                                 and "georeferenced" in x])
+                            nc_files_2 = sorted([x for x in os.listdir(localFileDir) if
+                                                 'land_2' in x and timeCheck in x
+                                                 and "georeferenced" in x])
+                            nc_files_3 = sorted([x for x in os.listdir(localFileDir) if
+                                                 'land_3' in x and timeCheck in x
+                                                 and "georeferenced" in x])
+                            nc_files_4 = sorted([x for x in os.listdir(localFileDir) if
+                                                 'land_4' in x and timeCheck in x
+                                                 and "georeferenced" in x])
+                        else:
+                            # v1.1
+                            nc_files_1 = sorted([x for x in os.listdir(localFileDir) if
+                                                 'land_1' in x and timeCheck in x
+                                                 and "georeferenced" not in x])
+                            nc_files_2 = sorted([x for x in os.listdir(localFileDir) if
+                                                 'land_2' in x and timeCheck in x
+                                                 and "georeferenced" not in x])
+                            nc_files_3 = sorted([x for x in os.listdir(localFileDir) if
+                                                 'land_3' in x and timeCheck in x
+                                                 and "georeferenced" not in x])
+                            nc_files_4 = sorted([x for x in os.listdir(localFileDir) if
+                                                 'land_4' in x and timeCheck in x
+                                                 and "georeferenced" not in x])
 
                         local_file_path = os.path.join(localFileDir, nc_files_1[0])
                         prediction_data = nc.Dataset(local_file_path, mode="r")
