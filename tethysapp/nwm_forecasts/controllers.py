@@ -19,7 +19,10 @@ import tempfile
 hs_hostname = 'www.hydroshare.org'
 app_dir = '/projects/water/nwm/data/'
 transition_date_v11 = "20170508"
-transition_timestamp_v11 = "12"
+transition_timestamp_v11_AA = "12"
+transition_timestamp_v11_SR = "11"
+transition_timestamp_v11_MR = "12"
+transition_timestamp_v11_LR = "00"
 
 @login_required()
 def home(request):
@@ -172,14 +175,13 @@ def home(request):
         return render(request, 'nwm_forecasts/home.html', context)
 
 
-def timestamp_early_than_transition_v11(fn):
-
+def timestamp_early_than_transition_v11(fn, transition_timestamp):
 
     m = re.search("t[0-9][0-9]z", fn)
     if m is not None:
         tz = m.group(0)
         timestamp = tz[1:-1]
-        return int(timestamp) < int(transition_timestamp_v11)
+        return int(timestamp) < int(transition_timestamp)
     raise Exception("invalid nc file name @ {0}".format(fn))
 
 
@@ -207,7 +209,7 @@ def get_netcdf_data(request):
                 dateDir = startDate.replace('-', '')
                 localFileDir = os.path.join(app_dir, config, dateDir)
 
-                if int(dateDir) < int(transition_date_v11) or (int(dateDir) == int(transition_date_v11) and timestamp_early_than_transition_v11(timeCheck)):
+                if int(dateDir) < int(transition_date_v11) or (int(dateDir) == int(transition_date_v11) and timestamp_early_than_transition_v11(timeCheck, transition_timestamp_v11_SR)):
                     # v1.0
                     if config == 'medium_range':
                         timeCheck = "t06z"  # v1.0 medium range only has t06z
@@ -238,13 +240,13 @@ def get_netcdf_data(request):
 
                 nc_files_v10 = sorted([x for x in os.listdir(localFileDir) if geom in x
                                        and int(x.split('.')[1]) >= int(dateDir)
-                                       and (int(x.split('.')[1]) < min(int(transition_date_v11), int(endDate)) or (int(x.split('.')[1]) == int(transition_date_v11) and timestamp_early_than_transition_v11(x)))
+                                       and (int(x.split('.')[1]) < min(int(transition_date_v11), int(endDate)) or (int(x.split('.')[1]) == int(transition_date_v11) and timestamp_early_than_transition_v11(x, transition_timestamp_v11_AA)))
                                        and 'tm00' in x
                                        and "georeferenced" in x
                                        and x.endswith('.nc')])
 
                 nc_files_v11 = sorted([x for x in os.listdir(localFileDir) if geom in x
-                                       and (int(x.split('.')[1]) > max(int(dateDir), int(transition_date_v11)) or (int(x.split('.')[1]) == int(transition_date_v11) and not timestamp_early_than_transition_v11(x)))
+                                       and (int(x.split('.')[1]) > max(int(dateDir), int(transition_date_v11)) or (int(x.split('.')[1]) == int(transition_date_v11) and not timestamp_early_than_transition_v11(x, transition_timestamp_v11_AA)))
                                        and int(x.split('.')[1]) < int(endDate)
                                        and 'tm00' in x
                                        and "georeferenced" not in x
@@ -284,7 +286,7 @@ def get_netcdf_data(request):
                     q_out_4 = []
 
                     if geom == 'channel_rt':
-                        if int(dateDir) < int(transition_date_v11) or (int(dateDir) == int(transition_date_v11) and timestamp_early_than_transition_v11(timeCheck)):
+                        if int(dateDir) < int(transition_date_v11) or (int(dateDir) == int(transition_date_v11) and timestamp_early_than_transition_v11(timeCheck, transition_timestamp_v11_LR)):
                             # v1.0
                             nc_files_1 = sorted([x for x in os.listdir(localFileDir) if
                                                  'channel_rt_1' in x and timeCheck in x
@@ -333,7 +335,7 @@ def get_netcdf_data(request):
 
                     elif geom == 'reservoir':
 
-                        if int(dateDir) < int(transition_date_v11) or (int(dateDir) == int(transition_date_v11) and timestamp_early_than_transition_v11(timeCheck)):
+                        if int(dateDir) < int(transition_date_v11) or (int(dateDir) == int(transition_date_v11) and timestamp_early_than_transition_v11(timeCheck, transition_timestamp_v11_LR)):
                             # v1.0
                             nc_files_1 = sorted([x for x in os.listdir(localFileDir) if
                                                  'reservoir_1' in x and timeCheck in x
@@ -381,7 +383,7 @@ def get_netcdf_data(request):
                         loopThroughFiles(localFileDir, q_out_4, nc_files_4, var, comidIndex)
 
                     elif geom == 'land':
-                        if int(dateDir) < int(transition_date_v11) or (int(dateDir) == int(transition_date_v11) and timestamp_early_than_transition_v11(timeCheck)):
+                        if int(dateDir) < int(transition_date_v11) or (int(dateDir) == int(transition_date_v11) and timestamp_early_than_transition_v11(timeCheck, transition_timestamp_v11_LR)):
                             # v1.0
                             nc_files_1 = sorted([x for x in os.listdir(localFileDir) if
                                                  'land_1' in x and timeCheck in x
