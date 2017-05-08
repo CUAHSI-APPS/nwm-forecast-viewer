@@ -238,19 +238,20 @@ def get_netcdf_data(request):
 
                 nc_files_v10 = sorted([x for x in os.listdir(localFileDir) if geom in x
                                        and int(x.split('.')[1]) >= int(dateDir)
-                                       and int(x.split('.')[1]) < min(int(transition_date_v11), int(endDate))
+                                       and (int(x.split('.')[1]) < min(int(transition_date_v11), int(endDate)) or (int(x.split('.')[1]) == int(transition_date_v11) and timestamp_early_than_transition_v11(x)))
                                        and 'tm00' in x
                                        and "georeferenced" in x
-                                       and timestamp_early_than_transition_v11(x)
+
                                        and x.endswith('.nc')])
+                print nc_files_v10
 
                 nc_files_v11 = sorted([x for x in os.listdir(localFileDir) if geom in x
-                                       and int(x.split('.')[1]) >= max(int(dateDir), int(transition_date_v11))
+                                       and (int(x.split('.')[1]) > max(int(dateDir), int(transition_date_v11)) or (int(x.split('.')[1]) == int(transition_date_v11) and not timestamp_early_than_transition_v11(x)))
                                        and int(x.split('.')[1]) < int(endDate)
                                        and 'tm00' in x
                                        and "georeferenced" not in x
-                                       and not timestamp_early_than_transition_v11(x)
                                        and x.endswith('.nc')])
+                print nc_files_v11
                 start_time = None
                 q_list = []
                 if len(nc_files_v10) > 0:
