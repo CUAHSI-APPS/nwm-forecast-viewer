@@ -7,6 +7,7 @@ from django.conf import settings
 from hs_restclient import HydroShare, HydroShareAuthOAuth2, HydroShareNotAuthorized, HydroShareNotFound
 
 import os
+import re
 import datetime
 import netCDF4 as nc
 import json
@@ -17,7 +18,8 @@ import tempfile
 
 hs_hostname = 'www.hydroshare.org'
 app_dir = '/projects/water/nwm/data/'
-transition_date_v11 = "20170503"
+transition_date_v11 = "20170508"
+transition_timestamp_v11 = "12"
 
 @login_required()
 def home(request):
@@ -170,6 +172,17 @@ def home(request):
         return render(request, 'nwm_forecasts/home.html', context)
 
 
+def timestamp_early_than_transition_v11(fn):
+
+
+    m = re.search("t[0-9][0-9]z", fn)
+    if m is not None:
+        tz = m.group(0)
+        timestamp = tz[1:-1]
+        return int(timestamp) < int(transition_timestamp_v11)
+    raise Exception("invalid nc file name @ {0}".format(fn))
+
+
 def get_netcdf_data(request):
     if request.method == 'GET':
         get_data = request.GET
@@ -227,13 +240,17 @@ def get_netcdf_data(request):
                                        and int(x.split('.')[1]) >= int(dateDir)
                                        and int(x.split('.')[1]) < min(int(transition_date_v11), int(endDate))
                                        and 'tm00' in x
-                                       and "georeferenced" in x])
+                                       and "georeferenced" in x
+                                       and timestamp_early_than_transition_v11(x)
+                                       and x.endswith('.nc')])
 
                 nc_files_v11 = sorted([x for x in os.listdir(localFileDir) if geom in x
                                        and int(x.split('.')[1]) >= max(int(dateDir), int(transition_date_v11))
                                        and int(x.split('.')[1]) < int(endDate)
                                        and 'tm00' in x
-                                       and "georeferenced" not in x])
+                                       and "georeferenced" not in x
+                                       and not timestamp_early_than_transition_v11(x)
+                                       and x.endswith('.nc')])
                 start_time = None
                 q_list = []
                 if len(nc_files_v10) > 0:
