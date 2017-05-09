@@ -8,7 +8,6 @@ from hs_restclient import HydroShare, HydroShareAuthOAuth2, HydroShareNotAuthori
 
 import os
 import re
-import datetime
 import netCDF4 as nc
 import json
 import datetime as dt

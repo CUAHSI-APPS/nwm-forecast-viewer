@@ -12,7 +12,7 @@ class nwmForecasts(TethysAppBase):
     package = 'nwm_forecasts'
     root_url = 'nwm-forecasts'
     color = '#e74c3c'
-    description= 'This app allows the user to visualize National Water Model forecasts.'
+    description = 'This app allows the user to visualize National Water Model forecasts.'
     enable_feedback = False
     feedback_emails = []
 

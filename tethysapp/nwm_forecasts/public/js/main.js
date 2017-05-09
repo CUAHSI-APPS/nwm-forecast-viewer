@@ -122,80 +122,6 @@ $('#config').on('change', function () {
     $("#geom").trigger("change");
 });
 
-$('#geom').on('change', function () {
-    if ($('#geom').val() === 'channel_rt') {
-        $('#comidInput').attr('disabled', false);
-        if (window.location.search.includes('channel_rt') && window.location.search.includes('long_range') === false) {
-            $('#variable').val(window.location.search.split("&")[2].substring(window.location.search.split("&")[2].
-                lastIndexOf("variable=") + 9));
-        } else {
-            $('#variable').val('streamflow');
-        };
-        $('#comidDiv,#streamVar').removeClass('hidden');
-        if ($('#config').val() !== 'long_range') {
-            $('#velocVar').removeClass('hidden');
-        }
-        $('#gridInputY').attr('disabled', true);
-        $('#gridInputX').attr('disabled', true);
-        $('#gridDiv,#infVar,#outfVar,#snowhVar,#sneqVar,#snowcVar,#etVar,#ssVar,#avsnowVar,#subrunoffVar,#runoffVar,#canwVar,#ssiVar,#evapVar,#soiltVar,#soilmVar').
-            addClass('hidden');
-    } else if ($('#geom').val() === 'reservoir') {
-        $('#comidInput').attr('disabled', false);
-        if (window.location.search.includes('reservoir')) {
-            $('#variable').val(window.location.search.split("&")[2].substring(window.location.search.split("&")[2].
-                lastIndexOf("variable=") + 9));
-        } else {
-            $('#variable').val('inflow');
-        };
-        $('#comidDiv,#infVar,#outfVar').removeClass('hidden');
-        $('#gridInputY').attr('disabled', true);
-        $('#gridInputX').attr('disabled', true);
-        $('#gridDiv,#streamVar,#velocVar,#snowhVar,#sneqVar,#snowcVar,#etVar,#ssVar,#avsnowVar,#subrunoffVar,#runoffVar,#canwVar,#ssiVar,#evapVar,#soiltVar,#soilmVar').
-            addClass('hidden');
-    } else if ($('#geom').val() === 'land' && ($('#config').val() === 'short_range' ||
-        $('#config').val() === 'analysis_assim')) {
-        $('#comidInput').attr('disabled', true);
-        $('#comidDiv,#streamVar,#velocVar,#infVar,#outfVar,#subrunoffVar,#runoffVar,#evapVar,#soiltVar,#soilmVar,#canwVar,#ssiVar')
-            .addClass('hidden');
-        $('#gridInputY').attr('disabled', false);
-        $('#gridInputX').attr('disabled', false);
-        if (window.location.search.includes('land')) {
-            $('#variable').val(window.location.search.split("&")[2].substring(window.location.search.split("&")[2].
-                lastIndexOf("variable=") + 9));
-        } else {
-            $('#variable').val('SNOWH');
-        };
-        $('#gridDiv,#snowhVar,#sneqVar,#snowcVar,#etVar,#ssVar,#avsnowVar').removeClass('hidden');
-    } else if ($('#geom').val() === 'land' && $('#config').val() === 'medium_range') {
-        $('#comidInput').attr('disabled', true);
-        $('#comidDiv,#streamVar,#velocVar,#infVar,#outfVar,#runoffVar,#ssiVar').
-            addClass('hidden');
-        $('#gridInputY').attr('disabled', false);
-        $('#gridInputX').attr('disabled', false);
-        if (window.location.search.includes('land')) {
-            $('#variable').val(window.location.search.split("&")[2].substring(window.location.search.split("&")[2].
-                lastIndexOf("variable=") + 9));
-        } else {
-            $('#variable').val('SNOWH');
-        };
-        $('#gridDiv,#snowhVar,#sneqVar,#snowcVar,#etVar,#ssVar,#avsnowVar,#subrunoffVar,#evapVar,#canwVar,#soiltVar,#soilmVar').
-            removeClass('hidden');
-    } else if ($('#geom').val() === 'land' && $('#config').val() === 'long_range') {
-        $('#comidInput').attr('disabled', true);
-        $('#comidDiv,#streamVar,#velocVar,#infVar,#outfVar,#snowhVar,#snowcVar,#avsnowVar,#evapVar,#soiltVar,#soilmVar')
-            .addClass('hidden');
-        $('#gridInputY').attr('disabled', false);
-        $('#gridInputX').attr('disabled', false);
-        if (window.location.search.includes('land') && window.location.search.includes('long_range')) {
-            $('#variable').val(window.location.search.split("&")[2].substring(window.location.search.split("&")[2].
-                lastIndexOf("variable=") + 9));
-        } else {
-            $('#variable').val('SNEQV');
-        };
-        $('#gridDiv,#sneqVar,#etVar,#ssVar,#subrunoffVar,#runoffVar,#canwVar,#ssiVar').removeClass('hidden');
-    };
-});
-
 $(function () {
     //turns toggle navigation icon off
 //    $(".toggle-nav").removeClass('toggle-nav');
@@ -222,60 +148,73 @@ $(function () {
 
     mapView = map.getView();
 
-    if (window.location.search.includes('?')) {
+    if (window.location.search.includes('?'))
+    {
         var query = window.location.search.split("&");
 
         var qConfig = query[0].substring(query[0].lastIndexOf("config=") + 7);
         change_time_dropdown_content(qConfig);
         var qGeom = query[1].substring(query[1].lastIndexOf("geom=") + 5);
         var qVar = query[2].substring(query[2].lastIndexOf("variable=") + 9);
-        if (qGeom === 'channel_rt' || qGeom === 'reservoir') {
+        if (qGeom === 'channel_rt' || qGeom === 'reservoir')
+        {
             var qCOMID = Number(query[3].substring(query[3].lastIndexOf("COMID=") + 6));
             var qLong = Number(query[4].substring(query[4].lastIndexOf("longitude=")+10));
             var qLat = Number(query[5].substring(query[5].lastIndexOf("latitude=")+9));
             var qDate = query[6].substring(query[6].lastIndexOf("startDate=") + 10);
             var qTime = query[7].substring(query[7].lastIndexOf("time=") + 5);
-        } else {
+        }
+        else
+        {
             var qCOMID = query[3].substring(query[3].lastIndexOf("Y=") + 2) + ',' +
                 query[4].substring(query[4].lastIndexOf("X=") + 2);
             var qLong = Number(query[5].substring(query[5].lastIndexOf("longitude=")+10));
             var qLat = Number(query[6].substring(query[6].lastIndexOf("latitude=")+9));
             var qDate = query[7].substring(query[7].lastIndexOf("startDate=") + 10);
             var qTime = query[8].substring(query[8].lastIndexOf("time=") + 5);
-        };
+        }
 
         var qLag = [];
         var qDateEnd = query[query.length - 3].substring(query[query.length - 3].lastIndexOf("endDate=") + 8);
 
         $('#config').val(qConfig);
         $('#geom').val(qGeom);
-        if (window.location.search.indexOf('00z') > -1) {
+        if (window.location.search.indexOf('00z') > -1)
+        {
             qLag.push('00z');
             $('#00z').attr('checked', true);
             $('#00z').parent().parent().removeClass('bootstrap-switch-off')
-        } else {
+        }
+        else
+        {
             $('#00z').attr('checked', false);
             $('#00z').parent().parent().addClass('bootstrap-switch-off')
         }
-        if (window.location.search.indexOf('06z') > -1) {
+        if (window.location.search.indexOf('06z') > -1)
+        {
             qLag.push('06z');
             $('#06z').attr('checked', true);
             $('#06z').parent().parent().removeClass('bootstrap-switch-off')
         }
-        if (window.location.search.indexOf('12z') > -1) {
+        if (window.location.search.indexOf('12z') > -1)
+        {
             qLag.push('12z');
             $('#12z').attr('checked', true);
             $('#12z').parent().parent().removeClass('bootstrap-switch-off')
         }
-        if (window.location.search.indexOf('18z') > -1) {
+        if (window.location.search.indexOf('18z') > -1)
+        {
             qLag.push('18z');
             $('#18z').attr('checked', true);
             $('#18z').parent().parent().removeClass('bootstrap-switch-off')
         }
 
-        if (qGeom === 'channel_rt' || qGeom === 'reservoir') {
+        if (qGeom === 'channel_rt' || qGeom === 'reservoir')
+        {
             $('#comidInput').val(qCOMID);
-        } else if (qGeom === 'land') {
+        }
+        else if (qGeom === 'land')
+        {
             $('#gridInputY').val(qCOMID.split(',')[0]);
             $('#gridInputX').val(qCOMID.split(',')[1]);
         }
@@ -285,13 +224,15 @@ $(function () {
         $('#startDate').val(qDate);
         $('#time').val(qTime);
 
-        if (($('#longInput').val() !== '-98' && $('#latInput').val() !== '38.5') && qGeom!== 'channel_rt') {
+        if (($('#longInput').val() !== '-98' && $('#latInput').val() !== '38.5') && qGeom!== 'channel_rt')
+        {
             CenterMap(qLat, qLong);
             mapView.setZoom(12);
             lonlat = [qLong, qLat];
             run_point_indexing_service2(lonlat);
         }
-        if (qCOMID) {
+        if (qCOMID && qGeom === 'channel_rt')
+        {
             $.ajax({
                 url: 'https://watersgeo.epa.gov/arcgis/rest/services/NHDPlus_NP21/NHDSnapshot_NP21_Labeled/MapServer/0/query',
                 data: {
@@ -323,9 +264,9 @@ $(function () {
                     $('#latInput').val(lonlat[1]);
                     CenterMap(lonlat[1], lonlat[0]);
                     mapView.setZoom(12);
-                }
-            })
-        }
+                } //success: function (data)
+            }); //$.ajax(
+        }//if (qCOMID)
         initChart(qConfig, startDate, seriesData);
 
         get_netcdf_chart_data(qConfig, qGeom, qVar, qCOMID, qDate, qTime, qLag, qDateEnd);
@@ -432,15 +373,19 @@ $(function () {
                 url: url,
                 dataType: 'jsonp',
                 success: function(response) {
-                    if (response.error) {
+                    if (response.error)
+                    {
                         alert(response.error.message + '\n' +
                             response.error.details.join('\n'));
-                    } else {
+                    }
+                    else
+                    {
                         // dataProjection will be read from document
                         var features = esrijsonFormat.readFeatures(response, {
                             featureProjection: projection
                         });
-                        if (features.length > 0) {
+                        if (features.length > 0)
+                        {
                             vectorSource.addFeatures(features);
                         }
                     }
@@ -485,33 +430,38 @@ $(function () {
     //Click funtion to choose gauge on map
     map.on('singleclick', function(evt) {
         $(element).popover('destroy');
-        if ((map.getTargetElement().style.cursor == "pointer")) {
+        // if ((map.getTargetElement().style.cursor == "pointer")) {
             var view = map.getView();
             var viewResolution = view.getResolution();
 
-            if (grid.getVisible()) {
+            if (grid.getVisible())
+            {
                 var grid_url = grid_Source.getGetFeatureInfoUrl(evt.coordinate, viewResolution, view.getProjection(), {
                     'INFO_FORMAT': 'text/xml',
                     'FEATURE_COUNT': 50
                 });
-            } else if (reservoir.getVisible()) {
+            }
+            else if (reservoir.getVisible())
+            {
                 var reservoir_url = reservoir_Source.getGetFeatureInfoUrl(evt.coordinate, viewResolution, view.getProjection(), {
                     'INFO_FORMAT': 'text/xml',
                     'FEATURE_COUNT': 50
                 });
-                }
-
             }
+
+            // }
             var displayContent = "<table>";
             var showPopup = false;
             var zoomToClick = false;
 //            var displayContent = "COMID: " + comid;
-            if (grid_url) {
+            if (grid_url)
+            {
                 var grid_Data = dataCall(grid_url);
                 var grid_Count = grid_Data.documentElement.childElementCount;
 
                 //This is for the land grid
-                for (var i = 0; i < grid_Count; i++) {
+                for (var i = 0; i < grid_Count; i++)
+                {
                     var south_north = grid_Data.documentElement.children[i].attributes['south_north'].value;
                     var west_east = grid_Data.documentElement.children[i].attributes['west_east'].value;
                     var lon_layer = grid_Data.documentElement.children[i].attributes['XLONG_M'].value;
@@ -528,7 +478,8 @@ $(function () {
                     zoomToClick = true;
                 }
             }
-            else if (reservoir_url) {
+            else if (reservoir_url)
+            {
                 var reservoir_Data = dataCall(reservoir_url);
                 var reservoir_Count = reservoir_Data.documentElement.childElementCount;
                 if (reservoir_Count < 1)
@@ -536,7 +487,8 @@ $(function () {
                     return;
                 }
                 //This is for the reservoirs
-                for (i = 0; i < reservoir_Count; i++) {
+                for (i = 0; i < reservoir_Count; i++)
+                {
                     var reservoirID = reservoir_Data.documentElement.children[i].attributes['lake_id'].value;
                     $("#comidInput").val(reservoirID);
 
@@ -548,9 +500,10 @@ $(function () {
                 var coordinate = evt.coordinate;
                 lonlat = ol.proj.transform(coordinate, 'EPSG:3857', 'EPSG:4326');
             }
+            displayContent += '</table>';
 
-                displayContent += '</table>';
-            if (showPopup) {
+            if (showPopup)
+            {
                 var clickCoord = evt.coordinate;
                 lonlat = ol.proj.transform(clickCoord, 'EPSG:3857', 'EPSG:4326');
                 console.log(lonlat);
@@ -565,26 +518,27 @@ $(function () {
                 $(element).next().css('cursor', 'text');
             }
 
-        if ($("#geom").val() == "channel_rt") {
-                var coordinate = evt.coordinate;
-                lonlat = ol.proj.transform(coordinate, 'EPSG:3857', 'EPSG:4326');
-                if (mapView.getZoom() < 12) {
-                    mapView.setZoom(12);
-                    CenterMap(lonlat[1], lonlat[0]);
+            if ($("#geom").val() == "channel_rt") {
+                    var coordinate = evt.coordinate;
+                    lonlat = ol.proj.transform(coordinate, 'EPSG:3857', 'EPSG:4326');
+                    if (mapView.getZoom() < 12) {
+                        mapView.setZoom(12);
+                        CenterMap(lonlat[1], lonlat[0]);
+                    }
+                    run_point_indexing_service(lonlat);
                 }
-                run_point_indexing_service(lonlat);
-            }
 
-        if ($("#geom").val() == "land") {
-                var coordinate = evt.coordinate;
-                lonlat = ol.proj.transform(coordinate, 'EPSG:3857', 'EPSG:4326');
-                if (mapView.getZoom() < 12) {
-                    mapView.setZoom(12);
-                    CenterMap(lonlat[1], lonlat[0]);
-                }
+            if ($("#geom").val() == "land")
+            {
+                    var coordinate = evt.coordinate;
+                    lonlat = ol.proj.transform(coordinate, 'EPSG:3857', 'EPSG:4326');
+                    if (mapView.getZoom() < 12) {
+                        mapView.setZoom(12);
+                        CenterMap(lonlat[1], lonlat[0]);
+                    }
             }
-        $('#longInput').val(lonlat[0]);
-        $('#latInput').val(lonlat[1]);
+            $('#longInput').val(lonlat[0]);
+            $('#latInput').val(lonlat[1]);
     });
 
     map.on('pointermove', function(evt) {
@@ -600,16 +554,115 @@ $(function () {
         map.getTargetElement().style.cursor = hit ? 'pointer' : '';
     });
 
-    $("#geom").on("change", function() {
-//        $(element).popover('destroy');
-        toggleLayers.forEach(function(layer) {
+    $('#geom').on('change', function () {
+
+    // switch layers
+    toggleLayers.forEach(function(layer) {
             layer.setVisible($("#geom").val() === layer.get('keyword'));
-        })
-        if ($("#geom").val() == 'channel_rt') {
-            selected_streams_layer.setVisible(true);
-            }
+        });
+    if ($("#geom").val() == 'channel_rt')
+    {
+        selected_streams_layer.setVisible(true);
+    }
+
+    if ($('#geom').val() === 'channel_rt')
+    {
+        $('#comidInput').attr('disabled', false);
+        if (window.location.search.includes('channel_rt') && window.location.search.includes('long_range') === false)
+        {
+            $('#variable').val(window.location.search.split("&")[2].substring(window.location.search.split("&")[2].
+                lastIndexOf("variable=") + 9));
         }
-    );
+        else
+        {
+            $('#variable').val('streamflow');
+        }
+        $('#comidDiv,#streamVar').removeClass('hidden');
+        if ($('#config').val() !== 'long_range')
+        {
+            $('#velocVar').removeClass('hidden');
+        }
+        $('#gridInputY').attr('disabled', true);
+        $('#gridInputX').attr('disabled', true);
+        $('#gridDiv,#infVar,#outfVar,#snowhVar,#sneqVar,#snowcVar,#etVar,#ssVar,#avsnowVar,#subrunoffVar,#runoffVar,#canwVar,#ssiVar,#evapVar,#soiltVar,#soilmVar').
+            addClass('hidden');
+    }
+    else if ($('#geom').val() === 'reservoir')
+    {
+        $('#comidInput').attr('disabled', false);
+        if (window.location.search.includes('reservoir'))
+        {
+            $('#variable').val(window.location.search.split("&")[2].substring(window.location.search.split("&")[2].
+                lastIndexOf("variable=") + 9));
+        }
+        else
+        {
+            $('#variable').val('inflow');
+        }
+        $('#comidDiv,#infVar,#outfVar').removeClass('hidden');
+        $('#gridInputY').attr('disabled', true);
+        $('#gridInputX').attr('disabled', true);
+        $('#gridDiv,#streamVar,#velocVar,#snowhVar,#sneqVar,#snowcVar,#etVar,#ssVar,#avsnowVar,#subrunoffVar,#runoffVar,#canwVar,#ssiVar,#evapVar,#soiltVar,#soilmVar').
+            addClass('hidden');
+    }
+    else if ($('#geom').val() === 'land' && ($('#config').val() === 'short_range' ||
+        $('#config').val() === 'analysis_assim'))
+    {
+        $('#comidInput').attr('disabled', true);
+        $('#comidDiv,#streamVar,#velocVar,#infVar,#outfVar,#subrunoffVar,#runoffVar,#evapVar,#soiltVar,#soilmVar,#canwVar,#ssiVar')
+            .addClass('hidden');
+        $('#gridInputY').attr('disabled', false);
+        $('#gridInputX').attr('disabled', false);
+        if (window.location.search.includes('land'))
+        {
+            $('#variable').val(window.location.search.split("&")[2].substring(window.location.search.split("&")[2].
+                lastIndexOf("variable=") + 9));
+        }
+        else
+        {
+            $('#variable').val('SNOWH');
+        }
+        $('#gridDiv,#snowhVar,#sneqVar,#snowcVar,#etVar,#ssVar,#avsnowVar').removeClass('hidden');
+    }
+    else if ($('#geom').val() === 'land' && $('#config').val() === 'medium_range')
+    {
+        $('#comidInput').attr('disabled', true);
+        $('#comidDiv,#streamVar,#velocVar,#infVar,#outfVar,#runoffVar,#ssiVar').
+            addClass('hidden');
+        $('#gridInputY').attr('disabled', false);
+        $('#gridInputX').attr('disabled', false);
+        if (window.location.search.includes('land'))
+        {
+            $('#variable').val(window.location.search.split("&")[2].substring(window.location.search.split("&")[2].
+                lastIndexOf("variable=") + 9));
+        }
+        else
+        {
+            $('#variable').val('SNOWH');
+        }
+        $('#gridDiv,#snowhVar,#sneqVar,#snowcVar,#etVar,#ssVar,#avsnowVar,#subrunoffVar,#evapVar,#canwVar,#soiltVar,#soilmVar').
+            removeClass('hidden');
+    }
+    else if ($('#geom').val() === 'land' && $('#config').val() === 'long_range')
+    {
+        $('#comidInput').attr('disabled', true);
+        $('#comidDiv,#streamVar,#velocVar,#infVar,#outfVar,#snowhVar,#snowcVar,#avsnowVar,#evapVar,#soiltVar,#soilmVar')
+            .addClass('hidden');
+        $('#gridInputY').attr('disabled', false);
+        $('#gridInputX').attr('disabled', false);
+        if (window.location.search.includes('land') && window.location.search.includes('long_range'))
+        {
+            $('#variable').val(window.location.search.split("&")[2].substring(window.location.search.split("&")[2].
+                lastIndexOf("variable=") + 9));
+        }
+        else
+        {
+            $('#variable').val('SNEQV');
+        }
+        $('#gridDiv,#sneqVar,#etVar,#ssVar,#subrunoffVar,#runoffVar,#canwVar,#ssiVar').removeClass('hidden');
+    }
+}); //  $('#geom').on('change', function (){})
+
     $("#geom").trigger("change");
 
 });
