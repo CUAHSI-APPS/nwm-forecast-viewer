@@ -18,7 +18,7 @@ import tempfile
 
 hs_hostname = 'www.hydroshare.org'
 app_dir = '/projects/water/nwm/data/'
-transition_date_v11 = "20170508"
+transition_date_v11 = "20170418"
 transition_timestamp_v11_AA = "12"
 transition_timestamp_v11_SR = "11"
 transition_timestamp_v11_MR = "12"
@@ -230,27 +230,31 @@ def get_netcdf_data(request):
             elif config == 'analysis_assim':
 
                 endDate = get_data['endDate'].replace('-', '')
-                endDate_obj = datetime.datetime.strptime(endDate + " UTC", '%Y%m%d %Z')
-                endDate_obj = endDate_obj + datetime.timedelta(days=1)
-                endDate = endDate_obj.strftime("%Y%m%d")
+                # endDate_obj = datetime.datetime.strptime(endDate + " UTC", '%Y%m%d %Z')
+                # endDate_obj = endDate_obj + datetime.timedelta(days=1)
+                # endDate = endDate_obj.strftime("%Y%m%d")
 
                 dateDir = startDate.replace('-', '')
                 localFileDir = os.path.join(app_dir, config)
 
 
                 nc_files_v10 = sorted([x for x in os.listdir(localFileDir) if geom in x
-                                       and int(x.split('.')[1]) >= int(dateDir)
-                                       and (int(x.split('.')[1]) < min(int(transition_date_v11), int(endDate)) or (int(x.split('.')[1]) == int(transition_date_v11) and timestamp_early_than_transition_v11(x, transition_timestamp_v11_AA)))
                                        and 'tm00' in x
                                        and "georeferenced" in x
-                                       and x.endswith('.nc')])
+                                       and x.endswith('.nc')
+                                       and int(x.split('.')[1]) >= int(dateDir)
+                                       and (int(x.split('.')[1]) <= int(endDate) if int(endDate) < int(transition_date_v11) else int(x.split('.')[1]) <= int(transition_date_v11) and (timestamp_early_than_transition_v11(x, transition_timestamp_v11_AA) if transition_date_v11 in x else True))
+                                       ])
+                print nc_files_v10
 
+                print dateDir, endDate
                 nc_files_v11 = sorted([x for x in os.listdir(localFileDir) if geom in x
-                                       and (int(x.split('.')[1]) > max(int(dateDir), int(transition_date_v11)) or (int(x.split('.')[1]) == int(transition_date_v11) and not timestamp_early_than_transition_v11(x, transition_timestamp_v11_AA)))
-                                       and int(x.split('.')[1]) < int(endDate)
+                                       and (int(x.split('.')[1]) >= int(dateDir) if int(dateDir) > int(transition_date_v11) else int(x.split('.')[1]) >= int(transition_date_v11) and ((not timestamp_early_than_transition_v11(x, transition_timestamp_v11_AA)) if transition_date_v11 in x else True))
+                                       and int(x.split('.')[1]) <= int(endDate)
                                        and 'tm00' in x
                                        and "georeferenced" not in x
                                        and x.endswith('.nc')])
+                print nc_files_v11
                 start_time = None
                 q_list = []
                 if len(nc_files_v10) > 0:
