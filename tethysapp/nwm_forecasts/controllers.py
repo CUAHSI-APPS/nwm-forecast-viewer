@@ -18,7 +18,7 @@ import tempfile
 
 hs_hostname = 'www.hydroshare.org'
 app_dir = '/projects/water/nwm/data/'
-transition_date_v11 = "20170508"
+transition_date_v11 = "20170418"
 transition_timestamp_v11_AA = "12"
 transition_timestamp_v11_SR = "11"
 transition_timestamp_v11_MR = "12"
@@ -195,9 +195,9 @@ def get_netcdf_data(request):
             geom = get_data['geom']
             var = get_data['variable']
             if geom != 'land':
-                comid = int(get_data['comid'])
+                comid = int(get_data['COMID'])
             else:
-                comid = get_data['comid']
+                comid = get_data['COMID']
             startDate = get_data['startDate']
             time = get_data['time']
             lag = get_data['lag'].split(',')
@@ -721,6 +721,7 @@ def upload_to_hydroshare(request):
 # ***----------------------------------------------------------------------------------------*** #
 
 def getTimeSeries(config, geom, var, comid, date, endDate, time, member=''):
+
     if config != 'long_range':
         timeCheck = ''.join(['t', time, 'z'])
 
@@ -835,6 +836,11 @@ def get_data_waterml(request):
 	Controller that will show the data in WaterML 1.1 format
 	"""
     if request.GET:
+
+        resp = get_netcdf_data(request)
+        resp_dict = json.loads(resp.content)
+        print resp_dict
+
         config = request.GET["config"]
         geom = request.GET['geom']
         var = request.GET['variable']
@@ -899,25 +905,32 @@ def get_data_waterml(request):
 
         try:
             if config != 'long_range':
-                ts = getTimeSeries(config, geom, var, comid, start, end, time)
-                time_series = format_time_series(config, start, ts, time, nodata_value)
-                site_name = get_site_name(config, geom, var, lat, lon)
+                #ts = getTimeSeries(config, geom, var, comid, start, end, time)
+                if "success" in resp_dict:
+                    ts = json.loads(resp_dict['ts_pairs_data'])[str(comid)][1]
 
-                context = {
-                    'config': config,
-                    'comid': comid,
-                    'lat': lat,
-                    'lon': lon,
-                    'startdate': start,
-                    'site_name': site_name,
-                    'units': units,
-                    'time_series': time_series
-                }
+                    time_series = format_time_series(config, start, ts, time, nodata_value)
+                    print time_series
+                    site_name = get_site_name(config, geom, var, lat, lon)
+                    print site_name
 
-                xmlResponse = render_to_response('nwm_forecasts/waterml.xml', context)
-                xmlResponse['Content-Type'] = 'application/xml'
+                    context = {
+                        'config': config,
+                        'comid': comid,
+                        'lat': lat,
+                        'lon': lon,
+                        'startdate': start,
+                        'site_name': site_name,
+                        'units': units,
+                        'time_series': time_series
+                    }
 
-                return xmlResponse
+                    xmlResponse = render_to_response('nwm_forecasts/waterml.xml', context)
+                    xmlResponse['Content-Type'] = 'application/xml'
+
+                    return xmlResponse
+                else:
+                    return Http404("Failed to retrieve wml")
 
             elif config == 'long_range':
                 ts = getTimeSeries(config, geom, var, comid, start, end, lag, member)

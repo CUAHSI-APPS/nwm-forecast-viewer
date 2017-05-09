@@ -788,7 +788,7 @@ function get_netcdf_chart_data(config, geom, variable, comid, date, time, lag, e
             'config': config,
             'geom': geom,
             'variable': variable,
-            'comid': comid,
+            'COMID': comid,
             'startDate': date,
             'time': time,
             'lag': lag.toString(),
