@@ -22,7 +22,10 @@
 {% block app_title %}{{ tethys_app.name }}{% endblock %}
 
 {% block app_navigation_items %}
-  <button id="watershedBtn" type="button" class="btn btn-primary hidden" data-toggle="modal" data-target="#popup-load-watershed">Add Watershed</button>
+  {% if hs_ready|lower == "true" %}
+    <button id="watershedBtn" type="button" class="btn btn-primary" data-toggle="modal" data-target="#popup-load-watershed">Add Watershed</button>
+  {%endif%}
+
   <br /><br />
   <form id="paramForm" method="get" action="{% url 'nwm_forecasts:home' %}">
     {% gizmo select_input config_input %}

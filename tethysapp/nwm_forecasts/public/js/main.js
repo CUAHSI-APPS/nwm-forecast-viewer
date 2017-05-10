@@ -7,7 +7,7 @@ $(document).ready(function () {
 });
 
 //Map variables
-var map, mapView, base_layer, all_streams_layer, selected_streams_layer;
+var map, mapView, base_layer, all_streams_layer, selected_streams_layer, watershedLayer;
 
 // NHD variables
 var comid;
@@ -409,11 +409,22 @@ $(function () {
         keyword: 'channel_rt'
     });
 
+    watershedLayer =  new ol.layer.Vector(
+        {
+        source: new ol.source.Vector(),
+        keyword: 'watershedLayer',
+            style: new ol.style.Style({stroke:new ol.style.Stroke({ color: '#ffffff',
+                width: 2}), fill: new ol.style.Fill({ color: [255,0,255,0.5]})})
+        }
+    );
+
     map.addLayer(base_layer);
+    map.addLayer(watershedLayer);
     map.addLayer(grid);
     map.addLayer(reservoir);
     map.addLayer(all_streams_layer);
     map.addLayer(selected_streams_layer);
+
 
     toggleLayers = [grid, reservoir, all_streams_layer, selected_streams_layer];
 
@@ -1190,7 +1201,7 @@ function getHSWatershedList () {
         dataType: 'json',
         success: function (response) {
             var resources,
-                resTableHtml = '<table id="tbl-watersheds"><thead><th></th><th>Title</th><th>Owner</th></thead><tbody>';
+                resTableHtml = '<table id="tbl-watersheds"><thead><th></th><th>Title</th><th>File</th><th>Owner</th></thead><tbody>';
 
             if (response.hasOwnProperty('success')) {
                 if (response.hasOwnProperty('resources')) {
@@ -1202,6 +1213,7 @@ function getHSWatershedList () {
                             resTableHtml += '<tr>' +
                                 '<td><input type="radio" name="resource" class="rdo-res" data-filename="' + resource.filename + '" value="' + resource.id + '"></td>' +
                                 '<td class="res_title">' + resource.title + '</td>' +
+                                '<td class="res_owner">' + resource.filename + '</td>' +
                                 '<td class="res_owner">' + resource.owner + '</td>' +
                                 '</tr>';
                         });
@@ -1243,7 +1255,7 @@ function loadWatershed(resId, filename) {
         },
         success: function (watershed) {
             if (watershed.hasOwnProperty('success')) {
-                addGeojsonLayerToMap(watershed.geojson_str, watershed.proj_str, watershed.id, true);
+                addGeojsonLayerToMap(watershed.geojson_str, watershed.id, true);
                 $popupLoadWatershed.modal('hide');
             } else {
                 alert(watershed.error);
@@ -1253,48 +1265,19 @@ function loadWatershed(resId, filename) {
     });
 }
 
-function addGeojsonLayerToMap(geojsonStr, projStr, watershedId, zoomTo) {
-    var geoJson;
-    var geometry;
-    var watershedLayer;
-    var geoJsonReproj;
-
+function addGeojsonLayerToMap(geojsonStr, watershedId, zoomTo)
+{
     geojsonStr = geojsonStr.replace(/&quot;/g, '"'); // Unencode the encoded double-quotes
 
-    geoJson = JSON.parse(geojsonStr);
+    var geoJson = JSON.parse(geojsonStr);
+    watershedLayer.getSource().clear();
 
-    if (!(projStr === null || projStr === undefined || projStr === '')) {
-        projStr = projStr.replace(/&quot;/g, '"'); // Unencode the encoded double-quotes
-        try {
-            projStr = JSON.parse(projStr);
-        } catch (e) {
-            projStr = projStr.slice(1, -1);
-        }
-        proj4.defs('new_projection', projStr);
-        if (projStr) {
-            geoJsonReproj = reproject(geoJson, proj4('new_projection'), proj4('EPSG:3857'));
-            watershedLayer = new ol.layer.Vector({
-                source: new ol.source.Vector({
-                    features: (new ol.format.GeoJSON()).readFeatures(geoJsonReproj)
-                })
-            });
-        }
-    } else {
-        geometry = new ol.format.GeoJSON({
-            defaultDataProjection: 'EPSG:3857'
-        }).readGeometry(geoJson);
-        geometry.transform('EPSG:4326', 'EPSG:3857');
-        watershedLayer = new ol.layer.Vector({
-            source: new ol.source.Vector({
-                features: [
-                    new ol.Feature(geometry)
-                ]
-            })
-        });
-    }
+    var geometry = new ol.format.GeoJSON().readGeometry(geoJson);
+    var fea = new ol.Feature(geometry);
+    watershedLayer.getSource().addFeature(fea);
 
-    map.addLayer(watershedLayer);
-    if (zoomTo) {
+    if (zoomTo)
+    {
         mapView.fit(watershedLayer.getSource().getExtent(), map.getSize());
     }
     $('#input-watershed-id').val(watershedId);

@@ -5,19 +5,34 @@ from django.shortcuts import render_to_response
 from tethys_sdk.gizmos import SelectInput, ToggleSwitch, Button, DatePicker
 from django.conf import settings
 from hs_restclient import HydroShare, HydroShareAuthOAuth2, HydroShareNotAuthorized, HydroShareNotFound
+from subset_nwm_netcdf.query import _project_shapely_geom
+
+hydroshare_ready = True
+
+try:
+    from tethys_services.backends.hs_restclient_helper import get_oauth_hs
+except Exception:
+    print "could not load: tethys_services.backends.hs_restclient_helper import get_oauth_hs"
+    hydroshare_ready = False
+
 
 import os
+import shutil
 import re
 import netCDF4 as nc
 import json
 import datetime as dt
 import numpy as np
-import shapefile
 import tempfile
+import xmltodict
+import shapely.geometry
+import fiona
+import pycrs
+import pyproj
 
 hs_hostname = 'www.hydroshare.org'
 app_dir = '/projects/water/nwm/data/'
-transition_date_v11 = "20170508"
+transition_date_v11 = "20170418"
 transition_timestamp_v11_AA = "12"
 transition_timestamp_v11_SR = "11"
 transition_timestamp_v11_MR = "12"
@@ -153,7 +168,8 @@ def home(request):
             'longRangeLag18': longRangeLag18,
             'submit_button': submit_button,
             'waterml_url': waterml_url,
-            'watershed': watershed_obj
+            'watershed': watershed_obj,
+            'hs_ready': hydroshare_ready
         }
 
         return render(request, 'nwm_forecasts/home.html', context)
@@ -169,7 +185,8 @@ def home(request):
             'longRangeLag06': longRangeLag06,
             'longRangeLag12': longRangeLag12,
             'longRangeLag18': longRangeLag18,
-            'submit_button': submit_button
+            'submit_button': submit_button,
+            'hs_ready': hydroshare_ready
         }
         return render(request, 'nwm_forecasts/home.html', context)
 
@@ -520,7 +537,7 @@ def get_hs_watershed_list(request):
     response_obj = {}
     if request.is_ajax() and request.method == 'GET':
         resources_list = []
-        hs = get_hs_object(request)
+        hs = get_oauth_hs(request)
         if hs is None:
             response_obj['error'] = 'You must be signed in through HydroShare to access this feature. ' \
                                     'Please log out and then sign in again using your HydroShare account.'
@@ -532,24 +549,42 @@ def get_hs_watershed_list(request):
                 pass
 
             valid_res_types = ['GenericResource', 'GeographicFeatureResource']
-            valid_file_extensions = ['.shp', '.geojson']
 
             for resource in hs.getResourceList(types=valid_res_types, creator=creator):
                 res_id = resource['resource_id']
                 try:
-                    for res_file in hs.getResourceFileList(res_id):
-                        filename = os.path.basename(res_file['url'])
-                        if os.path.splitext(filename)[1] in valid_file_extensions:
-                            resources_list.append({
-                                'title': resource['resource_title'],
-                                'id': res_id,
-                                'owner': resource['creator'],
-                                'filename': filename
-                            })
-                            break
-                except Exception as e:
-                    print str(e)
-                    continue
+                    if resource["resource_type"] == "GenericResource":
+                        sci_meta = hs.getScienceMetadata(res_id)
+                        for subject in sci_meta["subjects"]:
+                            if subject["value"].lower() == "watershed":
+                                for res_file in hs.getResourceFileList(res_id):
+                                    filename = os.path.basename(res_file['url'])
+                                    if os.path.splitext(filename)[1] in ".geojson":
+                                        resources_list.append({
+                                            'title': resource['resource_title'],
+                                            'id': res_id,
+                                            'owner': resource['creator'],
+                                            'filename': filename
+                                        })
+                    else:
+                        doc = xmltodict.parse(hs.getScienceMetadataRDF(res_id))
+                        geom_type = \
+                        doc["rdf:RDF"]["rdf:Description"][0]["hsterms:GeometryInformation"]["rdf:Description"][
+                            "hsterms:geometryType"]
+                        if geom_type.lower() in ["polygon", "multipolygon"]:
+                            for res_file in hs.getResourceFileList(res_id):
+                                filename = os.path.basename(res_file['url'])
+                                if os.path.splitext(filename)[1] in ".shp":
+                                    resources_list.append({
+                                        'title': resource['resource_title'],
+                                        'id': res_id,
+                                        'owner': resource['creator'],
+                                        'filename': filename
+                                    })
+
+                except Exception as ex:
+                    print ex.message
+                    print "Failed res: " + str(resource)
 
             resources_json = json.dumps(resources_list)
 
@@ -559,26 +594,26 @@ def get_hs_watershed_list(request):
         return JsonResponse(response_obj)
 
 
-def get_hs_object(request):
-    try:
-        hs = get_oauth_hs(request)
-    except Exception as e:
-        print str(e)
-        hs = None
-    return hs
+# def get_hs_object(request):
+#     try:
+#         hs = get_oauth_hs(request)
+#     except Exception as e:
+#         print str(e)
+#         hs = None
+#     return hs
 
 
-def get_oauth_hs(request):
-    global hs_hostname
-
-    client_id = getattr(settings, 'SOCIAL_AUTH_HYDROSHARE_KEY', 'None')
-    client_secret = getattr(settings, 'SOCIAL_AUTH_HYDROSHARE_SECRET', 'None')
-
-    # Throws django.core.exceptions.ObjectDoesNotExist if current user is not signed in via HydroShare OAuth
-    token = request.user.social_auth.get(provider='hydroshare').extra_data['token_dict']
-    auth = HydroShareAuthOAuth2(client_id, client_secret, token=token)
-
-    return HydroShare(auth=auth, hostname=hs_hostname, use_https=True)
+# def get_oauth_hs(request):
+#     global hs_hostname
+#
+#     client_id = getattr(settings, 'SOCIAL_AUTH_HYDROSHARE_KEY', 'None')
+#     client_secret = getattr(settings, 'SOCIAL_AUTH_HYDROSHARE_SECRET', 'None')
+#
+#     # Throws django.core.exceptions.ObjectDoesNotExist if current user is not signed in via HydroShare OAuth
+#     token = request.user.social_auth.get(provider='hydroshare').extra_data['token_dict']
+#     auth = HydroShareAuthOAuth2(client_id, client_secret, token=token)
+#
+#     return HydroShare(auth=auth, hostname=hs_hostname, use_https=True)
 
 
 def load_watershed(request):
@@ -594,46 +629,66 @@ def load_watershed(request):
 def get_geojson_from_hs_resource(res_id, filename, request):
     response_obj = {}
     try:
-        hs = get_hs_object(request)
+        hs = get_oauth_hs(request)
 
         if filename.endswith('.geojson'):
             geojson_str = str(hs.getResourceFile(pid=res_id, filename=filename).next())
+            geojson = json.loads(geojson_str)
+            shape_obj = shapely.geometry.asShape(geojson)
+            in_pyproj_obj = pyproj.Proj(init='epsg:4326')
 
             response_obj['type'] = 'geojson'
 
         elif filename.endswith('.shp'):
             proj_str_raw = str(hs.getResourceFile(pid=res_id, filename=filename.replace('.shp', '.prj')).next())
-            proj_str = json.dumps(proj_str_raw)
-            proj_str.replace('\n', '')
-            response_obj['proj_str'] = proj_str
 
-            '''
-            Credit: The following code was adapted from https://gist.github.com/frankrowe/6071443
-            '''
-            # Read the shapefile-like object
-            with tempfile.TemporaryFile() as f1:
-                for chunk in hs.getResourceFile(pid=res_id, filename=filename):
-                    f1.write(chunk)
-                with tempfile.TemporaryFile() as f2:
-                    for chunk in hs.getResourceFile(pid=res_id, filename=filename.replace('.shp', '.dbf')):
-                        f2.write(chunk)
+            proj_str = proj_str_raw.replace('\n', '')
+            response_obj['type'] = 'shp'
 
-                    shp_reader = shapefile.Reader(shp=f1, dbf=f2)
-                    fields = shp_reader.fields[1:]
-                    field_names = [field[0] for field in fields]
-                    shp_buffer = []
-                    for sr in shp_reader.shapeRecords():
-                        atr = dict(zip(field_names, sr.record))
-                        geom = sr.shape.__geo_interface__
-                        shp_buffer.append(dict(type="Feature", geometry=geom, properties=atr))
+            fromcrs = pycrs.parser.from_unknown_text(proj_str)
+            fromcrs_proj4 = fromcrs.to_proj4()
+            in_pyproj_obj = pyproj.Proj(fromcrs_proj4)
 
-            # Write the GeoJSON object
-            geojson_str = json.dumps({"type": "FeatureCollection", "features": shp_buffer})
-            '''
-            End credit
-            '''
+            tmp_dir = tempfile.mkdtemp()
+            for ext in [".prj", ".dbf", ".shx", ".shp"]:
+                fn = filename.replace(".shp", ext)
+                shp_path = os.path.join(tmp_dir, fn)
+                with open(shp_path, "wb+") as shp:
+                    for chunk in hs.getResourceFile(pid=res_id, filename=fn):
+                        shp.write(chunk)
 
-            response_obj['proj_str'] = proj_str
+            shp_obj = fiona.open(shp_path)
+            first_feature_obj = next(shp_obj)
+            shape_obj = shapely.geometry.shape(first_feature_obj["geometry"])
+            shutil.rmtree(tmp_dir)
+
+        if shape_obj.geom_type.lower() == "multipolygon":
+            polygon_exterior_linearring = shape_obj[0].exterior
+        elif shape_obj.geom_type.lower() == "polygon":
+            polygon_exterior_linearring = shape_obj.exterior
+        else:
+            raise Exception("Input Geometry is not Polygon")
+
+        polygon_exterior_linearring_shape_obj = shapely.geometry.Polygon(polygon_exterior_linearring)
+
+        out_pyproj_obj = pyproj.Proj(init='epsg:3857')
+        polygon_exterior_linearring_shape_obj_3857 = _project_shapely_geom(in_geom_obj=polygon_exterior_linearring_shape_obj,
+                                                      in_proj_type="pyproj",
+                                                      in_proj_value=in_pyproj_obj,
+                                                      out_proj_type="pyproj",
+                                                      out_proj_value=out_pyproj_obj)
+
+
+        #geojson_str = json.dumps({"type": "FeatureCollection", "features": [{"type": "Feature", "geometry": shapely.geometry.mapping(polygon_query_window), "properties":{}}]})
+
+        geojson_str = json.dumps(shapely.geometry.mapping(polygon_exterior_linearring_shape_obj_3857))
+        session_key = "watershed_geojson_str"
+        if session_key in request.session:
+            del request.session[session_key]
+        request.session[session_key] = geojson_str
+        request.session.modified = True
+
+
 
         response_obj['success'] = 'Geojson obtained successfully.'
         response_obj['geojson_str'] = geojson_str
