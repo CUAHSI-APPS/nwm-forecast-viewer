@@ -100,15 +100,14 @@
         </div>
       </div>
     </div>
-
     <label id="endDateLabel" class="control-label hidden" for="endDate">Enter Ending Date</label>
     {% gizmo date_picker end_date %}
-     <input type="text" id="input-watershed-id" name="watershed" hidden >
-
+    {% gizmo button submit_button %}
   </form>
 
+  <input type="text" id="input-watershed-id" name="watershed" hidden >
   <input type="text" id="watershed_geojson_str" name="watershed_geojson_str" value='{{watershed_geojson_str}}' hidden >
-  {% gizmo button submit_button %}
+
 
 {% endblock %}
 
@@ -136,13 +135,4 @@
   <script src="{% static 'nwm_forecasts/vendor/highcharts4.1.7/export-csv.js' %}" type="text/javascript"></script>
   <script src="{% static 'nwm_forecasts/vendor/WATERS/WATERSServices-1.0.0-min.js' %}"></script>
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDPgvDUpbEwcbg9C0cRTfDtDa-Vj4WBwI0" type="text/javascript"></script>
-  <!--{% if watershed %}-->
-    <!--{% if watershed.success %}-->
-      <!--<script>-->
-        <!--$(function () {-->
-          <!--addGeojsonLayerToMap('{{watershed.geojson_str}}', '{{watershed.proj_str}}', '{{ watershed.id }}', false);-->
-        <!--});-->
-      <!--</script>-->
-    <!--{% endif %}-->
-  <!--{% endif %}-->
 {% endblock %}

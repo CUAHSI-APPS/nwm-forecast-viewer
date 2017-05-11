@@ -150,35 +150,36 @@ $(function () {
 
     if (window.location.search.includes('?'))
     {
-        var query = window.location.search.split("&");
+        //var query = window.location.search.split("&");
 
-        var qConfig = query[0].substring(query[0].lastIndexOf("config=") + 7);
+        var qConfig = getUrlParameter('config');
+        $('#config').val(qConfig);
         change_time_dropdown_content(qConfig);
-        var qGeom = query[1].substring(query[1].lastIndexOf("geom=") + 5);
-        var qVar = query[2].substring(query[2].lastIndexOf("variable=") + 9);
+        var qGeom = getUrlParameter('geom');
+        $('#geom').val(qGeom);
+        var qVar = getUrlParameter('variable');
+        var qLat = Number(getUrlParameter('latitude'));
+        $('#latInput').val(qLat);
+        var qLong = Number(getUrlParameter('longitude'));
+        $('#longInput').val(qLong);
+        var qDate = getUrlParameter("startDate");
+        $('#startDate').val(qDate);
+        var qTime = getUrlParameter("time");
+        $('#time').val(qTime);
         if (qGeom === 'channel_rt' || qGeom === 'reservoir')
         {
-            var qCOMID = Number(query[3].substring(query[3].lastIndexOf("COMID=") + 6));
-            var qLong = Number(query[4].substring(query[4].lastIndexOf("longitude=")+10));
-            var qLat = Number(query[5].substring(query[5].lastIndexOf("latitude=")+9));
-            var qDate = query[6].substring(query[6].lastIndexOf("startDate=") + 10);
-            var qTime = query[7].substring(query[7].lastIndexOf("time=") + 5);
+            var qCOMID = getUrlParameter('COMID');
+            $('#comidInput').val(qCOMID);
         }
         else
         {
-            var qCOMID = query[3].substring(query[3].lastIndexOf("Y=") + 2) + ',' +
-                query[4].substring(query[4].lastIndexOf("X=") + 2);
-            var qLong = Number(query[5].substring(query[5].lastIndexOf("longitude=")+10));
-            var qLat = Number(query[6].substring(query[6].lastIndexOf("latitude=")+9));
-            var qDate = query[7].substring(query[7].lastIndexOf("startDate=") + 10);
-            var qTime = query[8].substring(query[8].lastIndexOf("time=") + 5);
+            var qCOMID = getUrlParameter("Y") + ',' +  getUrlParameter("X");
+            $('#gridInputY').val(qCOMID.split(',')[0]);
+            $('#gridInputX').val(qCOMID.split(',')[1]);
         }
-
+        var qDateEnd = getUrlParameter("endDate");
+        $('#endDate').val(qDateEnd);
         var qLag = [];
-        var qDateEnd = query[query.length - 3].substring(query[query.length - 3].lastIndexOf("endDate=") + 8);
-
-        $('#config').val(qConfig);
-        $('#geom').val(qGeom);
         if (window.location.search.indexOf('00z') > -1)
         {
             qLag.push('00z');
@@ -209,20 +210,6 @@ $(function () {
             $('#18z').parent().parent().removeClass('bootstrap-switch-off')
         }
 
-        if (qGeom === 'channel_rt' || qGeom === 'reservoir')
-        {
-            $('#comidInput').val(qCOMID);
-        }
-        else if (qGeom === 'land')
-        {
-            $('#gridInputY').val(qCOMID.split(',')[0]);
-            $('#gridInputX').val(qCOMID.split(',')[1]);
-        }
-
-        $('#longInput').val(qLong);
-        $('#latInput').val(qLat);
-        $('#startDate').val(qDate);
-        $('#time').val(qTime);
 
         if (($('#longInput').val() !== '-98' && $('#latInput').val() !== '38.5') && qGeom!== 'channel_rt')
         {
@@ -677,7 +664,7 @@ $(function () {
     var watershed_geojson_str = $("#watershed_geojson_str").val();
     if (watershed_geojson_str.length > 0)
     {
-        addGeojsonLayerToMap(watershed_geojson_str, "234", true);
+        addGeojsonLayerToMap(watershed_geojson_str, "234", false);
     }
     $("#geom").trigger("change");
 
@@ -1292,4 +1279,12 @@ function addGeojsonLayerToMap(geojsonStr, watershedId, zoomTo)
         mapView.fit(watershedLayer.getSource().getExtent(), map.getSize());
     }
     $('#input-watershed-id').val(watershedId);
+}
+
+//https://davidwalsh.name/query-string-javascript
+function getUrlParameter(name) {
+    name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+    var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+    var results = regex.exec(location.search);
+    return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
 }

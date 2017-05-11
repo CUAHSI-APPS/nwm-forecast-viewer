@@ -137,13 +137,6 @@ def home(request):
         endDate = request.GET['endDate']
         time = request.GET['time']
 
-        # watershed_obj = ""
-        # if request.GET.get('watershed'):
-        #     watershed = request.GET['watershed']
-        #     args = watershed.split(':')
-        #     watershed_obj = get_geojson_from_hs_resource(args[0], args[1], request)
-
-
         lagList = []
         if '00z' in request.GET:
             lagList.append('t00z')
@@ -170,7 +163,6 @@ def home(request):
             'longRangeLag18': longRangeLag18,
             'submit_button': submit_button,
             'waterml_url': waterml_url,
-            # 'watershed': watershed_obj,
             'hs_ready': hydroshare_ready,
             'watershed_geojson_str': request.session.get("watershed_geojson_str", "")
         }
@@ -178,6 +170,10 @@ def home(request):
         return render(request, 'nwm_forecasts/home.html', context)
 
     else:
+        if 'watershed_geojson_str' in request.session:
+            del request.session['watershed_geojson_str']
+            request.session.modified = True
+
         context = {
             'config_input': config_input,
             'geom_input': geom_input,
@@ -249,14 +245,8 @@ def get_netcdf_data(request):
             elif config == 'analysis_assim':
 
                 endDate = get_data['endDate'].replace('-', '')
-                print endDate
-                # endDate_obj = datetime.datetime.strptime(endDate + " UTC", '%Y%m%d %Z')
-                # endDate_obj = endDate_obj + datetime.timedelta(days=1)
-                # endDate = endDate_obj.strftime("%Y%m%d")
-
                 localFileDir = os.path.join(app_dir, config)
 
-                print "1111111111111111111111"
                 nc_files_v10 = sorted([x for x in os.listdir(localFileDir) if geom in x
                                        and 'tm00' in x
                                        and "georeferenced" in x
@@ -264,20 +254,13 @@ def get_netcdf_data(request):
                                        and int(x.split('.')[1]) >= int(dateDir)
                                        and (int(x.split('.')[1]) <= int(endDate) if int(endDate) < int(transition_date_v11) else int(x.split('.')[1]) <= int(transition_date_v11) and (timestamp_early_than_transition_v11(x, transition_timestamp_v11_AA) if transition_date_v11 in x else True))
                                        ])
-                print "222222222222222222222222222222"
-                print nc_files_v10
 
-                print "33333333333333333333333333333"
-                print dateDir
-                print endDate
                 nc_files_v11 = sorted([x for x in os.listdir(localFileDir) if geom in x
                                        and (int(x.split('.')[1]) >= int(dateDir) if int(dateDir) > int(transition_date_v11) else int(x.split('.')[1]) >= int(transition_date_v11) and ((not timestamp_early_than_transition_v11(x, transition_timestamp_v11_AA)) if transition_date_v11 in x else True))
                                        and int(x.split('.')[1]) <= int(endDate)
                                        and 'tm00' in x
                                        and "georeferenced" not in x
                                        and x.endswith('.nc')])
-                print "444444444444444444444444444444444444"
-                print nc_files_v11
                 start_time = None
                 q_list = []
                 if len(nc_files_v10) > 0:
@@ -292,7 +275,6 @@ def get_netcdf_data(request):
                     q_list = q_list + v11_data[1]
 
                 ts_pairs_data[str(comid)] = [start_time, q_list, "notLong"]
-                # ts_pairs_data[str(comid)] = processNCFiles(localFileDir, nc_files, geom, comid, var)
 
                 return JsonResponse({
                     "success": "Data analysis complete!",
@@ -724,8 +706,6 @@ def upload_to_hydroshare(request):
             r_type = 'RefTimeSeriesResource'
 
             r_public = post_data['public']
-
-            res_id = None
             hs = get_oauth_hs(request)
 
             ref_type = "rest"
