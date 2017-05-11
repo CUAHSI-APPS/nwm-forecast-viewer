@@ -29,6 +29,7 @@ import shapely.geometry
 import fiona
 import pycrs
 import pyproj
+import geojson
 
 hs_hostname = 'www.hydroshare.org'
 app_dir = '/projects/water/nwm/data/'
@@ -136,11 +137,12 @@ def home(request):
         endDate = request.GET['endDate']
         time = request.GET['time']
 
-        watershed_obj = None
-        if request.GET.get('watershed'):
-            watershed = request.GET['watershed']
-            args = watershed.split(':')
-            watershed_obj = get_geojson_from_hs_resource(args[0], args[1], request)
+        # watershed_obj = ""
+        # if request.GET.get('watershed'):
+        #     watershed = request.GET['watershed']
+        #     args = watershed.split(':')
+        #     watershed_obj = get_geojson_from_hs_resource(args[0], args[1], request)
+
 
         lagList = []
         if '00z' in request.GET:
@@ -168,8 +170,9 @@ def home(request):
             'longRangeLag18': longRangeLag18,
             'submit_button': submit_button,
             'waterml_url': waterml_url,
-            'watershed': watershed_obj,
-            'hs_ready': hydroshare_ready
+            # 'watershed': watershed_obj,
+            'hs_ready': hydroshare_ready,
+            'watershed_geojson_str': request.session.get("watershed_geojson_str", "")
         }
 
         return render(request, 'nwm_forecasts/home.html', context)
@@ -186,7 +189,8 @@ def home(request):
             'longRangeLag12': longRangeLag12,
             'longRangeLag18': longRangeLag18,
             'submit_button': submit_button,
-            'hs_ready': hydroshare_ready
+            'hs_ready': hydroshare_ready,
+            'watershed_geojson_str': ""
         }
         return render(request, 'nwm_forecasts/home.html', context)
 
@@ -215,14 +219,13 @@ def get_netcdf_data(request):
             else:
                 comid = get_data['COMID']
             startDate = get_data['startDate']
+            dateDir = startDate.replace('-', '')
             time = get_data['time']
+            timeCheck = ''.join(['t', time, 'z'])
             lag = get_data['lag'].split(',')
 
             if config == 'short_range' or config == 'medium_range':
 
-                timeCheck = ''.join(['t', time, 'z'])
-
-                dateDir = startDate.replace('-', '')
                 localFileDir = os.path.join(app_dir, config, dateDir)
 
                 if int(dateDir) < int(transition_date_v11) or (int(dateDir) == int(transition_date_v11) and timestamp_early_than_transition_v11(timeCheck, transition_timestamp_v11_SR)):
@@ -246,14 +249,14 @@ def get_netcdf_data(request):
             elif config == 'analysis_assim':
 
                 endDate = get_data['endDate'].replace('-', '')
+                print endDate
                 # endDate_obj = datetime.datetime.strptime(endDate + " UTC", '%Y%m%d %Z')
                 # endDate_obj = endDate_obj + datetime.timedelta(days=1)
                 # endDate = endDate_obj.strftime("%Y%m%d")
 
-                dateDir = startDate.replace('-', '')
                 localFileDir = os.path.join(app_dir, config)
 
-
+                print "1111111111111111111111"
                 nc_files_v10 = sorted([x for x in os.listdir(localFileDir) if geom in x
                                        and 'tm00' in x
                                        and "georeferenced" in x
@@ -261,15 +264,19 @@ def get_netcdf_data(request):
                                        and int(x.split('.')[1]) >= int(dateDir)
                                        and (int(x.split('.')[1]) <= int(endDate) if int(endDate) < int(transition_date_v11) else int(x.split('.')[1]) <= int(transition_date_v11) and (timestamp_early_than_transition_v11(x, transition_timestamp_v11_AA) if transition_date_v11 in x else True))
                                        ])
+                print "222222222222222222222222222222"
                 print nc_files_v10
 
-                print dateDir, endDate
+                print "33333333333333333333333333333"
+                print dateDir
+                print endDate
                 nc_files_v11 = sorted([x for x in os.listdir(localFileDir) if geom in x
                                        and (int(x.split('.')[1]) >= int(dateDir) if int(dateDir) > int(transition_date_v11) else int(x.split('.')[1]) >= int(transition_date_v11) and ((not timestamp_early_than_transition_v11(x, transition_timestamp_v11_AA)) if transition_date_v11 in x else True))
                                        and int(x.split('.')[1]) <= int(endDate)
                                        and 'tm00' in x
                                        and "georeferenced" not in x
                                        and x.endswith('.nc')])
+                print "444444444444444444444444444444444444"
                 print nc_files_v11
                 start_time = None
                 q_list = []
@@ -295,9 +302,6 @@ def get_netcdf_data(request):
             elif config == 'long_range':
                 q_out_group = []
                 for lg in lag:
-                    timeCheck = ''.join(['t', lg])
-
-                    dateDir = startDate.replace('-', '')
                     localFileDir = os.path.join(app_dir, config, dateDir)
 
                     q_out_1 = []
@@ -535,89 +539,83 @@ def loopThroughFiles(localFileDir, q_out, nc_files, var, comidIndex=None, comidI
 
 def get_hs_watershed_list(request):
     response_obj = {}
-    if request.is_ajax() and request.method == 'GET':
-        resources_list = []
-        hs = get_oauth_hs(request)
-        if hs is None:
-            response_obj['error'] = 'You must be signed in through HydroShare to access this feature. ' \
-                                    'Please log out and then sign in again using your HydroShare account.'
-        else:
-            creator = None
-            try:
-                creator = hs.getUserInfo()['username']
-            except Exception:
-                pass
-
-            valid_res_types = ['GenericResource', 'GeographicFeatureResource']
-
-            for resource in hs.getResourceList(types=valid_res_types, creator=creator):
-                res_id = resource['resource_id']
+    try:
+        if request.is_ajax() and request.method == 'GET':
+            resources_list = []
+            hs = get_oauth_hs(request)
+            if hs is None:
+                response_obj['error'] = 'You must be signed in through HydroShare to access this feature. ' \
+                                        'Please log out and then sign in again using your HydroShare account.'
+            else:
+                creator = None
                 try:
-                    if resource["resource_type"] == "GenericResource":
-                        sci_meta = hs.getScienceMetadata(res_id)
-                        for subject in sci_meta["subjects"]:
-                            if subject["value"].lower() == "watershed":
+                    creator = hs.getUserInfo()['username']
+                except Exception:
+                    pass
+
+                # loop through all Generic and Feature res current user owns
+                valid_res_types = ['GenericResource', 'GeographicFeatureResource']
+
+                for resource in hs.getResourceList(types=valid_res_types, creator=creator):
+                    res_id = resource['resource_id']
+                    try:
+                        # generic res has "watershed" in keywords
+                        # has filename *.geojson
+                        if resource["resource_type"] == "GenericResource":
+                            sci_meta = hs.getScienceMetadata(res_id)
+                            for subject in sci_meta["subjects"]:
+                                if subject["value"].lower() == "watershed":
+                                    for res_file in hs.getResourceFileList(res_id):
+                                        filename = os.path.basename(res_file['url'])
+                                        if os.path.splitext(filename)[1] in ".geojson":
+                                            resources_list.append({
+                                                'title': resource['resource_title'],
+                                                'id': res_id,
+                                                'owner': resource['creator'],
+                                                'filename': filename
+                                            })
+                        else:
+                            # feature res
+                            # type of "polygon" or "multipolygon"
+                            # has .prj file
+                            doc = xmltodict.parse(hs.getScienceMetadataRDF(res_id))
+                            geom_type = \
+                            doc["rdf:RDF"]["rdf:Description"][0]["hsterms:GeometryInformation"]["rdf:Description"][
+                                "hsterms:geometryType"]
+                            if geom_type.lower() in ["polygon", "multipolygon"]:
+                                has_prj = False
+                                shp_filename = None
                                 for res_file in hs.getResourceFileList(res_id):
                                     filename = os.path.basename(res_file['url'])
-                                    if os.path.splitext(filename)[1] in ".geojson":
-                                        resources_list.append({
-                                            'title': resource['resource_title'],
-                                            'id': res_id,
-                                            'owner': resource['creator'],
-                                            'filename': filename
-                                        })
-                    else:
-                        doc = xmltodict.parse(hs.getScienceMetadataRDF(res_id))
-                        geom_type = \
-                        doc["rdf:RDF"]["rdf:Description"][0]["hsterms:GeometryInformation"]["rdf:Description"][
-                            "hsterms:geometryType"]
-                        if geom_type.lower() in ["polygon", "multipolygon"]:
-                            for res_file in hs.getResourceFileList(res_id):
-                                filename = os.path.basename(res_file['url'])
-                                if os.path.splitext(filename)[1] in ".shp":
+                                    if os.path.splitext(filename)[1] in ".shp":
+                                        shp_filename = filename
+                                    elif os.path.splitext(filename)[1] in ".prj":
+                                        has_prj = True
+                                if has_prj:
                                     resources_list.append({
                                         'title': resource['resource_title'],
                                         'id': res_id,
                                         'owner': resource['creator'],
-                                        'filename': filename
+                                        'filename': shp_filename
                                     })
 
-                except Exception as ex:
-                    print ex.message
-                    print "Failed res: " + str(resource)
+                    except Exception as ex:
+                        print ex.message
+                        print "Failed res in get_hs_watershed_list: " + str(resource)
 
-            resources_json = json.dumps(resources_list)
+                resources_json = json.dumps(resources_list)
 
-            response_obj['success'] = 'Resources obtained successfully.'
-            response_obj['resources'] = resources_json
+                response_obj['success'] = 'Resources obtained successfully.'
+                response_obj['resources'] = resources_json
 
+    except Exception as ex:
+        print ex
+        response_obj = {"error": "Failed to load resources from HydroShare. Did you sign in with your HydroShare account?"}
+    finally:
         return JsonResponse(response_obj)
 
 
-# def get_hs_object(request):
-#     try:
-#         hs = get_oauth_hs(request)
-#     except Exception as e:
-#         print str(e)
-#         hs = None
-#     return hs
-
-
-# def get_oauth_hs(request):
-#     global hs_hostname
-#
-#     client_id = getattr(settings, 'SOCIAL_AUTH_HYDROSHARE_KEY', 'None')
-#     client_secret = getattr(settings, 'SOCIAL_AUTH_HYDROSHARE_SECRET', 'None')
-#
-#     # Throws django.core.exceptions.ObjectDoesNotExist if current user is not signed in via HydroShare OAuth
-#     token = request.user.social_auth.get(provider='hydroshare').extra_data['token_dict']
-#     auth = HydroShareAuthOAuth2(client_id, client_secret, token=token)
-#
-#     return HydroShare(auth=auth, hostname=hs_hostname, use_https=True)
-
-
 def load_watershed(request):
-    geojson_str = None
 
     if request.is_ajax() and request.method == 'GET':
         res_id = str(request.GET['res_id'])
@@ -627,16 +625,20 @@ def load_watershed(request):
 
 
 def get_geojson_from_hs_resource(res_id, filename, request):
+
     response_obj = {}
     try:
         hs = get_oauth_hs(request)
 
         if filename.endswith('.geojson'):
+            # geojson file
             geojson_str = str(hs.getResourceFile(pid=res_id, filename=filename).next())
-            geojson = json.loads(geojson_str)
-            shape_obj = shapely.geometry.asShape(geojson)
+            geojson_obj = geojson.loads(geojson_str)
+            geojson_geom_first = geojson_obj
+            if geojson_obj.type.lower() == "featurecollection":
+                geojson_geom_first = geojson_obj.features[0].geometry
+            shape_obj = shapely.geometry.asShape(geojson_geom_first)
             in_pyproj_obj = pyproj.Proj(init='epsg:4326')
-
             response_obj['type'] = 'geojson'
 
         elif filename.endswith('.shp'):
@@ -672,23 +674,22 @@ def get_geojson_from_hs_resource(res_id, filename, request):
         polygon_exterior_linearring_shape_obj = shapely.geometry.Polygon(polygon_exterior_linearring)
 
         out_pyproj_obj = pyproj.Proj(init='epsg:3857')
-        polygon_exterior_linearring_shape_obj_3857 = _project_shapely_geom(in_geom_obj=polygon_exterior_linearring_shape_obj,
-                                                      in_proj_type="pyproj",
-                                                      in_proj_value=in_pyproj_obj,
-                                                      out_proj_type="pyproj",
-                                                      out_proj_value=out_pyproj_obj)
-
+        polygon_exterior_linearring_shape_obj_3857 = \
+            _project_shapely_geom(in_geom_obj=polygon_exterior_linearring_shape_obj,
+                                  in_proj_type="pyproj",
+                                  in_proj_value=in_pyproj_obj,
+                                  out_proj_type="pyproj",
+                                  out_proj_value=out_pyproj_obj)
 
         #geojson_str = json.dumps({"type": "FeatureCollection", "features": [{"type": "Feature", "geometry": shapely.geometry.mapping(polygon_query_window), "properties":{}}]})
 
+        # covert "geometry" part of this polygon to geojson
         geojson_str = json.dumps(shapely.geometry.mapping(polygon_exterior_linearring_shape_obj_3857))
         session_key = "watershed_geojson_str"
         if session_key in request.session:
             del request.session[session_key]
         request.session[session_key] = geojson_str
         request.session.modified = True
-
-
 
         response_obj['success'] = 'Geojson obtained successfully.'
         response_obj['geojson_str'] = geojson_str
@@ -889,6 +890,7 @@ def get_data_waterml(request):
     """
 	Controller that will show the data in WaterML 1.1 format
 	"""
+
     if request.GET:
 
         resp = get_netcdf_data(request)

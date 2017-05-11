@@ -674,6 +674,11 @@ $(function () {
     }
 }); //  $('#geom').on('change', function (){})
 
+    var watershed_geojson_str = $("#watershed_geojson_str").val();
+    if (watershed_geojson_str.length > 0)
+    {
+        addGeojsonLayerToMap(watershed_geojson_str, "234", true);
+    }
     $("#geom").trigger("change");
 
 });
@@ -1207,8 +1212,10 @@ function getHSWatershedList () {
                 if (response.hasOwnProperty('resources')) {
                     resources = JSON.parse(response.resources);
                     if (resources.length === 0) {
-                        $popupLoadWatershed.find('.modal-body').html('<b>It appears that you do not own any valid HydroShare resources.</b>');
-                    } else {
+                        $popupLoadWatershed.find('.modal-body').html('<b>It appears that you do not own any HydroShare resource that can be imported as watershed.</b>');
+                    }
+                    else
+                    {
                         resources.forEach(function (resource) {
                             resTableHtml += '<tr>' +
                                 '<td><input type="radio" name="resource" class="rdo-res" data-filename="' + resource.filename + '" value="' + resource.id + '"></td>' +
@@ -1254,10 +1261,13 @@ function loadWatershed(resId, filename) {
             console.error('Failed to load watershed!');
         },
         success: function (watershed) {
-            if (watershed.hasOwnProperty('success')) {
+            if (watershed.hasOwnProperty('success'))
+            {
                 addGeojsonLayerToMap(watershed.geojson_str, watershed.id, true);
                 $popupLoadWatershed.modal('hide');
-            } else {
+            }
+            else
+            {
                 alert(watershed.error);
             }
             $btnLoadWatershed.prop('disabled', false);
@@ -1272,6 +1282,7 @@ function addGeojsonLayerToMap(geojsonStr, watershedId, zoomTo)
     var geoJson = JSON.parse(geojsonStr);
     watershedLayer.getSource().clear();
 
+    // this geojson obj is the "Geometry" part (Polygon) of a geojson, not FeatureCollection or others
     var geometry = new ol.format.GeoJSON().readGeometry(geoJson);
     var fea = new ol.Feature(geometry);
     watershedLayer.getSource().addFeature(fea);
