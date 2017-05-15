@@ -1142,14 +1142,18 @@ function changeUnits(config) {
                     pointInterval: calib['interval']
                 };
                 nc_chart.addSeries(data_series);
-            };
-        } else {
-            while(nc_chart.series.length > 0) {
+            }
+        }
+        else
+        {
+            while(nc_chart.series.length > 0)
+            {
                 nc_chart.series[0].remove(true);
             }
             nc_chart.yAxis[0].setTitle({text: 'Flow (cfs)'});
 
-            for (i = 0; i < seriesDataGroup.length; i++) {
+            for (i = 0; i < seriesDataGroup.length; i++)
+            {
                 var calib = calibrateModel(config, geom);
                 var data_series = {
                     type: 'area',
@@ -1159,8 +1163,8 @@ function changeUnits(config) {
                     pointInterval: calib['interval']
                 };
                 nc_chart.addSeries(data_series);
-            };
-        };
+            }
+        }
     };
 };
 
@@ -1287,4 +1291,47 @@ function getUrlParameter(name) {
     var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
     var results = regex.exec(location.search);
     return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+}
+
+function subset_watershed()
+{
+
+    var watershed_fea_list = watershedLayer.getSource().getFeatures();
+    if (watershed_fea_list.length == 0)
+    {
+        alert("no watershed loaded");
+    }
+    var watershed_fea = watershed_fea_list[0];
+    if (watershed_fea.getGeometry().getType().toLowerCase() != "polygon")
+    {
+        alert("not a polygon");
+    }
+    var geoJSON = new ol.format.GeoJSON();
+    var geom_json = geoJSON.writeGeometry(watershed_fea.getGeometry());
+
+    var data = {geometry: geom_json, start: 222, end: 123333,
+               allDay: 1111 };
+
+    //http://stackoverflow.com/questions/28165424/download-file-via-jquery-ajax-post
+    // Use XMLHttpRequest instead of Jquery $ajax
+    xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        var a;
+        if (xhttp.readyState === 4 && xhttp.status === 200) {
+            // Trick for making downloadable link
+            a = document.createElement('a');
+            a.href = window.URL.createObjectURL(xhttp.response);
+            // Give filename you wish to download
+            a.download = "test-file.zip";
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+        }
+    };
+    // Post data to URL which handles post request
+    xhttp.open("POST", 'subset-watershed/');
+    xhttp.setRequestHeader("Content-Type", "application/json");
+    // You should set responseType as blob for binary responses
+    xhttp.responseType = 'blob';
+    xhttp.send(JSON.stringify(data));
 }

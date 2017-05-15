@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse, Http404
+from django.http import JsonResponse, Http404, FileResponse
 from django.shortcuts import render_to_response
 from tethys_sdk.gizmos import SelectInput, ToggleSwitch, Button, DatePicker
 from django.conf import settings
@@ -747,6 +747,125 @@ def upload_to_hydroshare(request):
             if os.path.exists(temp_dir):
                 shutil.rmtree(temp_dir)
         return JsonResponse(return_json)
+
+from django.views.decorators.csrf import csrf_exempt
+
+@csrf_exempt
+def subset_watershed(request):
+
+    if request.method == 'POST':
+        request_json = json.loads(request.body)
+        try:
+            print request_json
+            import os
+            import logging
+            import uuid
+            import datetime
+            from subset_nwm_netcdf.query import query_comids_and_grid_indices
+            from subset_nwm_netcdf.subset import start_subset_nwm_netcdf_job
+            from subset_nwm_netcdf.merge import start_merge_nwm_netcdf_job
+
+            db_file_path = "/nwm.sqlite"
+            job_id = str(uuid.uuid4())
+            logger = logging.getLogger()
+
+            all_start_dt = datetime.datetime.now()
+            logger.info("-------------Process Started-------------------")
+            logger.info(all_start_dt)
+
+            # geojson example
+            query_type = "geojson"
+            shp_path = None
+            geom_str = request_json['geometry']
+            print geom_str
+            in_epsg = 3857  # NAD83; epsg is required
+            huc_id = None
+
+            query_result_dict = query_comids_and_grid_indices(job_id=job_id,
+                                                              db_file_path=db_file_path,
+                                                              query_type=query_type,
+                                                              shp_path=shp_path,
+                                                              geom_str=geom_str,
+                                                              in_epsg=in_epsg,
+                                                              huc_id=huc_id)
+            if query_result_dict is None:
+                raise Exception("Failed to retrieve spatial query result")
+            print query_result_dict
+
+            netcdf_folder_path = "/projects/water/nwm/data/nomads/"
+
+            # Path of output folder
+            output_folder_path = "/tmp"
+
+            # shrink dimension size to cover subsetting domain only
+            resize_dimension_grid = True
+            resize_dimension_feature = True
+            # merge resulting netcdfs
+            merge_netcdfs = False
+            # remove intermediate files
+            cleanup = True
+
+            # list of simulation dates
+            simulation_date_list = ["20170419"]
+
+            # list of model file types
+            #file_type_list = ["forecast", 'forcing']
+            file_type_list = ["forcing"]
+
+            # list of model configurations
+            #model_configuration_list = ['analysis_assim', 'short_range', 'medium_range', 'long_range']
+            model_configuration_list = ['analysis_assim']
+
+            # list of model result data types
+            #data_type_list = ['reservoir', 'channel', 'land', 'terrain']
+            data_type_list = ['channel']
+
+            # list of time stamps or model cycles
+            # [1, 2, ...];  [] or None means all default time stamps
+            time_stamp_list = []
+
+            grid_land_dict = query_result_dict["grid_land"]
+            grid_terrain_dict = query_result_dict["grid_terrain"]
+            stream_comid_list = query_result_dict["stream"]["comids"]
+            reservoir_comid_list = query_result_dict["reservoir"]["comids"]
+
+            if "long_range" in model_configuration_list:
+                model_configuration_list.remove("long_range")
+                for i in range(1, 5):
+                    model_configuration_list.append("long_range_mem{0}".format(str(i)))
+
+            output_netcdf_folder_path = os.path.join(output_folder_path, job_id)
+
+            start_subset_nwm_netcdf_job(job_id=job_id,
+                                        input_netcdf_folder_path=netcdf_folder_path,
+                                        output_netcdf_folder_path=output_netcdf_folder_path,
+                                        simulation_date_list=simulation_date_list,
+                                        file_type_list=file_type_list,
+                                        model_configuration_list=model_configuration_list,
+                                        data_type_list=data_type_list,
+                                        time_stamp_list=time_stamp_list,
+                                        grid_land_dict=grid_land_dict,
+                                        grid_terrain_dict=grid_terrain_dict,
+                                        stream_comid_list=stream_comid_list,
+                                        reservoir_comid_list=reservoir_comid_list,
+                                        resize_dimension_grid=resize_dimension_grid,
+                                        resize_dimension_feature=resize_dimension_feature,
+                                        cleanup=cleanup)
+            import shutil
+
+            zip_path = os.path.join(output_folder_path, job_id)
+            shutil.make_archive(zip_path, 'zip', os.path.join(output_folder_path, job_id))
+
+            bag_save_to_path = zip_path + ".zip"
+            response = FileResponse(open(bag_save_to_path, 'rb'), content_type='application/zip')
+            response['Content-Disposition'] = 'attachment; filename="' + 'ABC123.zip"'
+            response['Content-Length'] = os.path.getsize(bag_save_to_path)
+            return response
+        except Exception as ex:
+            print ex
+
+
+    pass
 
 
 # ***----------------------------------------------------------------------------------------*** #
