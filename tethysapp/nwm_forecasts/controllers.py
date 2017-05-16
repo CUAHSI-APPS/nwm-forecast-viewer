@@ -256,7 +256,7 @@ def get_netcdf_data(request):
                     localFileDir_v10 = os.path.join(app_dir, config)
                     localFileDir_v11 = localFileDir_v10
 
-                nc_files_v10 = sorted([x for x in os.listdir(localFileDir_v10) if geom in x
+                nc_files_v10 = sorted([x for x in os.listdir(localFileDir_v10) if (geom in x if geom != "forcing" else "fe" in x)
                                        and 'tm00' in x
                                        and "georeferenced" in x
                                        and x.endswith('.nc')
