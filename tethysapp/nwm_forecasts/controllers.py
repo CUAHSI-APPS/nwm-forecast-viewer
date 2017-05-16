@@ -33,7 +33,7 @@ import geojson
 
 hs_hostname = 'www.hydroshare.org'
 app_dir = '/projects/water/nwm/data/'
-transition_date_v11 = "20170418"
+transition_date_v11 = "20170508"
 transition_timestamp_v11_AA = "12"
 transition_timestamp_v11_SR = "11"
 transition_timestamp_v11_MR = "12"
@@ -60,7 +60,8 @@ def home(request):
                              multiple=False,
                              options=[('Channel', 'channel_rt'),
                                       ('Land', 'land'),
-                                      ('Reservoir', 'reservoir')],
+                                      ('Reservoir', 'reservoir'),
+                                      ('Forcing', 'forcing')],
                              initial=['Channel'],
                              original=True)
 
@@ -127,7 +128,7 @@ def home(request):
 
         geom = request.GET['geom']
         variable = request.GET['variable']
-        if geom != 'land':
+        if geom != 'land' and geom != 'forcing':
             comid = request.GET['COMID']
         else:
             comid = ','.join([request.GET['Y'], request.GET['X']])
@@ -210,7 +211,7 @@ def get_netcdf_data(request):
             config = get_data['config']
             geom = get_data['geom']
             var = get_data['variable']
-            if geom != 'land':
+            if geom != 'land' and geom != 'forcing':
                 comid = int(get_data['COMID'])
             else:
                 comid = get_data['COMID']
@@ -245,9 +246,17 @@ def get_netcdf_data(request):
             elif config == 'analysis_assim':
 
                 endDate = get_data['endDate'].replace('-', '')
-                localFileDir = os.path.join(app_dir, config)
+                # localFileDir = os.path.join(app_dir, config)
 
-                nc_files_v10 = sorted([x for x in os.listdir(localFileDir) if geom in x
+                if geom == "forcing":
+                    localFileDir_v10 = os.path.join(app_dir, "fe_analysis_assim")
+                    localFileDir_v11 = os.path.join(app_dir, "forcing_analysis_assim")
+                    #localFileDir_v11 = os.path.join(app_dir, "fe_analysis_assim")
+                else:
+                    localFileDir_v10 = os.path.join(app_dir, config)
+                    localFileDir_v11 = localFileDir_v10
+
+                nc_files_v10 = sorted([x for x in os.listdir(localFileDir_v10) if geom in x
                                        and 'tm00' in x
                                        and "georeferenced" in x
                                        and x.endswith('.nc')
@@ -255,21 +264,23 @@ def get_netcdf_data(request):
                                        and (int(x.split('.')[1]) <= int(endDate) if int(endDate) < int(transition_date_v11) else int(x.split('.')[1]) <= int(transition_date_v11) and (timestamp_early_than_transition_v11(x, transition_timestamp_v11_AA) if transition_date_v11 in x else True))
                                        ])
 
-                nc_files_v11 = sorted([x for x in os.listdir(localFileDir) if geom in x
+                print nc_files_v10
+                nc_files_v11 = sorted([x for x in os.listdir(localFileDir_v11) if geom in x
                                        and (int(x.split('.')[1]) >= int(dateDir) if int(dateDir) > int(transition_date_v11) else int(x.split('.')[1]) >= int(transition_date_v11) and ((not timestamp_early_than_transition_v11(x, transition_timestamp_v11_AA)) if transition_date_v11 in x else True))
                                        and int(x.split('.')[1]) <= int(endDate)
                                        and 'tm00' in x
                                        and "georeferenced" not in x
                                        and x.endswith('.nc')])
+                print nc_files_v11
                 start_time = None
                 q_list = []
                 if len(nc_files_v10) > 0:
-                    v10_data = processNCFiles(localFileDir, nc_files_v10, geom, comid, var, version="v1.0")
+                    v10_data = processNCFiles(localFileDir_v10, nc_files_v10, geom, comid, var, version="v1.0")
                     start_time = v10_data[0]
                     q_list = v10_data[1]
 
                 if len(nc_files_v11) > 0:
-                    v11_data = processNCFiles(localFileDir, nc_files_v11, geom, comid, var)
+                    v11_data = processNCFiles(localFileDir_v11, nc_files_v11, geom, comid, var)
                     if start_time is None:
                         start_time = v11_data[0]
                     q_list = q_list + v11_data[1]
@@ -473,7 +484,7 @@ def processNCFiles(localFileDir, nc_files, geom, comid, var, version="v1.1"):
             comidList = prediction_data.variables['feature_id'][:]
         comidIndex = int(np.where(comidList == comid)[0])
         loopThroughFiles(localFileDir, q_out, nc_files, var, comidIndex)
-    elif geom == 'land':
+    elif geom == 'land' or 'forcing':
         comidList = comid.split(',')
         comidIndexY = int(comidList[0])
         comidIndexX = int(comidList[1])
@@ -516,6 +527,9 @@ def loopThroughFiles(localFileDir, q_out, nc_files, var, comidIndex=None, comidI
         elif var in ['ACCET', 'UGDRNOFF', 'SFCRNOFF', 'ACCECAN', 'CANWAT']:
             q_outT = prediction_dataTemp.variables[var][0, comidIndexY, comidIndexX].tolist()
             q_out.append(round(q_outT * 0.0393701, 4))
+        elif var in ['RAINRATE']:
+            q_outT = prediction_dataTemp.variables[var][0, comidIndexY, comidIndexX].tolist()
+            q_out.append(q_outT)
     return q_out
 
 
@@ -806,7 +820,7 @@ def subset_watershed(request):
             cleanup = True
 
             # list of simulation dates
-            simulation_date_list = ["20170419"]
+            simulation_date_list = ["20170509"]
 
             # list of model file types
             #file_type_list = ["forecast", 'forcing']

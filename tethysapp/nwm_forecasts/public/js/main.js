@@ -93,31 +93,55 @@ function change_time_dropdown_content(config)
 }
 
 $('#config').on('change', function () {
-    if ($('#config').val() === 'medium_range') {
+
+    if ($('#config').val() != 'analysis_assim')
+    {
+        $("#geom option[value='forcing']").attr('disabled','disabled');
+        if ($("#geom option:selected").val() == "forcing" ||  $("#geom").val()=="forcing")
+        {
+            $("#geom option[value='channel_rt']").attr("selected", "selected");
+            $("#geom").val('channel_rt');
+        }
+    }
+    else
+    {
+        $("#geom option[value='forcing']").removeAttr('disabled');
+    }
+
+    if ($('#config').val() === 'medium_range')
+    {
         $('#endDate,#endDateLabel, #timeLag').addClass('hidden');
         change_time_dropdown_content($('#config').val());
         $('#time').parent().removeClass('hidden');
-        if ($('#geom').val() === 'channel_rt' && $('#config').val() !== 'long_range') {
+        if ($('#geom').val() === 'channel_rt' && $('#config').val() !== 'long_range')
+        {
             $('#velocVar').removeClass('hidden');
-        };
-    } else if ($('#config').val() === 'long_range') {
+        }
+    }
+    else if ($('#config').val() === 'long_range')
+    {
         $('#endDate,#endDateLabel,#velocVar').addClass('hidden');
         $('#time').parent().addClass('hidden');
         $('#timeLag').removeClass('hidden');
-    } else if ($('#config').val() === 'short_range') {
+    }
+    else if ($('#config').val() === 'short_range')
+    {
         $('#endDate,#endDateLabel,#timeLag').addClass('hidden');
         change_time_dropdown_content($('#config').val());
         $('#time').parent().removeClass('hidden');
         if ($('#geom').val() === 'channel_rt' && $('#config').val() !== 'long_range') {
             $('#velocVar').removeClass('hidden');
         };
-    } else if ($('#config').val() === 'analysis_assim'){
+    }
+    else if ($('#config').val() === 'analysis_assim')
+    {
         $('#endDate,#endDateLabel').removeClass('hidden');
         $('#time').parent().addClass('hidden');
         $('#timeLag').addClass('hidden');
-        if ($('#geom').val() === 'channel_rt' && $('#config').val() !== 'long_range') {
+        if ($('#geom').val() === 'channel_rt' && $('#config').val() !== 'long_range')
+        {
             $('#velocVar').removeClass('hidden');
-        };
+        }
     }
     $("#geom").trigger("change");
 });
@@ -436,14 +460,14 @@ $(function () {
             {
                 var grid_url = grid_Source.getGetFeatureInfoUrl(evt.coordinate, viewResolution, view.getProjection(), {
                     'INFO_FORMAT': 'text/xml',
-                    'FEATURE_COUNT': 50
+                    'FEATURE_COUNT': 1
                 });
             }
             else if (reservoir.getVisible())
             {
                 var reservoir_url = reservoir_Source.getGetFeatureInfoUrl(evt.coordinate, viewResolution, view.getProjection(), {
                     'INFO_FORMAT': 'text/xml',
-                    'FEATURE_COUNT': 50
+                    'FEATURE_COUNT': 1
                 });
             }
 
@@ -562,14 +586,19 @@ $(function () {
     {
         selected_streams_layer.setVisible(true);
     }
+    else if ($("#geom").val() == 'forcing')
+    {
+        grid.setVisible(true);
+    }
 
     if ($('#geom').val() === 'channel_rt')
     {
         $('#comidInput').attr('disabled', false);
         if (window.location.search.includes('channel_rt') && window.location.search.includes('long_range') === false)
         {
-            $('#variable').val(window.location.search.split("&")[2].substring(window.location.search.split("&")[2].
-                lastIndexOf("variable=") + 9));
+            //$('#variable').val(window.location.search.split("&")[2].substring(window.location.search.split("&")[2].
+            //    lastIndexOf("variable=") + 9));
+            $('#variable').val(getUrlParameter('variable'));
         }
         else
         {
@@ -590,8 +619,9 @@ $(function () {
         $('#comidInput').attr('disabled', false);
         if (window.location.search.includes('reservoir'))
         {
-            $('#variable').val(window.location.search.split("&")[2].substring(window.location.search.split("&")[2].
-                lastIndexOf("variable=") + 9));
+            //$('#variable').val(window.location.search.split("&")[2].substring(window.location.search.split("&")[2].
+            //    lastIndexOf("variable=") + 9));
+            $('#variable').val(getUrlParameter('variable'));
         }
         else
         {
@@ -613,8 +643,9 @@ $(function () {
         $('#gridInputX').attr('disabled', false);
         if (window.location.search.includes('land'))
         {
-            $('#variable').val(window.location.search.split("&")[2].substring(window.location.search.split("&")[2].
-                lastIndexOf("variable=") + 9));
+            // $('#variable').val(window.location.search.split("&")[2].substring(window.location.search.split("&")[2].
+            //     lastIndexOf("variable=") + 9));
+            $('#variable').val(getUrlParameter('variable'));
         }
         else
         {
@@ -631,8 +662,9 @@ $(function () {
         $('#gridInputX').attr('disabled', false);
         if (window.location.search.includes('land'))
         {
-            $('#variable').val(window.location.search.split("&")[2].substring(window.location.search.split("&")[2].
-                lastIndexOf("variable=") + 9));
+            // $('#variable').val(window.location.search.split("&")[2].substring(window.location.search.split("&")[2].
+            //     lastIndexOf("variable=") + 9));
+            $('#variable').val(getUrlParameter('variable'));
         }
         else
         {
@@ -650,8 +682,9 @@ $(function () {
         $('#gridInputX').attr('disabled', false);
         if (window.location.search.includes('land') && window.location.search.includes('long_range'))
         {
-            $('#variable').val(window.location.search.split("&")[2].substring(window.location.search.split("&")[2].
-                lastIndexOf("variable=") + 9));
+            // $('#variable').val(window.location.search.split("&")[2].substring(window.location.search.split("&")[2].
+            //     lastIndexOf("variable=") + 9));
+            $('#variable').val(getUrlParameter('variable'));
         }
         else
         {
@@ -659,6 +692,24 @@ $(function () {
         }
         $('#gridDiv,#sneqVar,#etVar,#ssVar,#subrunoffVar,#runoffVar,#canwVar,#ssiVar').removeClass('hidden');
     }
+    else if ($('#geom').val() === 'forcing' && $('#config').val() === 'analysis_assim')
+    {
+        $('#comidInput').attr('disabled', true);
+        $('#comidDiv,#streamVar,#velocVar,#infVar,#outfVar,#snowhVar,#snowcVar,#avsnowVar,#evapVar,#soiltVar,#soilmVar')
+            .addClass('hidden');
+        $('#gridInputY').attr('disabled', false);
+        $('#gridInputX').attr('disabled', false);
+        if (window.location.search.includes('forcing') && window.location.search.includes('analysis_assim'))
+        {
+            $('#variable').val(getUrlParameter('variable'));
+        }
+        else
+        {
+            $('#variable').val('RAINRATE');
+        }
+        $('#rainrateVar, #gridDiv').removeClass('hidden');
+    }
+
 }); //  $('#geom').on('change', function (){})
 
     var watershed_geojson_str = $("#watershed_geojson_str").val();
@@ -865,33 +916,39 @@ function get_netcdf_chart_data(config, geom, variable, comid, date, time, lag, e
         },
         success: function (data) {
             if ("success" in data) {
-                if ("ts_pairs_data" in data) {
+                if ("ts_pairs_data" in data)
+                {
                     var returned_tsPairsData = JSON.parse(data.ts_pairs_data);
                     console.log(returned_tsPairsData);
-                    for (var key in returned_tsPairsData) {
-                        if (returned_tsPairsData[key][2] === 'notLong') {
+                    for (var key in returned_tsPairsData)
+                    {
+                        if (returned_tsPairsData[key][2] === 'notLong')
+                        {
                             var d = new Date(0);
                             startDate = d.setUTCSeconds(returned_tsPairsData[key][0]);
                             seriesData = returned_tsPairsData[key][1];
                             nc_chart.yAxis[0].setExtremes(null, null);
                             plotData(config, geom, variable, seriesData, startDate);
-                        } else {
-
-                            for (j = 0; j < returned_tsPairsData[key].length; j++) {
+                        }
+                        else
+                        {
+                            for (j = 0; j < returned_tsPairsData[key].length; j++)
+                            {
                                 var d = new Date(0);
                                 var startDateG = d.setUTCSeconds(returned_tsPairsData[key][j][0]);
-                                for (i = 1; i < returned_tsPairsData[key][j].length - 1; i++) {
+                                for (i = 1; i < returned_tsPairsData[key][j].length - 1; i++)
+                                {
                                     var seriesDataTemp = returned_tsPairsData[key][j][i];
                                     var seriesDesc = 'Member 0' + String(i) + ' ' +
                                         returned_tsPairsData[key][j][returned_tsPairsData[key][j].length - 1];
                                     seriesDataGroup.push([seriesDataTemp, seriesDesc, startDateG]);
                                     nc_chart.yAxis[0].setExtremes(null, null);
                                     plotData(config, geom, variable, seriesDataTemp, startDateG, i - 1, seriesDesc);
-                                };
-                            };
-                        };
-                    };
-                };
+                                }
+                            } // for (j = 0;
+                        } // else
+                    } //for (var key i
+                } //if ("ts_pairs_data" in data)
             } else if ("error" in data) {
                 $('#nc-chart').addClass('hidden');
                 $('#info').html('<p class="alert alert-danger" style="text-align: center"><strong>' + data['error'] + '</strong></p>').removeClass('hidden').addClass('error');
@@ -1008,51 +1065,79 @@ function initChart(config, startDate) {
     };
 }
 
-var plotData = function(config, geom, variable, data, start, colorIndex, seriesDesc) {
-    if (config !== 'long_range') {
+var plotData = function(config, geom, variable, data, start, colorIndex, seriesDesc)
+{
+    if (config !== 'long_range')
+    {
         $('#actionBtns').removeClass('hidden');
-    };
+    }
+
     var calib = calibrateModel(config, geom, start);
 
-    if (variable === 'streamflow' || variable === 'inflow' || variable === 'outflow') {
+    if (variable === 'streamflow' || variable === 'inflow' || variable === 'outflow')
+    {
         var units = 'Flow (cfs)';
-    } else if (variable === 'velocity') {
+    }
+    else if (variable === 'velocity')
+    {
         var units = 'Velocity (ft/s)';
         nc_chart.yAxis[0].setTitle({text: units});
         $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
-    } else if (variable === 'SNOWH') {
+    }
+    else if (variable === 'SNOWH')
+    {
         var units = 'Snow Depth (Feet)';
         nc_chart.yAxis[0].setTitle({text: units});
         $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
-    } else if (variable === 'SNEQV') {
+    }
+    else if (variable === 'SNEQV')
+    {
         var units = 'Snow Water Equivalent (Feet)';
         nc_chart.yAxis[0].setTitle({text: units});
         $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
-    } else if (variable === 'ACCET' || variable === 'ACCECAN' || variable === 'CANWAT' ||
-        variable === 'UGDRNOFF' || variable === 'SFCRNOFF') {
+    }
+    else if (variable === 'ACCET' || variable === 'ACCECAN' || variable === 'CANWAT' ||
+        variable === 'UGDRNOFF' || variable === 'SFCRNOFF')
+    {
         var units = 'Depth (Inches)';
         nc_chart.yAxis[0].setTitle({text: units});
         $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
-    } else if (variable === 'FSNO') {
+    }
+    else if (variable === 'FSNO')
+    {
         var units = 'Snow Cover (Fraction)';
         nc_chart.yAxis[0].setTitle({text: units});
         $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
-    } else if (variable === 'SOIL_M') {
+    }
+    else if (variable === 'SOIL_M')
+    {
         var units = 'Soil Moisture';
         nc_chart.yAxis[0].setTitle({text: units});
         $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
-    } else if (variable === 'SOILSAT_TOP' || variable === 'SOILSAT') {
+    }
+    else if (variable === 'SOILSAT_TOP' || variable === 'SOILSAT')
+    {
         var units = 'Soil Saturation (Fraction)';
         nc_chart.yAxis[0].setTitle({text: units});
         $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
-    } else if (variable === 'SNOWT_AVG' || variable === 'SOIL_T') {
+    }
+    else if (variable === 'SNOWT_AVG' || variable === 'SOIL_T')
+    {
         var units = 'Temperature (Kelvin)';
         nc_chart.yAxis[0].setTitle({text: units});
         $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
-    };
+    }
+    else if (variable === 'RAINRATE')
+    {
+        var units = 'Surface Precipitation Rate (mm/s)';
+        nc_chart.yAxis[0].setTitle({text: units});
+        $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
+    }
 
-    if (config !== 'long_range') {
-        var data_series = {
+    if (config !== 'long_range')
+    {
+        var data_series =
+        {
             type: 'area',
             name: units,
             data: data,
@@ -1060,12 +1145,16 @@ var plotData = function(config, geom, variable, data, start, colorIndex, seriesD
             pointInterval: calib['interval']
         };
         nc_chart.addSeries(data_series);
-        if ($('#nc-chart').hasClass('hidden')) {
+        if ($('#nc-chart').hasClass('hidden'))
+        {
             $('#nc-chart').removeClass('hidden');
             $(window).resize();
-        };
-    } else {
-        var data_series = {
+        }
+    }
+    else
+    {
+        var data_series =
+        {
             type: 'area',
             color: Highcharts.getOptions().colors[colorIndex],
             fillOpacity: 0.3,
@@ -1075,12 +1164,13 @@ var plotData = function(config, geom, variable, data, start, colorIndex, seriesD
             pointInterval: calib['interval']
         };
         nc_chart.addSeries(data_series);
-        if ($('#nc-chart').hasClass('hidden')) {
+        if ($('#nc-chart').hasClass('hidden'))
+        {
             $('#nc-chart').removeClass('hidden');
             $(window).resize();
-        };
-    };
-};
+        }
+    } // else
+}; //var plotData = function
 
 function clearErrorSelection() {
     var numFeatures = selected_streams_layer.getSource().getFeatures().length;
