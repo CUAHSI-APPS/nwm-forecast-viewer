@@ -1399,8 +1399,21 @@ function subset_watershed()
     var geoJSON = new ol.format.GeoJSON();
     var geom_json = geoJSON.writeGeometry(watershed_fea.getGeometry());
 
-    var data = {geometry: geom_json, start: 222, end: 123333,
-               allDay: 1111 };
+    var parameter = {
+        config: getUrlParameter("config"),
+        geom: getUrlParameter("geom"),
+        variable: getUrlParameter("variable"),
+        startDate: getUrlParameter("startDate"),
+        endDate: getUrlParameter("endDate"),
+        time: getUrlParameter("time"),
+        lag_00z: getUrlParameter("00z"),
+        lag_06z: getUrlParameter("06z"),
+        lag_12z: getUrlParameter("12z"),
+        lag_18z: getUrlParameter("18z")
+    };
+
+
+    var data = {geometry: geom_json, parameter: parameter};
 
     //http://stackoverflow.com/questions/28165424/download-file-via-jquery-ajax-post
     // Use XMLHttpRequest instead of Jquery $ajax
@@ -1412,7 +1425,7 @@ function subset_watershed()
             a = document.createElement('a');
             a.href = window.URL.createObjectURL(xhttp.response);
             // Give filename you wish to download
-            a.download = "test-file.zip";
+            a.download = "NWM_subset.zip";
             a.style.display = 'none';
             document.body.appendChild(a);
             a.click();

@@ -33,7 +33,7 @@ import geojson
 
 hs_hostname = 'www.hydroshare.org'
 app_dir = '/projects/water/nwm/data/'
-transition_date_v11 = "20170508"
+transition_date_v11 = "20170418"
 transition_timestamp_v11_AA = "12"
 transition_timestamp_v11_SR = "11"
 transition_timestamp_v11_MR = "12"
@@ -791,7 +791,6 @@ def subset_watershed(request):
             query_type = "geojson"
             shp_path = None
             geom_str = request_json['geometry']
-            print geom_str
             in_epsg = 3857  # NAD83; epsg is required
             huc_id = None
 
@@ -820,23 +819,45 @@ def subset_watershed(request):
             cleanup = True
 
             # list of simulation dates
-            simulation_date_list = ["20170509"]
+            print request_json['parameter']
 
-            # list of model file types
-            #file_type_list = ["forecast", 'forcing']
-            file_type_list = ["forcing"]
+            if len(request_json['parameter']["endDate"]) > 0:
+                if int(request_json['parameter']["endDate"].replace("-", "")) < \
+                        int(request_json['parameter']["startDate"].replace("-", "")):
+                    raise Exception("endDate is earlier than startDate.")
+                startDate_obj = datetime.datetime.strptime(request_json['parameter']["startDate"], "%Y-%m-%d")
+                endDate_obj = datetime.datetime.strptime(request_json['parameter']["endDate"], "%Y-%m-%d")
+                dateDelta_obj = endDate_obj - startDate_obj
+                dateRange_obj_list = [startDate_obj + datetime.timedelta(days=x) for x in range(0, dateDelta_obj.days + 1)]
+                simulation_date_list = [x.strftime("%Y%m%d") for x in dateRange_obj_list]
+            else:
+                simulation_date_list = [request_json['parameter']["startDate"]]
+            print simulation_date_list
 
             # list of model configurations
             #model_configuration_list = ['analysis_assim', 'short_range', 'medium_range', 'long_range']
-            model_configuration_list = ['analysis_assim']
+            model_configuration_list = [request_json['parameter']["config"]]
 
             # list of model result data types
             #data_type_list = ['reservoir', 'channel', 'land', 'terrain']
-            data_type_list = ['channel']
+            if request_json['parameter']['geom'] == "forcing":
+                data_type_list = []
+            else:
+                data_type_list = [request_json['parameter']['geom'].replace("channel_rt", "channel")]
+
+            # list of model file types
+            # file_type_list = ["forecast", 'forcing']
+            if request_json['parameter']['geom'] == "forcing":
+                file_type_list = ["forcing"]
+            else:
+                file_type_list = ["forecast"]
 
             # list of time stamps or model cycles
             # [1, 2, ...];  [] or None means all default time stamps
-            time_stamp_list = []
+            if request_json['parameter']['config'] == "analysis_assim":
+                time_stamp_list = []
+            else:
+                time_stamp_list = [int(request_json['parameter']['time'])]
 
             grid_land_dict = query_result_dict["grid_land"]
             grid_terrain_dict = query_result_dict["grid_terrain"]
@@ -865,14 +886,13 @@ def subset_watershed(request):
                                         resize_dimension_grid=resize_dimension_grid,
                                         resize_dimension_feature=resize_dimension_feature,
                                         cleanup=cleanup)
-            import shutil
 
             zip_path = os.path.join(output_folder_path, job_id)
-            shutil.make_archive(zip_path, 'zip', os.path.join(output_folder_path, job_id))
+            shutil.make_archive(zip_path, 'zip', output_folder_path, job_id)
 
             bag_save_to_path = zip_path + ".zip"
             response = FileResponse(open(bag_save_to_path, 'rb'), content_type='application/zip')
-            response['Content-Disposition'] = 'attachment; filename="' + 'ABC123.zip"'
+            response['Content-Disposition'] = 'attachment; filename="' + '{0}.zip"'.format(job_id)
             response['Content-Length'] = os.path.getsize(bag_save_to_path)
             return response
         except Exception as ex:
