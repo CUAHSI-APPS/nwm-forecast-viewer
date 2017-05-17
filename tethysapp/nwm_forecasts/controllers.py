@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse, Http404, FileResponse
+from django.http import JsonResponse, Http404, FileResponse, HttpResponse
 from django.shortcuts import render_to_response
 from tethys_sdk.gizmos import SelectInput, ToggleSwitch, Button, DatePicker
 from django.conf import settings
@@ -26,6 +26,7 @@ import numpy as np
 import tempfile
 import xmltodict
 import shapely.geometry
+from shapely import wkt
 import fiona
 import pycrs
 import pyproj
@@ -33,7 +34,8 @@ import geojson
 
 hs_hostname = 'www.hydroshare.org'
 app_dir = '/projects/water/nwm/data/'
-transition_date_v11 = "20170418"
+#transition_date_v11 = "20170418"  # local vm
+transition_date_v11 = "20170508"
 transition_timestamp_v11_AA = "12"
 transition_timestamp_v11_SR = "11"
 transition_timestamp_v11_MR = "12"
@@ -145,7 +147,7 @@ def home(request):
             lagList.append('t06z')
         if '12z' in request.GET:
             lagList.append('t12z')
-        if'18z' in request.GET:
+        if '18z' in request.GET:
             lagList.append('t18z')
 
         lag = ','.join(lagList)
@@ -251,7 +253,7 @@ def get_netcdf_data(request):
                 if geom == "forcing":
                     localFileDir_v10 = os.path.join(app_dir, "fe_analysis_assim")
                     localFileDir_v11 = os.path.join(app_dir, "forcing_analysis_assim")
-                    #localFileDir_v11 = os.path.join(app_dir, "fe_analysis_assim")
+                    #localFileDir_v11 = os.path.join(app_dir, "fe_analysis_assim")  # local vm
                 else:
                     localFileDir_v10 = os.path.join(app_dir, config)
                     localFileDir_v11 = localFileDir_v10
@@ -658,6 +660,12 @@ def get_geojson_from_hs_resource(res_id, filename, request):
             shp_obj = fiona.open(shp_path)
             first_feature_obj = next(shp_obj)
             shape_obj = shapely.geometry.shape(first_feature_obj["geometry"])
+
+            # convert 3D geom to 2D
+            if shape_obj.has_z:
+                wkt2D = shape_obj.to_wkt()
+                shape_obj = wkt.loads(wkt2D)
+
             shutil.rmtree(tmp_dir)
 
         if shape_obj.geom_type.lower() == "multipolygon":
@@ -821,7 +829,7 @@ def subset_watershed(request):
             # list of simulation dates
             print request_json['parameter']
 
-            if len(request_json['parameter']["endDate"]) > 0:
+            if len(request_json['parameter']["endDate"]) > 0 and request_json['parameter']["config"] == "analysis_assim":
                 if int(request_json['parameter']["endDate"].replace("-", "")) < \
                         int(request_json['parameter']["startDate"].replace("-", "")):
                     raise Exception("endDate is earlier than startDate.")
@@ -831,7 +839,7 @@ def subset_watershed(request):
                 dateRange_obj_list = [startDate_obj + datetime.timedelta(days=x) for x in range(0, dateDelta_obj.days + 1)]
                 simulation_date_list = [x.strftime("%Y%m%d") for x in dateRange_obj_list]
             else:
-                simulation_date_list = [request_json['parameter']["startDate"]]
+                simulation_date_list = [request_json['parameter']["startDate"].replace("-","")]
             print simulation_date_list
 
             # list of model configurations
@@ -856,6 +864,16 @@ def subset_watershed(request):
             # [1, 2, ...];  [] or None means all default time stamps
             if request_json['parameter']['config'] == "analysis_assim":
                 time_stamp_list = []
+            elif request_json['parameter']['config'] == "long_range":
+                time_stamp_list = []
+                if request_json['parameter']['lag_00z'] == "on":
+                   time_stamp_list.append(0)
+                if request_json['parameter']['lag_06z'] == "on":
+                    time_stamp_list.append(6)
+                if request_json['parameter']['lag_12z'] == "on":
+                    time_stamp_list.append(12)
+                if request_json['parameter']['lag_18z'] == "on":
+                    time_stamp_list.append(18)
             else:
                 time_stamp_list = [int(request_json['parameter']['time'])]
 
@@ -885,7 +903,8 @@ def subset_watershed(request):
                                         reservoir_comid_list=reservoir_comid_list,
                                         resize_dimension_grid=resize_dimension_grid,
                                         resize_dimension_feature=resize_dimension_feature,
-                                        cleanup=cleanup)
+                                        cleanup=cleanup,
+                                        include_AA_tm12=False)
 
             zip_path = os.path.join(output_folder_path, job_id)
             shutil.make_archive(zip_path, 'zip', output_folder_path, job_id)
@@ -897,9 +916,7 @@ def subset_watershed(request):
             return response
         except Exception as ex:
             print ex
-
-
-    pass
+    return HttpResponse(status=500, content="Failed to subset watershed")
 
 
 # ***----------------------------------------------------------------------------------------*** #
@@ -1021,11 +1038,10 @@ def get_site_name(config, geom, var, lat, lon, lag='', member=''):
 
 def get_data_waterml(request):
     """
-	Controller that will show the data in WaterML 1.1 format
+    Controller that will show the data in WaterML 1.1 format
 	"""
 
     if request.GET:
-
         resp = get_netcdf_data(request)
         resp_dict = json.loads(resp.content)
         print resp_dict
@@ -1033,7 +1049,7 @@ def get_data_waterml(request):
         config = request.GET["config"]
         geom = request.GET['geom']
         var = request.GET['variable']
-        if geom != 'land':
+        if geom != 'land' and geom != "forcing":
             comid = int(request.GET['COMID'])
         else:
             comid = request.GET['COMID']
@@ -1087,8 +1103,10 @@ def get_data_waterml(request):
             units = {'name': 'Fraction', 'short': 'None', 'long': 'None'}
         elif var == 'SOIL_M':
             units = {'name': 'Soil Moisture', 'short': 'm^3/m^3', 'long': 'Water Volume per Soil Volume'}
-        if var in ['SNOWT_AVG', 'SOIL_T']:
+        elif var in ['SNOWT_AVG', 'SOIL_T']:
             units = {'name': 'Temperature', 'short': 'K', 'long': 'Kelvin'}
+        elif var in ['RAINRATE']:
+            units = {'name': 'Rain Rate', 'short': 'mm/s', 'long': 'Millimeter per Second'}
 
         nodata_value = -9999
 

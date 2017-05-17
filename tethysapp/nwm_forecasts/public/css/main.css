@@ -13,6 +13,10 @@ p {
     width: 270px;
 }
 
+#subsetBtn, #watershedBtn {
+    width: 270px;
+}
+
 #map-view {
     height: 400px;
     width: 100%;
@@ -53,3 +57,4 @@ p {
     position: relative;
     top: 25px;
     margin-left: 10px;
+}

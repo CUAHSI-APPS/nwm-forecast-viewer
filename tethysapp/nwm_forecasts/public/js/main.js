@@ -176,32 +176,33 @@ $(function () {
     {
         //var query = window.location.search.split("&");
 
-        var qConfig = getUrlParameter('config');
+        var qConfig = getUrlParameter('config', null);
         $('#config').val(qConfig);
         change_time_dropdown_content(qConfig);
-        var qGeom = getUrlParameter('geom');
+        var qGeom = getUrlParameter('geom', null);
         $('#geom').val(qGeom);
-        var qVar = getUrlParameter('variable');
-        var qLat = Number(getUrlParameter('latitude'));
+        var qVar = getUrlParameter('variable', null);
+        $('#variable').val(qVar);
+        var qLat = Number(getUrlParameter('latitude', null));
         $('#latInput').val(qLat);
-        var qLong = Number(getUrlParameter('longitude'));
+        var qLong = Number(getUrlParameter('longitude', null));
         $('#longInput').val(qLong);
-        var qDate = getUrlParameter("startDate");
+        var qDate = getUrlParameter("startDate", null);
         $('#startDate').val(qDate);
-        var qTime = getUrlParameter("time");
+        var qTime = getUrlParameter("time", null);
         $('#time').val(qTime);
         if (qGeom === 'channel_rt' || qGeom === 'reservoir')
         {
-            var qCOMID = getUrlParameter('COMID');
+            var qCOMID = getUrlParameter('COMID', null);
             $('#comidInput').val(qCOMID);
         }
         else
         {
-            var qCOMID = getUrlParameter("Y") + ',' +  getUrlParameter("X");
+            var qCOMID = getUrlParameter("Y", null) + ',' +  getUrlParameter("X", null);
             $('#gridInputY').val(qCOMID.split(',')[0]);
             $('#gridInputX').val(qCOMID.split(',')[1]);
         }
-        var qDateEnd = getUrlParameter("endDate");
+        var qDateEnd = getUrlParameter("endDate", null);
         $('#endDate').val(qDateEnd);
         var qLag = [];
         if (window.location.search.indexOf('00z') > -1)
@@ -591,123 +592,146 @@ $(function () {
         grid.setVisible(true);
     }
 
+    // hide all variable options in variable dropdown list (display them later)
+    $("#variable option").each(function()
+    {
+        $(this).addClass('hidden')
+    });
+
+    // hide and disable coordinate input
+        $('#gridDiv').addClass('hidden');
+        // $('#gridInputY').attr('disabled', true);
+        // $('#gridInputX').attr('disabled', true);
+    // hide and disable comid input
+        $('#comidDiv').addClass('hidden');
+        // $('#comidInput').attr('disabled', true);
+
     if ($('#geom').val() === 'channel_rt')
     {
-        $('#comidInput').attr('disabled', false);
         if (window.location.search.includes('channel_rt') && window.location.search.includes('long_range') === false)
         {
-            //$('#variable').val(window.location.search.split("&")[2].substring(window.location.search.split("&")[2].
-            //    lastIndexOf("variable=") + 9));
-            $('#variable').val(getUrlParameter('variable'));
+            $('#variable').val(getUrlParameter('variable', null));
         }
         else
         {
             $('#variable').val('streamflow');
         }
-        $('#comidDiv,#streamVar').removeClass('hidden');
+
+        $('#comidDiv').removeClass('hidden');
+        $('#comidInput').attr('disabled', false);
+        $('#streamVar').removeClass('hidden');
+
         if ($('#config').val() !== 'long_range')
         {
             $('#velocVar').removeClass('hidden');
         }
-        $('#gridInputY').attr('disabled', true);
-        $('#gridInputX').attr('disabled', true);
-        $('#gridDiv,#infVar,#outfVar,#snowhVar,#sneqVar,#snowcVar,#etVar,#ssVar,#avsnowVar,#subrunoffVar,#runoffVar,#canwVar,#ssiVar,#evapVar,#soiltVar,#soilmVar').
-            addClass('hidden');
+        // $('#gridInputY').attr('disabled', true);
+        // $('#gridInputX').attr('disabled', true);
+        // $('#gridDiv,#infVar,#outfVar,#snowhVar,#sneqVar,#snowcVar,#etVar,#ssVar,#avsnowVar,#subrunoffVar,#runoffVar,#canwVar,#ssiVar,#evapVar,#soiltVar,#soilmVar').
+        //     addClass('hidden');
     }
     else if ($('#geom').val() === 'reservoir')
     {
-        $('#comidInput').attr('disabled', false);
         if (window.location.search.includes('reservoir'))
         {
             //$('#variable').val(window.location.search.split("&")[2].substring(window.location.search.split("&")[2].
             //    lastIndexOf("variable=") + 9));
-            $('#variable').val(getUrlParameter('variable'));
+            $('#variable').val(getUrlParameter('variable', null));
         }
         else
         {
             $('#variable').val('inflow');
         }
-        $('#comidDiv,#infVar,#outfVar').removeClass('hidden');
-        $('#gridInputY').attr('disabled', true);
-        $('#gridInputX').attr('disabled', true);
-        $('#gridDiv,#streamVar,#velocVar,#snowhVar,#sneqVar,#snowcVar,#etVar,#ssVar,#avsnowVar,#subrunoffVar,#runoffVar,#canwVar,#ssiVar,#evapVar,#soiltVar,#soilmVar').
-            addClass('hidden');
+        $('#comidInput').attr('disabled', false);
+        $('#comidDiv').removeClass('hidden');
+        $('#infVar,#outfVar').removeClass('hidden');
+        // $('#gridInputY').attr('disabled', true);
+        // $('#gridInputX').attr('disabled', true);
+        // $('#gridDiv,#streamVar,#velocVar,#snowhVar,#sneqVar,#snowcVar,#etVar,#ssVar,#avsnowVar,#subrunoffVar,#runoffVar,#canwVar,#ssiVar,#evapVar,#soiltVar,#soilmVar').
+        //     addClass('hidden');
     }
     else if ($('#geom').val() === 'land' && ($('#config').val() === 'short_range' ||
         $('#config').val() === 'analysis_assim'))
     {
-        $('#comidInput').attr('disabled', true);
-        $('#comidDiv,#streamVar,#velocVar,#infVar,#outfVar,#subrunoffVar,#runoffVar,#evapVar,#soiltVar,#soilmVar,#canwVar,#ssiVar')
-            .addClass('hidden');
+        // $('#comidInput').attr('disabled', true);
+        // $('#comidDiv,#streamVar,#velocVar,#infVar,#outfVar,#subrunoffVar,#runoffVar,#evapVar,#soiltVar,#soilmVar,#canwVar,#ssiVar')
+        //     .addClass('hidden');
+
+        $('#gridDiv').removeClass('hidden');
         $('#gridInputY').attr('disabled', false);
         $('#gridInputX').attr('disabled', false);
         if (window.location.search.includes('land'))
         {
             // $('#variable').val(window.location.search.split("&")[2].substring(window.location.search.split("&")[2].
             //     lastIndexOf("variable=") + 9));
-            $('#variable').val(getUrlParameter('variable'));
+            $('#variable').val(getUrlParameter('variable', null));
         }
         else
         {
             $('#variable').val('SNOWH');
         }
-        $('#gridDiv,#snowhVar,#sneqVar,#snowcVar,#etVar,#ssVar,#avsnowVar').removeClass('hidden');
+        $('#snowhVar,#sneqVar,#snowcVar,#etVar,#ssVar,#avsnowVar').removeClass('hidden');
     }
     else if ($('#geom').val() === 'land' && $('#config').val() === 'medium_range')
     {
-        $('#comidInput').attr('disabled', true);
-        $('#comidDiv,#streamVar,#velocVar,#infVar,#outfVar,#runoffVar,#ssiVar').
-            addClass('hidden');
+        // $('#comidInput').attr('disabled', true);
+        // $('#comidDiv,#streamVar,#velocVar,#infVar,#outfVar,#runoffVar,#ssiVar').
+        //     addClass('hidden');
+
+        $('#gridDiv').removeClass('hidden');
         $('#gridInputY').attr('disabled', false);
         $('#gridInputX').attr('disabled', false);
         if (window.location.search.includes('land'))
         {
             // $('#variable').val(window.location.search.split("&")[2].substring(window.location.search.split("&")[2].
             //     lastIndexOf("variable=") + 9));
-            $('#variable').val(getUrlParameter('variable'));
+            $('#variable').val(getUrlParameter('variable', null));
         }
         else
         {
             $('#variable').val('SNOWH');
         }
-        $('#gridDiv,#snowhVar,#sneqVar,#snowcVar,#etVar,#ssVar,#avsnowVar,#subrunoffVar,#evapVar,#canwVar,#soiltVar,#soilmVar').
+        $('#snowhVar,#sneqVar,#snowcVar,#etVar,#ssVar,#avsnowVar,#subrunoffVar,#evapVar,#canwVar,#soiltVar,#soilmVar').
             removeClass('hidden');
     }
     else if ($('#geom').val() === 'land' && $('#config').val() === 'long_range')
     {
-        $('#comidInput').attr('disabled', true);
-        $('#comidDiv,#streamVar,#velocVar,#infVar,#outfVar,#snowhVar,#snowcVar,#avsnowVar,#evapVar,#soiltVar,#soilmVar')
-            .addClass('hidden');
+        // $('#comidInput').attr('disabled', true);
+        // $('#comidDiv,#streamVar,#velocVar,#infVar,#outfVar,#snowhVar,#snowcVar,#avsnowVar,#evapVar,#soiltVar,#soilmVar, #rainrateVar')
+        //     .addClass('hidden');
+
+        $('#gridDiv').removeClass('hidden');
         $('#gridInputY').attr('disabled', false);
         $('#gridInputX').attr('disabled', false);
         if (window.location.search.includes('land') && window.location.search.includes('long_range'))
         {
             // $('#variable').val(window.location.search.split("&")[2].substring(window.location.search.split("&")[2].
             //     lastIndexOf("variable=") + 9));
-            $('#variable').val(getUrlParameter('variable'));
+            $('#variable').val(getUrlParameter('variable', null));
         }
         else
         {
             $('#variable').val('SNEQV');
         }
-        $('#gridDiv,#sneqVar,#etVar,#ssVar,#subrunoffVar,#runoffVar,#canwVar,#ssiVar').removeClass('hidden');
+        $('#sneqVar,#etVar,#ssVar,#subrunoffVar,#runoffVar,#canwVar,#ssiVar').removeClass('hidden');
     }
     else if ($('#geom').val() === 'forcing' && $('#config').val() === 'analysis_assim')
     {
-        $('#comidInput').attr('disabled', true);
-        $('#comidDiv,#streamVar,#velocVar,#infVar,#outfVar,#snowhVar,#snowcVar,#avsnowVar,#evapVar,#soiltVar,#soilmVar')
-            .addClass('hidden');
+        // $('#comidInput').attr('disabled', true);
+        // $('#comidDiv,#streamVar,#velocVar,#infVar,#outfVar,#snowhVar,#snowcVar,#avsnowVar,#evapVar,#soiltVar,#soilmVar')
+        //     .addClass('hidden');
+        $('#gridDiv').removeClass('hidden');
         $('#gridInputY').attr('disabled', false);
         $('#gridInputX').attr('disabled', false);
         if (window.location.search.includes('forcing') && window.location.search.includes('analysis_assim'))
         {
-            $('#variable').val(getUrlParameter('variable'));
+            $('#variable').val(getUrlParameter('variable', null));
         }
         else
         {
             $('#variable').val('RAINRATE');
         }
-        $('#rainrateVar, #gridDiv').removeClass('hidden');
+        $('#rainrateVar').removeClass('hidden');
     }
 
 }); //  $('#geom').on('change', function (){})
@@ -1255,8 +1279,8 @@ function changeUnits(config) {
                 nc_chart.addSeries(data_series);
             }
         }
-    };
-};
+    }
+}
 
 function calibrateModel(config, geom, date) {
     var interval;
@@ -1376,12 +1400,33 @@ function addGeojsonLayerToMap(geojsonStr, watershedId, zoomTo)
 }
 
 //https://davidwalsh.name/query-string-javascript
-function getUrlParameter(name) {
+function getUrlParameter(name, url)
+{
     name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
     var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
-    var results = regex.exec(location.search);
+    if (url === null)
+    {
+        var results = regex.exec(location.search);
+    }
+    else
+    {
+        var results = regex.exec(url);
+    }
+
     return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
 }
+
+$("#subsetBtn").on("click", function(){
+    var watershed_fea_list = watershedLayer.getSource().getFeatures();
+    if (watershed_fea_list.length == 0)
+    {
+        alert("no watershed loaded");
+        return;
+    }
+    $("#subsetBtn, #watershedBtn, #submitBtn").attr('disabled','disabled');
+
+    subset_watershed();
+});
 
 function subset_watershed()
 {
@@ -1390,6 +1435,7 @@ function subset_watershed()
     if (watershed_fea_list.length == 0)
     {
         alert("no watershed loaded");
+        return;
     }
     var watershed_fea = watershed_fea_list[0];
     if (watershed_fea.getGeometry().getType().toLowerCase() != "polygon")
@@ -1399,17 +1445,21 @@ function subset_watershed()
     var geoJSON = new ol.format.GeoJSON();
     var geom_json = geoJSON.writeGeometry(watershed_fea.getGeometry());
 
+    url = $('#paramForm').serialize();
+    // function getUrlParameter() requires a valid url: http + domain + query string
+    // make a fake url
+    url = "http://www.hydroshare.org/?" + url;
     var parameter = {
-        config: getUrlParameter("config"),
-        geom: getUrlParameter("geom"),
-        variable: getUrlParameter("variable"),
-        startDate: getUrlParameter("startDate"),
-        endDate: getUrlParameter("endDate"),
-        time: getUrlParameter("time"),
-        lag_00z: getUrlParameter("00z"),
-        lag_06z: getUrlParameter("06z"),
-        lag_12z: getUrlParameter("12z"),
-        lag_18z: getUrlParameter("18z")
+        config: getUrlParameter("config", url),
+        geom: getUrlParameter("geom", url),
+        variable: getUrlParameter("variable", url),
+        startDate: getUrlParameter("startDate", url),
+        endDate: getUrlParameter("endDate", url),
+        time: getUrlParameter("time", url),
+        lag_00z: getUrlParameter("00z", url),
+        lag_06z: getUrlParameter("06z", url),
+        lag_12z: getUrlParameter("12z", url),
+        lag_18z: getUrlParameter("18z",url)
     };
 
 
@@ -1420,7 +1470,8 @@ function subset_watershed()
     xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
         var a;
-        if (xhttp.readyState === 4 && xhttp.status === 200) {
+        if (xhttp.readyState === 4 && xhttp.status === 200)
+        {
             // Trick for making downloadable link
             a = document.createElement('a');
             a.href = window.URL.createObjectURL(xhttp.response);
@@ -1429,8 +1480,16 @@ function subset_watershed()
             a.style.display = 'none';
             document.body.appendChild(a);
             a.click();
+            $("#subsetBtn, #watershedBtn, #submitBtn").removeAttr('disabled');
         }
-    };
+        else if  (xhttp.status != 200 && xhttp.status != 0)
+        {
+            xhttp.abort();
+            alert("Failed to subset this watershed");
+            $("#subsetBtn, #watershedBtn, #submitBtn").removeAttr('disabled');
+        }
+
+    }; //xhttp.onreadystatechange
     // Post data to URL which handles post request
     xhttp.open("POST", 'subset-watershed/');
     xhttp.setRequestHeader("Content-Type", "application/json");
