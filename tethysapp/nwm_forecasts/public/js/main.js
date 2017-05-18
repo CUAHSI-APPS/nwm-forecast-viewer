@@ -279,6 +279,11 @@ $(function () {
                 } //success: function (data)
             }); //$.ajax(
         }//if (qCOMID)
+
+        if (!check_datetime_range($("#startDate").val(), $("#endDate").val(), null))
+        {
+            alert("Invalid start/end date");
+        }
         initChart(qConfig, startDate, seriesData);
 
         get_netcdf_chart_data(qConfig, qGeom, qVar, qCOMID, qDate, qTime, qLag, qDateEnd);
@@ -943,7 +948,7 @@ function get_netcdf_chart_data(config, geom, variable, comid, date, time, lag, e
                 if ("ts_pairs_data" in data)
                 {
                     var returned_tsPairsData = JSON.parse(data.ts_pairs_data);
-                    console.log(returned_tsPairsData);
+                    //console.log(returned_tsPairsData);
                     for (var key in returned_tsPairsData)
                     {
                         if (returned_tsPairsData[key][2] === 'notLong')
@@ -1325,8 +1330,8 @@ function getHSWatershedList () {
                             resTableHtml += '<tr>' +
                                 '<td><input type="radio" name="resource" class="rdo-res" data-filename="' + resource.filename + '" value="' + resource.id + '"></td>' +
                                 '<td class="res_title">' + resource.title + '</td>' +
-                                '<td class="res_owner">' + resource.filename + '</td>' +
-                                '<td class="res_owner">' + resource.owner + '</td>' +
+                                '<td class="res_title">' + resource.filename + '</td>' +
+                                '<td class="res_title">' + resource.owner + '</td>' +
                                 '</tr>';
                         });
                         resTableHtml += '</tbody></table>';
@@ -1430,20 +1435,14 @@ $("#subsetBtn").on("click", function(){
 
 function subset_watershed()
 {
-
+    // check watershedLayer has a feature
     var watershed_fea_list = watershedLayer.getSource().getFeatures();
     if (watershed_fea_list.length == 0)
     {
         alert("no watershed loaded");
         return;
     }
-    var watershed_fea = watershed_fea_list[0];
-    if (watershed_fea.getGeometry().getType().toLowerCase() != "polygon")
-    {
-        alert("not a polygon");
-    }
-    var geoJSON = new ol.format.GeoJSON();
-    var geom_json = geoJSON.writeGeometry(watershed_fea.getGeometry());
+
 
     url = $('#paramForm').serialize();
     // function getUrlParameter() requires a valid url: http + domain + query string
@@ -1461,6 +1460,25 @@ function subset_watershed()
         lag_12z: getUrlParameter("12z", url),
         lag_18z: getUrlParameter("18z",url)
     };
+
+    // analysis_assim date range no more than 3 days
+    if (parameter.config == "analysis_assim")
+    {
+        if (!check_datetime_range($("#startDate").val(), $("#endDate").val(), 3))
+        {
+            alert("Invalid start/end date; You may subset Analysis & Assimilation data for 3 days or less");
+            $("#subsetBtn, #watershedBtn, #submitBtn").removeAttr('disabled');
+            return;
+        }
+    }
+
+    var watershed_fea = watershed_fea_list[0];
+    if (watershed_fea.getGeometry().getType().toLowerCase() != "polygon")
+    {
+        alert("not a polygon");
+    }
+    var geoJSON = new ol.format.GeoJSON();
+    var geom_json = geoJSON.writeGeometry(watershed_fea.getGeometry());
 
 
     var data = {geometry: geom_json, parameter: parameter};
@@ -1496,4 +1514,33 @@ function subset_watershed()
     // You should set responseType as blob for binary responses
     xhttp.responseType = 'blob';
     xhttp.send(JSON.stringify(data));
+}
+
+function check_datetime_range(startDate, endDate, delta_days)
+{
+    var startDate_obj = new Date();
+    startDate_obj.setUTCFullYear(startDate.split("-")[0]);
+    startDate_obj.setUTCMonth(parseInt(startDate.split("-")[1])-1);
+    startDate_obj.setUTCDate(startDate.split("-")[2]);
+
+    var endDate_obj = new Date();
+    endDate_obj.setUTCFullYear(endDate.split("-")[0]);
+    endDate_obj.setUTCMonth(parseInt(endDate.split("-")[1])-1);
+    endDate_obj.setUTCDate(endDate.split("-")[2]);
+
+    if (startDate_obj.getTime() > endDate_obj.getTime())
+    {
+        return false;
+    }
+
+    if (Number.isInteger(delta_days))
+    {
+        startDate_obj.setDate(startDate_obj.getDate() + delta_days);
+        if (startDate_obj.getTime() <= endDate_obj.getTime())
+        {
+            return false;
+        }
+    }
+
+    return true;
 }

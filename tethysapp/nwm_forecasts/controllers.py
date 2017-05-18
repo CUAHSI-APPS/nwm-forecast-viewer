@@ -1,29 +1,33 @@
+import os
+import shutil
+import re
+import json
+import tempfile
+import logging
+import uuid
+import datetime
+
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, Http404, FileResponse, HttpResponse
 from django.shortcuts import render_to_response
-from tethys_sdk.gizmos import SelectInput, ToggleSwitch, Button, DatePicker
+from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
+
+from tethys_sdk.gizmos import SelectInput, ToggleSwitch, Button, DatePicker
+
 from hs_restclient import HydroShare, HydroShareAuthOAuth2, HydroShareNotAuthorized, HydroShareNotFound
-from subset_nwm_netcdf.query import _project_shapely_geom
+
 
 hydroshare_ready = True
-
 try:
     from tethys_services.backends.hs_restclient_helper import get_oauth_hs
 except Exception:
     print "could not load: tethys_services.backends.hs_restclient_helper import get_oauth_hs"
     hydroshare_ready = False
 
-
-import os
-import shutil
-import re
 import netCDF4 as nc
-import json
-import datetime as dt
 import numpy as np
-import tempfile
 import xmltodict
 import shapely.geometry
 from shapely import wkt
@@ -31,11 +35,14 @@ import fiona
 import pycrs
 import pyproj
 import geojson
+from subset_nwm_netcdf.query import query_comids_and_grid_indices
+from subset_nwm_netcdf.subset import start_subset_nwm_netcdf_job
+from subset_nwm_netcdf.query import _project_shapely_geom
 
 hs_hostname = 'www.hydroshare.org'
 app_dir = '/projects/water/nwm/data/'
-#transition_date_v11 = "20170418"  # local vm
-transition_date_v11 = "20170508"
+transition_date_v11 = "20170418"  # local vm
+#transition_date_v11 = "20170508"
 transition_timestamp_v11_AA = "12"
 transition_timestamp_v11_SR = "11"
 transition_timestamp_v11_MR = "12"
@@ -75,7 +82,7 @@ def home(request):
                             format='yyyy-mm-dd',
                             start_date='2016-05-01',
                             today_button=True,
-                            initial=dt.datetime.utcnow().strftime("%Y-%m-%d"))
+                            initial=datetime.datetime.utcnow().strftime("%Y-%m-%d"))
 
     end_date = DatePicker(name='endDate',
                           end_date='0d',
@@ -83,7 +90,7 @@ def home(request):
                           format='yyyy-mm-dd',
                           start_date='2016-05-01',
                           today_button=True,
-                          initial=dt.datetime.utcnow().strftime("%Y-%m-%d"),
+                          initial=datetime.datetime.utcnow().strftime("%Y-%m-%d"),
                           classes="hidden")
 
     start_time = SelectInput(display_text='Enter Initialization Time (UTC)',
@@ -252,8 +259,8 @@ def get_netcdf_data(request):
 
                 if geom == "forcing":
                     localFileDir_v10 = os.path.join(app_dir, "fe_analysis_assim")
-                    localFileDir_v11 = os.path.join(app_dir, "forcing_analysis_assim")
-                    #localFileDir_v11 = os.path.join(app_dir, "fe_analysis_assim")  # local vm
+                    #localFileDir_v11 = os.path.join(app_dir, "forcing_analysis_assim")
+                    localFileDir_v11 = os.path.join(app_dir, "fe_analysis_assim")  # local vm
                 else:
                     localFileDir_v10 = os.path.join(app_dir, config)
                     localFileDir_v11 = localFileDir_v10
@@ -545,16 +552,17 @@ def get_hs_watershed_list(request):
                 response_obj['error'] = 'You must be signed in through HydroShare to access this feature. ' \
                                         'Please log out and then sign in again using your HydroShare account.'
             else:
-                creator = None
+                owner = None
                 try:
-                    creator = hs.getUserInfo()['username']
+                    owner = hs.getUserInfo()['username']
                 except Exception:
                     pass
 
                 # loop through all Generic and Feature res current user owns
                 valid_res_types = ['GenericResource', 'GeographicFeatureResource']
 
-                for resource in hs.getResourceList(types=valid_res_types, creator=creator):
+                for resource in hs.getResourceList(types=valid_res_types, owner=owner):
+                #for resource in hs.getResourceList(types=valid_res_types):
                     res_id = resource['resource_id']
                     try:
                         # generic res has "watershed" in keywords
@@ -770,22 +778,14 @@ def upload_to_hydroshare(request):
                 shutil.rmtree(temp_dir)
         return JsonResponse(return_json)
 
-from django.views.decorators.csrf import csrf_exempt
 
 @csrf_exempt
 def subset_watershed(request):
+    bag_save_to_path = None
 
-    if request.method == 'POST':
-        request_json = json.loads(request.body)
-        try:
-            print request_json
-            import os
-            import logging
-            import uuid
-            import datetime
-            from subset_nwm_netcdf.query import query_comids_and_grid_indices
-            from subset_nwm_netcdf.subset import start_subset_nwm_netcdf_job
-            from subset_nwm_netcdf.merge import start_merge_nwm_netcdf_job
+    try:
+        if request.method == 'POST':
+            request_json = json.loads(request.body)
 
             db_file_path = "/nwm.sqlite"
             job_id = str(uuid.uuid4())
@@ -914,9 +914,18 @@ def subset_watershed(request):
             response['Content-Disposition'] = 'attachment; filename="' + '{0}.zip"'.format(job_id)
             response['Content-Length'] = os.path.getsize(bag_save_to_path)
             return response
-        except Exception as ex:
-            print ex
-    return HttpResponse(status=500, content="Failed to subset watershed")
+        else:
+            return HttpResponse(status=500, content="Not a POST request")
+    except Exception as ex:
+        logger.error(ex)
+        return HttpResponse(status=500, content=ex.message)
+    finally:
+        if bag_save_to_path is not None:
+            if os.path.exists(bag_save_to_path):
+                os.remove(bag_save_to_path)
+            if os.path.exists(bag_save_to_path.replace(".zip", "")):
+                shutil.rmtree(bag_save_to_path.replace(".zip", ""))
+
 
 
 # ***----------------------------------------------------------------------------------------*** #
@@ -994,13 +1003,13 @@ def getTimeSeries(config, geom, var, comid, date, endDate, time, member=''):
 def format_time_series(config, startDate, ts, time, nodata_value):
     nDays = len(ts)
     if config == 'short_range':
-        datelist = [dt.datetime.strptime(startDate, "%Y-%m-%d") + dt.timedelta(hours=x + int(time) +1) for x in range(0,nDays)]
+        datelist = [datetime.datetime.strptime(startDate, "%Y-%m-%d") + dt.timedelta(hours=x + int(time) +1) for x in range(0,nDays)]
     elif config == 'medium_range':
-        datelist = [dt.datetime.strptime(startDate, "%Y-%m-%d") + dt.timedelta(hours=x+9) for x in range(0, nDays*3, 3)]
+        datelist = [datetime.datetime.strptime(startDate, "%Y-%m-%d") + dt.timedelta(hours=x+9) for x in range(0, nDays*3, 3)]
     elif config == 'analysis_assim':
-        datelist = [dt.datetime.strptime(startDate, "%Y-%m-%d") + dt.timedelta(hours=x) for x in range(0, nDays)]
+        datelist = [datetime.datetime.strptime(startDate, "%Y-%m-%d") + dt.timedelta(hours=x) for x in range(0, nDays)]
     elif config == 'long_range':
-        datelist = [dt.datetime.strptime(startDate, "%Y-%m-%d") + dt.timedelta(hours=x + 6) for x in range(0, nDays*6, 6)]
+        datelist = [datetime.datetime.strptime(startDate, "%Y-%m-%d") + dt.timedelta(hours=x + 6) for x in range(0, nDays*6, 6)]
 
     formatted_ts = []
     for i in range(0, nDays):
@@ -1066,7 +1075,7 @@ def get_data_waterml(request):
             try:
                 end = request.GET["endDate"]
             except:
-                end = (dt.datetime.strptime(start, '%Y-%m-%d') + dt.timedelta(days=1)).strftime('%Y-%m-%d')
+                end = (datetime.datetime.strptime(start, '%Y-%m-%d') + dt.timedelta(days=1)).strftime('%Y-%m-%d')
         else:
             end = '9999-99-99'
         if config == 'short_range':
