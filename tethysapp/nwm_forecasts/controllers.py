@@ -1003,13 +1003,13 @@ def getTimeSeries(config, geom, var, comid, date, endDate, time, member=''):
 def format_time_series(config, startDate, ts, time, nodata_value):
     nDays = len(ts)
     if config == 'short_range':
-        datelist = [datetime.datetime.strptime(startDate, "%Y-%m-%d") + dt.timedelta(hours=x + int(time) +1) for x in range(0,nDays)]
+        datelist = [datetime.datetime.strptime(startDate, "%Y-%m-%d") + datetime.timedelta(hours=x + int(time) +1) for x in range(0,nDays)]
     elif config == 'medium_range':
-        datelist = [datetime.datetime.strptime(startDate, "%Y-%m-%d") + dt.timedelta(hours=x+9) for x in range(0, nDays*3, 3)]
+        datelist = [datetime.datetime.strptime(startDate, "%Y-%m-%d") + datetime.timedelta(hours=x+9) for x in range(0, nDays*3, 3)]
     elif config == 'analysis_assim':
-        datelist = [datetime.datetime.strptime(startDate, "%Y-%m-%d") + dt.timedelta(hours=x) for x in range(0, nDays)]
+        datelist = [datetime.datetime.strptime(startDate, "%Y-%m-%d") + datetime.timedelta(hours=x) for x in range(0, nDays)]
     elif config == 'long_range':
-        datelist = [datetime.datetime.strptime(startDate, "%Y-%m-%d") + dt.timedelta(hours=x + 6) for x in range(0, nDays*6, 6)]
+        datelist = [datetime.datetime.strptime(startDate, "%Y-%m-%d") + datetime.timedelta(hours=x + 6) for x in range(0, nDays*6, 6)]
 
     formatted_ts = []
     for i in range(0, nDays):
@@ -1075,7 +1075,7 @@ def get_data_waterml(request):
             try:
                 end = request.GET["endDate"]
             except:
-                end = (datetime.datetime.strptime(start, '%Y-%m-%d') + dt.timedelta(days=1)).strftime('%Y-%m-%d')
+                end = (datetime.datetime.strptime(start, '%Y-%m-%d') + datetime.timedelta(days=1)).strftime('%Y-%m-%d')
         else:
             end = '9999-99-99'
         if config == 'short_range':
