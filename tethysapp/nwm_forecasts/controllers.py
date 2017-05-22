@@ -32,12 +32,16 @@ import xmltodict
 import shapely.geometry
 from shapely import wkt
 import fiona
-import pycrs
-import pyproj
+# import pycrs
+# import pyproj
 import geojson
+from osgeo import ogr
+from osgeo import osr
 from subset_nwm_netcdf.query import query_comids_and_grid_indices
 from subset_nwm_netcdf.subset import start_subset_nwm_netcdf_job
 from subset_nwm_netcdf.query import _project_shapely_geom
+
+logger = logging.getLogger(__name__)
 
 hs_hostname = 'www.hydroshare.org'
 app_dir = '/projects/water/nwm/data/'
@@ -644,8 +648,11 @@ def get_geojson_from_hs_resource(res_id, filename, request):
             if geojson_obj.type.lower() == "featurecollection":
                 geojson_geom_first = geojson_obj.features[0].geometry
             shape_obj = shapely.geometry.asShape(geojson_geom_first)
-            in_pyproj_obj = pyproj.Proj(init='epsg:4326')
+            # # deprecated, change to use gdal for coordinate re-projection
+            # in_pyproj_obj = pyproj.Proj(init='epsg:4326')
             response_obj['type'] = 'geojson'
+            in_proj_type = "epsg"
+            in_proj_value = 4326
 
         elif filename.endswith('.shp'):
             proj_str_raw = str(hs.getResourceFile(pid=res_id, filename=filename.replace('.shp', '.prj')).next())
@@ -653,9 +660,13 @@ def get_geojson_from_hs_resource(res_id, filename, request):
             proj_str = proj_str_raw.replace('\n', '')
             response_obj['type'] = 'shp'
 
-            fromcrs = pycrs.parser.from_unknown_text(proj_str)
-            fromcrs_proj4 = fromcrs.to_proj4()
-            in_pyproj_obj = pyproj.Proj(fromcrs_proj4)
+            # # deprecated, change to use gdal for coordinate re-projection
+            # fromcrs = pycrs.parser.from_unknown_text(proj_str)
+            # fromcrs_proj4 = fromcrs.to_proj4()
+            # in_pyproj_obj = pyproj.Proj(fromcrs_proj4)
+
+            in_proj_type = "esri"
+            in_proj_value = proj_str
 
             tmp_dir = tempfile.mkdtemp()
             for ext in [".prj", ".dbf", ".shx", ".shp"]:
@@ -685,18 +696,26 @@ def get_geojson_from_hs_resource(res_id, filename, request):
 
         polygon_exterior_linearring_shape_obj = shapely.geometry.Polygon(polygon_exterior_linearring)
 
-        out_pyproj_obj = pyproj.Proj(init='epsg:3857')
-        polygon_exterior_linearring_shape_obj_3857 = \
-            _project_shapely_geom(in_geom_obj=polygon_exterior_linearring_shape_obj,
-                                  in_proj_type="pyproj",
-                                  in_proj_value=in_pyproj_obj,
-                                  out_proj_type="pyproj",
-                                  out_proj_value=out_pyproj_obj)
+        # # deprecated, change to use gdal for coordinate re-projection
+        # out_pyproj_obj = pyproj.Proj(init='epsg:3857')
+        # polygon_exterior_linearring_shape_obj_3857 = \
+        #     _project_shapely_geom(in_geom_obj=polygon_exterior_linearring_shape_obj,
+        #                           in_proj_type="pyproj",
+        #                           in_proj_value=in_pyproj_obj,
+        #                           out_proj_type="pyproj",
+        #                           out_proj_value=out_pyproj_obj)
+        #
+        # # covert "geometry" part of this polygon to geojson
+        # geojson_str = json.dumps(shapely.geometry.mapping(polygon_exterior_linearring_shape_obj_3857))
 
-        #geojson_str = json.dumps({"type": "FeatureCollection", "features": [{"type": "Feature", "geometry": shapely.geometry.mapping(polygon_query_window), "properties":{}}]})
+        # use gdal for coordinate re-projection
+        wkt_3857 = reproject_wkt_gdal(in_proj_type=in_proj_type,
+                                      in_proj_value=in_proj_value,
+                                      out_proj_type="epsg",
+                                      out_proj_value=3857,
+                                      in_geom_wkt=polygon_exterior_linearring_shape_obj.to_wkt())
+        geojson_str = ogr.CreateGeometryFromWkt(wkt_3857).ExportToJson()
 
-        # covert "geometry" part of this polygon to geojson
-        geojson_str = json.dumps(shapely.geometry.mapping(polygon_exterior_linearring_shape_obj_3857))
         session_key = "watershed_geojson_str"
         if session_key in request.session:
             del request.session[session_key]
@@ -712,6 +731,48 @@ def get_geojson_from_hs_resource(res_id, filename, request):
         response_obj['error'] = 'Failed to load watershed.'
 
     return response_obj
+
+
+def reproject_wkt_gdal(in_proj_type,
+                       in_proj_value,
+                       out_proj_type,
+                       out_proj_value,
+                       in_geom_wkt):
+
+    try:
+        if 'GDAL_DATA' not in os.environ:
+            raise Exception("Environment variable 'GDAL_DATA' not found!")
+
+        source = osr.SpatialReference()
+        if in_proj_type.lower() == "epsg":
+            source.ImportFromEPSG(in_proj_value)
+        elif in_proj_type.lower() == "proj4":
+            source.ImportFromProj4(in_proj_value)
+        elif in_proj_type.lower() == "esri":
+            source.ImportFromESRI([in_proj_value])
+
+        target = osr.SpatialReference()
+        if out_proj_type.lower() == "epsg":
+            target.ImportFromEPSG(out_proj_value)
+        elif out_proj_type.lower() == "proj4":
+            target.ImportFromProj4(out_proj_value)
+        elif out_proj_type.lower() == "esri":
+            target.ImportFromESRI([out_proj_value])
+
+        transform = osr.CoordinateTransformation(source, target)
+
+        geom_gdal = ogr.CreateGeometryFromWkt(in_geom_wkt)
+        geom_gdal.Transform(transform)
+
+        return geom_gdal.ExportToWkt()
+
+    except Exception as ex:
+        logger.error("in_proj_type: {0}".format(in_proj_type))
+        logger.error("in_proj_value: {0}".format(in_proj_value))
+        logger.error("out_proj_type: {0}".format(out_proj_type))
+        logger.error("out_proj_value: {0}".format(out_proj_value))
+        logger.error(str(type(ex)) + " " + ex.message)
+        raise ex
 
 
 @login_required()
@@ -789,7 +850,7 @@ def subset_watershed(request):
 
             db_file_path = "/nwm.sqlite"
             job_id = str(uuid.uuid4())
-            logger = logging.getLogger()
+            # logger = logging.getLogger()
 
             all_start_dt = datetime.datetime.now()
             logger.info("-------------Process Started-------------------")
