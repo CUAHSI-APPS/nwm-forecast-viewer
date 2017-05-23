@@ -10,7 +10,7 @@ app_class = 'nwm_forecasts.app:nwmForecasts'
 app_package_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tethysapp', app_package)
 
 ### Python Dependencies ###
-dependencies = ['netCDF4>=1.2.7', 'geojson', 'pyproj', 'pycrs', 'shapely', 'fiona', 'subset_nwm_netcdf>=1.1.7']
+dependencies = ['netCDF4>=1.2.7', 'geojson', 'shapely', 'fiona', 'subset_nwm_netcdf>=1.1.7', "GDAL>=2.1.2"]
 
 setup(
     name=release_package,

@@ -12,12 +12,11 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, Http404, FileResponse, HttpResponse
 from django.shortcuts import render_to_response
 from django.views.decorators.csrf import csrf_exempt
-from django.conf import settings
+# from django.conf import settings
 
 from tethys_sdk.gizmos import SelectInput, ToggleSwitch, Button, DatePicker
 
 from hs_restclient import HydroShare, HydroShareAuthOAuth2, HydroShareNotAuthorized, HydroShareNotFound
-
 
 hydroshare_ready = True
 try:
@@ -32,21 +31,22 @@ import xmltodict
 import shapely.geometry
 from shapely import wkt
 import fiona
-# import pycrs
-# import pyproj
 import geojson
 from osgeo import ogr
 from osgeo import osr
 from subset_nwm_netcdf.query import query_comids_and_grid_indices
 from subset_nwm_netcdf.subset import start_subset_nwm_netcdf_job
-from subset_nwm_netcdf.query import _project_shapely_geom
 
 logger = logging.getLogger(__name__)
 
+local_vm_test = True
+
 hs_hostname = 'www.hydroshare.org'
 app_dir = '/projects/water/nwm/data/'
-transition_date_v11 = "20170418"  # local vm
-#transition_date_v11 = "20170508"
+if local_vm_test:
+    transition_date_v11 = "20170418"  # local vm
+else:
+    transition_date_v11 = "20170508"
 transition_timestamp_v11_AA = "12"
 transition_timestamp_v11_SR = "11"
 transition_timestamp_v11_MR = "12"
@@ -236,7 +236,13 @@ def get_netcdf_data(request):
 
             if config == 'short_range' or config == 'medium_range':
 
-                localFileDir = os.path.join(app_dir, config, dateDir)
+                if geom == "forcing":
+                    if local_vm_test:
+                        localFileDir = os.path.join(app_dir, "fe_" + config, dateDir)  # local test
+                    else:
+                        localFileDir = os.path.join(app_dir, "forcing_" + config, dateDir)
+                else:
+                    localFileDir = os.path.join(app_dir, config, dateDir)
 
                 if int(dateDir) < int(transition_date_v11) or (int(dateDir) == int(transition_date_v11) and timestamp_early_than_transition_v11(timeCheck, transition_timestamp_v11_SR)):
                     # v1.0
@@ -259,12 +265,13 @@ def get_netcdf_data(request):
             elif config == 'analysis_assim':
 
                 endDate = get_data['endDate'].replace('-', '')
-                # localFileDir = os.path.join(app_dir, config)
 
                 if geom == "forcing":
                     localFileDir_v10 = os.path.join(app_dir, "fe_analysis_assim")
-                    #localFileDir_v11 = os.path.join(app_dir, "forcing_analysis_assim")
-                    localFileDir_v11 = os.path.join(app_dir, "fe_analysis_assim")  # local vm
+                    if local_vm_test:
+                        localFileDir_v11 = os.path.join(app_dir, "fe_analysis_assim")  # local vm
+                    else:
+                        localFileDir_v11 = os.path.join(app_dir, "forcing_analysis_assim")
                 else:
                     localFileDir_v10 = os.path.join(app_dir, config)
                     localFileDir_v11 = localFileDir_v10
@@ -648,8 +655,6 @@ def get_geojson_from_hs_resource(res_id, filename, request):
             if geojson_obj.type.lower() == "featurecollection":
                 geojson_geom_first = geojson_obj.features[0].geometry
             shape_obj = shapely.geometry.asShape(geojson_geom_first)
-            # # deprecated, change to use gdal for coordinate re-projection
-            # in_pyproj_obj = pyproj.Proj(init='epsg:4326')
             response_obj['type'] = 'geojson'
             in_proj_type = "epsg"
             in_proj_value = 4326
@@ -659,11 +664,6 @@ def get_geojson_from_hs_resource(res_id, filename, request):
 
             proj_str = proj_str_raw.replace('\n', '')
             response_obj['type'] = 'shp'
-
-            # # deprecated, change to use gdal for coordinate re-projection
-            # fromcrs = pycrs.parser.from_unknown_text(proj_str)
-            # fromcrs_proj4 = fromcrs.to_proj4()
-            # in_pyproj_obj = pyproj.Proj(fromcrs_proj4)
 
             in_proj_type = "esri"
             in_proj_value = proj_str
@@ -682,7 +682,7 @@ def get_geojson_from_hs_resource(res_id, filename, request):
 
             # convert 3D geom to 2D
             if shape_obj.has_z:
-                wkt2D = shape_obj.to_wkt()
+                wkt2D = shape_obj.wkt
                 shape_obj = wkt.loads(wkt2D)
 
             shutil.rmtree(tmp_dir)
@@ -696,24 +696,12 @@ def get_geojson_from_hs_resource(res_id, filename, request):
 
         polygon_exterior_linearring_shape_obj = shapely.geometry.Polygon(polygon_exterior_linearring)
 
-        # # deprecated, change to use gdal for coordinate re-projection
-        # out_pyproj_obj = pyproj.Proj(init='epsg:3857')
-        # polygon_exterior_linearring_shape_obj_3857 = \
-        #     _project_shapely_geom(in_geom_obj=polygon_exterior_linearring_shape_obj,
-        #                           in_proj_type="pyproj",
-        #                           in_proj_value=in_pyproj_obj,
-        #                           out_proj_type="pyproj",
-        #                           out_proj_value=out_pyproj_obj)
-        #
-        # # covert "geometry" part of this polygon to geojson
-        # geojson_str = json.dumps(shapely.geometry.mapping(polygon_exterior_linearring_shape_obj_3857))
-
         # use gdal for coordinate re-projection
         wkt_3857 = reproject_wkt_gdal(in_proj_type=in_proj_type,
                                       in_proj_value=in_proj_value,
                                       out_proj_type="epsg",
                                       out_proj_value=3857,
-                                      in_geom_wkt=polygon_exterior_linearring_shape_obj.to_wkt())
+                                      in_geom_wkt=polygon_exterior_linearring_shape_obj.wkt)
         geojson_str = ogr.CreateGeometryFromWkt(wkt_3857).ExportToJson()
 
         session_key = "watershed_geojson_str"
@@ -750,6 +738,8 @@ def reproject_wkt_gdal(in_proj_type,
             source.ImportFromProj4(in_proj_value)
         elif in_proj_type.lower() == "esri":
             source.ImportFromESRI([in_proj_value])
+        else:
+            raise Exception("unsupported projection type: " + out_proj_type)
 
         target = osr.SpatialReference()
         if out_proj_type.lower() == "epsg":
@@ -758,6 +748,8 @@ def reproject_wkt_gdal(in_proj_type,
             target.ImportFromProj4(out_proj_value)
         elif out_proj_type.lower() == "esri":
             target.ImportFromESRI([out_proj_value])
+        else:
+            raise Exception("unsupported projection type: " + out_proj_type)
 
         transform = osr.CoordinateTransformation(source, target)
 

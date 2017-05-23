@@ -94,7 +94,8 @@ function change_time_dropdown_content(config)
 
 $('#config').on('change', function () {
 
-    if ($('#config').val() != 'analysis_assim')
+    //if ($('#config').val() != 'analysis_assim')
+    if ($('#config').val() == 'long_range')
     {
         $("#geom option[value='forcing']").attr('disabled','disabled');
         if ($("#geom option:selected").val() == "forcing" ||  $("#geom").val()=="forcing")
@@ -720,7 +721,7 @@ $(function () {
         }
         $('#sneqVar,#etVar,#ssVar,#subrunoffVar,#runoffVar,#canwVar,#ssiVar').removeClass('hidden');
     }
-    else if ($('#geom').val() === 'forcing' && $('#config').val() === 'analysis_assim')
+    else if ($('#geom').val() === 'forcing' && $('#config').val() != 'long_range')
     {
         // $('#comidInput').attr('disabled', true);
         // $('#comidDiv,#streamVar,#velocVar,#infVar,#outfVar,#snowhVar,#snowcVar,#avsnowVar,#evapVar,#soiltVar,#soilmVar')
@@ -1290,13 +1291,27 @@ function changeUnits(config) {
 function calibrateModel(config, geom, date) {
     var interval;
     var start = date;
-    if (config === 'short_range') {
+    if (config === 'short_range')
+    {
         interval = 3600 * 1000; // one hour
-    } else if (config === 'analysis_assim') {
+    }
+    else if (config === 'analysis_assim')
+    {
         interval = 3600 * 1000; // one hour
-    } else if (config === 'medium_range') {
-        interval = 3600 * 1000 * 3; // three hours
-    } else {
+    }
+    else if (config === 'medium_range')
+    {
+        if(geom=='forcing')
+        {
+            interval = 3600 * 1000 * 1; // three hours
+        }
+        else 
+        {
+            interval = 3600 * 1000 * 3; // three hours
+        }
+    }
+    else // long_range
+    {
         if (geom != 'land')
         {
             interval = 3600 * 1000 * 6; // six hours
@@ -1305,7 +1320,7 @@ function calibrateModel(config, geom, date) {
         {
             interval = 3600 * 1000 * 24; // 24 hours
         }
-    };
+    }
     return {'interval': interval, 'start': start}
 }
 
