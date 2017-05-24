@@ -7,6 +7,8 @@ import logging
 import uuid
 import datetime
 
+logger = logging.getLogger(__name__)
+
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, Http404, FileResponse, HttpResponse
@@ -16,14 +18,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from tethys_sdk.gizmos import SelectInput, ToggleSwitch, Button, DatePicker
 
-from hs_restclient import HydroShare, HydroShareAuthOAuth2, HydroShareNotAuthorized, HydroShareNotFound
 
-hydroshare_ready = True
-try:
-    from tethys_services.backends.hs_restclient_helper import get_oauth_hs
-except Exception:
-    print "could not load: tethys_services.backends.hs_restclient_helper import get_oauth_hs"
-    hydroshare_ready = False
 
 import netCDF4 as nc
 import numpy as np
@@ -37,7 +32,7 @@ from osgeo import osr
 from subset_nwm_netcdf.query import query_comids_and_grid_indices
 from subset_nwm_netcdf.subset import start_subset_nwm_netcdf_job
 
-logger = logging.getLogger(__name__)
+
 
 local_vm_test = True
 
@@ -51,6 +46,14 @@ transition_timestamp_v11_AA = "12"
 transition_timestamp_v11_SR = "11"
 transition_timestamp_v11_MR = "12"
 transition_timestamp_v11_LR = "00"
+
+hydroshare_ready = True
+try:
+    from tethys_services.backends.hs_restclient_helper import get_oauth_hs
+except Exception:
+    logger.error("could not load: tethys_services.backends.hs_restclient_helper import get_oauth_hs")
+    hydroshare_ready = False
+
 
 @login_required()
 def home(request):
@@ -125,6 +128,13 @@ def home(request):
                            attributes='id="submitBtn" form=paramForm value="Success"',
                            submit=True)
 
+    global hydroshare_ready
+    if hydroshare_ready:
+        try:
+            hs = get_oauth_hs(request)
+        except Exception:
+            hydroshare_ready = False
+
     if request.GET:
         # Make the waterml url query string
         config = request.GET['config']
@@ -165,6 +175,8 @@ def home(request):
         waterml_url = '?config=%s&geom=%s&variable=%s&COMID=%s&lon=%s&lat=%s&startDate=%s&endDate=%s&time=%s&lag=%s' % \
                       (config, geom, variable, comid, lon, lat, startDate, endDate, time, lag)
 
+        watershed_obj_session = request.session.get("watershed", None)
+
         context = {
             'config_input': config_input,
             'geom_input': geom_input,
@@ -178,7 +190,8 @@ def home(request):
             'submit_button': submit_button,
             'waterml_url': waterml_url,
             'hs_ready': hydroshare_ready,
-            'watershed_geojson_str': request.session.get("watershed_geojson_str", "")
+            'watershed_geojson_str': watershed_obj_session['geojson_str'] if watershed_obj_session is not None else "",
+            'watershed_attributes_str': json.dumps(watershed_obj_session['attributes']) if watershed_obj_session is not None else ""
         }
 
         return render(request, 'nwm_forecasts/home.html', context)
@@ -549,13 +562,16 @@ def loopThroughFiles(localFileDir, q_out, nc_files, var, comidIndex=None, comidI
             q_out.append(round(q_outT * 0.0393701, 4))
         elif var in ['RAINRATE']:
             q_outT = prediction_dataTemp.variables[var][0, comidIndexY, comidIndexX].tolist()
-            q_out.append(q_outT)
+            q_out.append(round(q_outT * 141.73, 4))  # mm/sec -> in/hr
     return q_out
 
 
+@login_required()
 def get_hs_watershed_list(request):
     response_obj = {}
     try:
+        if not hydroshare_ready:
+            raise Exception("not logged in via hydroshare")
         if request.is_ajax() and request.method == 'GET':
             resources_list = []
             hs = get_oauth_hs(request)
@@ -624,6 +640,8 @@ def get_hs_watershed_list(request):
 
                 response_obj['success'] = 'Resources obtained successfully.'
                 response_obj['resources'] = resources_json
+        else:
+            raise Exception("not a ajax GET request")
 
     except Exception as ex:
         print ex
@@ -632,20 +650,26 @@ def get_hs_watershed_list(request):
         return JsonResponse(response_obj)
 
 
+@login_required()
 def load_watershed(request):
+
+    if not hydroshare_ready:
+        raise Exception("not logged in via hydroshare")
 
     if request.is_ajax() and request.method == 'GET':
         res_id = str(request.GET['res_id'])
         filename = str(request.GET['filename'])
-        response_obj = get_geojson_from_hs_resource(res_id, filename, request)
+        response_obj = _get_geojson_from_hs_resource(res_id, filename, request)
         return JsonResponse(response_obj)
 
 
-def get_geojson_from_hs_resource(res_id, filename, request):
+def _get_geojson_from_hs_resource(res_id, filename, request):
 
     response_obj = {}
     try:
         hs = get_oauth_hs(request)
+
+        resource_md = hs.getSystemMetadata(res_id)
 
         if filename.endswith('.geojson'):
             # geojson file
@@ -703,16 +727,24 @@ def get_geojson_from_hs_resource(res_id, filename, request):
                                       out_proj_value=3857,
                                       in_geom_wkt=polygon_exterior_linearring_shape_obj.wkt)
         geojson_str = ogr.CreateGeometryFromWkt(wkt_3857).ExportToJson()
+        watershed = {
+                        "geojson_str": geojson_str,
+                        "attributes":
+                            {
+                                "res_id": res_id,
+                                "filename": filename,
+                                "title": resource_md['resource_title']
+                            }
+                    }
 
-        session_key = "watershed_geojson_str"
+        session_key = "watershed"
         if session_key in request.session:
             del request.session[session_key]
-        request.session[session_key] = geojson_str
+        request.session[session_key] = watershed
         request.session.modified = True
 
         response_obj['success'] = 'Geojson obtained successfully.'
-        response_obj['geojson_str'] = geojson_str
-        response_obj['id'] = '%s:%s' % (res_id, filename)
+        response_obj['watershed'] = watershed
 
     except Exception as e:
         print e
@@ -771,6 +803,8 @@ def reproject_wkt_gdal(in_proj_type,
 def upload_to_hydroshare(request):
     temp_dir = None
     try:
+        if not hydroshare_ready:
+            raise Exception("not logged in via hydroshare")
         return_json = {}
         if request.method == 'POST':
             post_data = request.POST
@@ -832,17 +866,22 @@ def upload_to_hydroshare(request):
         return JsonResponse(return_json)
 
 
-@csrf_exempt
+@login_required()
 def subset_watershed(request):
     bag_save_to_path = None
+    upload_to_hydroshare = False
 
     try:
+        if not hydroshare_ready:
+            raise Exception("not logged in via hydroshare")
         if request.method == 'POST':
-            request_json = json.loads(request.body)
+
+            request_dict = json.loads(request.body)
+            if "hydroshare" in request_dict:
+                upload_to_hydroshare = True
 
             db_file_path = "/nwm.sqlite"
             job_id = str(uuid.uuid4())
-            # logger = logging.getLogger()
 
             all_start_dt = datetime.datetime.now()
             logger.info("-------------Process Started-------------------")
@@ -851,8 +890,8 @@ def subset_watershed(request):
             # geojson example
             query_type = "geojson"
             shp_path = None
-            geom_str = request_json['geometry']
-            in_epsg = 3857  # NAD83; epsg is required
+            geom_str = request_dict['watershed_geometry']
+            in_epsg = 3857  # epsg is required
             huc_id = None
 
             query_result_dict = query_comids_and_grid_indices(job_id=job_id,
@@ -864,7 +903,6 @@ def subset_watershed(request):
                                                               huc_id=huc_id)
             if query_result_dict is None:
                 raise Exception("Failed to retrieve spatial query result")
-            print query_result_dict
 
             netcdf_folder_path = "/projects/water/nwm/data/nomads/"
 
@@ -880,55 +918,55 @@ def subset_watershed(request):
             cleanup = True
 
             # list of simulation dates
-            print request_json['parameter']
+            subset_parameter_dict = request_dict['subset_parameter']
 
-            if len(request_json['parameter']["endDate"]) > 0 and request_json['parameter']["config"] == "analysis_assim":
-                if int(request_json['parameter']["endDate"].replace("-", "")) < \
-                        int(request_json['parameter']["startDate"].replace("-", "")):
+            if len(subset_parameter_dict["endDate"]) > 0 and subset_parameter_dict["config"] == "analysis_assim":
+                if int(subset_parameter_dict["endDate"].replace("-", "")) < \
+                        int(subset_parameter_dict["startDate"].replace("-", "")):
                     raise Exception("endDate is earlier than startDate.")
-                startDate_obj = datetime.datetime.strptime(request_json['parameter']["startDate"], "%Y-%m-%d")
-                endDate_obj = datetime.datetime.strptime(request_json['parameter']["endDate"], "%Y-%m-%d")
+                startDate_obj = datetime.datetime.strptime(subset_parameter_dict["startDate"], "%Y-%m-%d")
+                endDate_obj = datetime.datetime.strptime(subset_parameter_dict["endDate"], "%Y-%m-%d")
                 dateDelta_obj = endDate_obj - startDate_obj
                 dateRange_obj_list = [startDate_obj + datetime.timedelta(days=x) for x in range(0, dateDelta_obj.days + 1)]
                 simulation_date_list = [x.strftime("%Y%m%d") for x in dateRange_obj_list]
             else:
-                simulation_date_list = [request_json['parameter']["startDate"].replace("-","")]
+                simulation_date_list = [subset_parameter_dict["startDate"].replace("-","")]
             print simulation_date_list
 
             # list of model configurations
             #model_configuration_list = ['analysis_assim', 'short_range', 'medium_range', 'long_range']
-            model_configuration_list = [request_json['parameter']["config"]]
+            model_configuration_list = [subset_parameter_dict["config"]]
 
             # list of model result data types
             #data_type_list = ['reservoir', 'channel', 'land', 'terrain']
-            if request_json['parameter']['geom'] == "forcing":
+            if subset_parameter_dict['geom'] == "forcing":
                 data_type_list = []
             else:
-                data_type_list = [request_json['parameter']['geom'].replace("channel_rt", "channel")]
+                data_type_list = [subset_parameter_dict['geom'].replace("channel_rt", "channel")]
 
             # list of model file types
             # file_type_list = ["forecast", 'forcing']
-            if request_json['parameter']['geom'] == "forcing":
+            if subset_parameter_dict['geom'] == "forcing":
                 file_type_list = ["forcing"]
             else:
                 file_type_list = ["forecast"]
 
             # list of time stamps or model cycles
             # [1, 2, ...];  [] or None means all default time stamps
-            if request_json['parameter']['config'] == "analysis_assim":
+            if subset_parameter_dict['config'] == "analysis_assim":
                 time_stamp_list = []
-            elif request_json['parameter']['config'] == "long_range":
+            elif subset_parameter_dict['config'] == "long_range":
                 time_stamp_list = []
-                if request_json['parameter']['lag_00z'] == "on":
+                if subset_parameter_dict['lag_00z'] == "on":
                    time_stamp_list.append(0)
-                if request_json['parameter']['lag_06z'] == "on":
+                if subset_parameter_dict['lag_06z'] == "on":
                     time_stamp_list.append(6)
-                if request_json['parameter']['lag_12z'] == "on":
+                if subset_parameter_dict['lag_12z'] == "on":
                     time_stamp_list.append(12)
-                if request_json['parameter']['lag_18z'] == "on":
+                if subset_parameter_dict['lag_18z'] == "on":
                     time_stamp_list.append(18)
             else:
-                time_stamp_list = [int(request_json['parameter']['time'])]
+                time_stamp_list = [int(subset_parameter_dict['time'])]
 
             grid_land_dict = query_result_dict["grid_land"]
             grid_terrain_dict = query_result_dict["grid_terrain"]
@@ -963,15 +1001,37 @@ def subset_watershed(request):
             shutil.make_archive(zip_path, 'zip', output_folder_path, job_id)
 
             bag_save_to_path = zip_path + ".zip"
-            response = FileResponse(open(bag_save_to_path, 'rb'), content_type='application/zip')
-            response['Content-Disposition'] = 'attachment; filename="' + '{0}.zip"'.format(job_id)
-            response['Content-Length'] = os.path.getsize(bag_save_to_path)
-            return response
+
+            # upload to hydroshare
+            if upload_to_hydroshare:
+                hs = get_oauth_hs(request)
+                hydroshare_dict = request_dict["hydroshare"]
+                resource_id = hs.createResource(hydroshare_dict["res_type"],
+                                                hydroshare_dict["title"],
+                                                resource_file=bag_save_to_path,
+                                                keywords=hydroshare_dict["keywords"].split(','),
+                                                abstract=hydroshare_dict["abstract"])
+
+                print resource_id
+                return JsonResponse({"status": "success", "res_id": resource_id})
+
+            else:  # return file binary stream
+
+                response = FileResponse(open(bag_save_to_path, 'rb'), content_type='application/zip')
+                response['Content-Disposition'] = 'attachment; filename="' + '{0}.zip"'.format(job_id)
+                response['Content-Length'] = os.path.getsize(bag_save_to_path)
+                return response
         else:
-            return HttpResponse(status=500, content="Not a POST request")
+            if upload_to_hydroshare:
+                return JsonResponse({"status": "error"})
+            else:
+                return HttpResponse(status=500, content="Not a POST request")
     except Exception as ex:
-        logger.error(ex)
-        return HttpResponse(status=500, content=ex.message)
+        logger.exception(type(ex))
+        if upload_to_hydroshare:
+            return JsonResponse({"status": "error", "msg": ex.message})
+        else:
+            return HttpResponse(status=500, content=ex.message)
     finally:
         if bag_save_to_path is not None:
             if os.path.exists(bag_save_to_path):

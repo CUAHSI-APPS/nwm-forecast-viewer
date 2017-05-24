@@ -26,6 +26,7 @@
     <button id="watershedBtn" type="button" class="btn btn-primary" data-toggle="modal" data-target="#popup-load-watershed">Add Watershed</button>
     <br />
     <button id="subsetBtn" type="button" class="btn btn-primary">Subset Watershed</button>
+    <input type="checkbox" id="chkbox-upload-subset-to-hs" name="chkbox-upload-subset-to-hs">Upload to HydroShare<br>
   {%endif%}
 
   <br /><br />
@@ -108,7 +109,7 @@
     {% gizmo button submit_button %}
   </form>
 
-  <input type="text" id="input-watershed-id" name="watershed" hidden >
+  <input type="text" id="watershed_attributes_str" name="watershed_attributes_str" value='{{watershed_attributes_str}}' hidden >
   <input type="text" id="watershed_geojson_str" name="watershed_geojson_str" value='{{watershed_geojson_str}}' hidden >
 
 
