@@ -31,6 +31,7 @@ from osgeo import ogr
 from osgeo import osr
 from subset_nwm_netcdf.query import query_comids_and_grid_indices
 from subset_nwm_netcdf.subset import start_subset_nwm_netcdf_job
+from subset_nwm_netcdf.merge import start_merge_nwm_netcdf_job
 
 
 
@@ -904,6 +905,8 @@ def subset_watershed(request):
             if query_result_dict is None:
                 raise Exception("Failed to retrieve spatial query result")
 
+            subset_parameter_dict = request_dict['subset_parameter']
+
             netcdf_folder_path = "/projects/water/nwm/data/nomads/"
 
             # Path of output folder
@@ -913,12 +916,12 @@ def subset_watershed(request):
             resize_dimension_grid = True
             resize_dimension_feature = True
             # merge resulting netcdfs
-            merge_netcdfs = False
+            merge_netcdfs = subset_parameter_dict['merge']
             # remove intermediate files
             cleanup = True
 
             # list of simulation dates
-            subset_parameter_dict = request_dict['subset_parameter']
+
 
             if len(subset_parameter_dict["endDate"]) > 0 and subset_parameter_dict["config"] == "analysis_assim":
                 if int(subset_parameter_dict["endDate"].replace("-", "")) < \
@@ -930,7 +933,7 @@ def subset_watershed(request):
                 dateRange_obj_list = [startDate_obj + datetime.timedelta(days=x) for x in range(0, dateDelta_obj.days + 1)]
                 simulation_date_list = [x.strftime("%Y%m%d") for x in dateRange_obj_list]
             else:
-                simulation_date_list = [subset_parameter_dict["startDate"].replace("-","")]
+                simulation_date_list = [subset_parameter_dict["startDate"].replace("-", "")]
             print simulation_date_list
 
             # list of model configurations
@@ -996,6 +999,16 @@ def subset_watershed(request):
                                         resize_dimension_feature=resize_dimension_feature,
                                         cleanup=cleanup,
                                         include_AA_tm12=False)
+
+            if merge_netcdfs:
+                start_merge_nwm_netcdf_job(job_id=job_id,
+                                           simulation_date_list=simulation_date_list,
+                                           file_type_list=file_type_list,
+                                           model_cfg_list=model_configuration_list,
+                                           data_type_list=data_type_list,
+                                           time_stamp_list=time_stamp_list,
+                                           netcdf_folder_path=output_netcdf_folder_path,
+                                           cleanup=cleanup)
 
             zip_path = os.path.join(output_folder_path, job_id)
             shutil.make_archive(zip_path, 'zip', output_folder_path, job_id)

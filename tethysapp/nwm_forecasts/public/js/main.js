@@ -1483,7 +1483,7 @@ $("#subsetBtn").on("click", function()
         var res_title = render_str_template(res_title_template, replace_dict);
         $('#resource-title-subset').val(res_title);
 
-        var abstract_template = "A subset of NWM data for region #res_titile#:" +
+        var abstract_template = "A subset of NWM data for region #res_titile#: " +
             "Model Configuration: #config#; " +
             "Geometry: #geometry#; " +
             "Date time/range: #time#; ";
@@ -1525,7 +1525,11 @@ function _prepare_watershed_data()
         return;
     }
 
-
+    var merge_netcdf = false;
+    if ($('#chkbox-subset-merge').prop('checked'))
+    {
+        merge_netcdf = true;
+    }
     url = $('#paramForm').serialize();
     // function getUrlParameter() requires a valid url: http + domain + query string
     // make a fake url
@@ -1540,7 +1544,8 @@ function _prepare_watershed_data()
         lag_00z: getUrlParameter("00z", url),
         lag_06z: getUrlParameter("06z", url),
         lag_12z: getUrlParameter("12z", url),
-        lag_18z: getUrlParameter("18z",url)
+        lag_18z: getUrlParameter("18z",url),
+        merge: merge_netcdf
     };
 
     // analysis_assim date range no more than 3 days
@@ -1562,7 +1567,7 @@ function _prepare_watershed_data()
     var geoJSON = new ol.format.GeoJSON();
     var geom_json = geoJSON.writeGeometry(watershed_fea.getGeometry());
 
-    var data = {watershed_geometry: geom_json, subset_parameter: parameter};
+    var data = {watershed_geometry: geom_json, watershed_epsg: 3857, subset_parameter: parameter};
     return data
 }
 
