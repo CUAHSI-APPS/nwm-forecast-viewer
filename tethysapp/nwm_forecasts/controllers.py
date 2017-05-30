@@ -308,7 +308,7 @@ def get_netcdf_data(request):
                 start_time = None
                 q_list = []
                 if len(nc_files_v10) > 0:
-                    v10_data = processNCFiles(localFileDir_v10, nc_files_v10, geom, comid, var, version="v1.0")
+                    v10_data = processNCFiles(localFileDir_v10, nc_files_v10, geom, comid, var, config="analysis_assim", version="v1.0")
                     start_time = v10_data[0]
                     q_list = v10_data[1]
 
@@ -498,7 +498,7 @@ def get_netcdf_data(request):
         return JsonResponse({'error': "Bad request. Must be a GET request."})
 
 
-def processNCFiles(localFileDir, nc_files, geom, comid, var, version="v1.1"):
+def processNCFiles(localFileDir, nc_files, geom, comid, var, version="v1.1", config=None):
     local_file_path = os.path.join(localFileDir, nc_files[0])
     prediction_data = nc.Dataset(local_file_path, mode="r")
 
@@ -529,12 +529,12 @@ def processNCFiles(localFileDir, nc_files, geom, comid, var, version="v1.1"):
     if 'time' in variables:
         time = [int(nc.num2date(prediction_data.variables["time"][0], prediction_data.variables['time'].units).strftime('%s'))]
         print "start epoch time: {0}".format(time[0])
-    elif geom == "forcing" and version == 'v1.0':
+    elif config == "analysis_assim" and geom == "forcing" and version == 'v1.0':
         # extract values from v1.0 AA forcing file name
         # nwm.20170508.t11z.fe_analysis_assim.tm00.conus.nc_georeferenced.nc
         pattern = re.compile(r"nwm.\d\d\d\d\d\d\d\d.t\d\dz.fe_analysis_assim.tm00.conus.nc_georeferenced.nc")
         if pattern.match(nc_files[0]):
-            t_obj = datetime.strptime(nc_files[0] + ".UTC", "nwm.%Y%m%d.t%Hz.fe_analysis_assim.tm00.conus.nc_georeferenced.nc.%Z")
+            t_obj = datetime.datetime.strptime(nc_files[0] + ".UTC", "nwm.%Y%m%d.t%Hz.fe_analysis_assim.tm00.conus.nc_georeferenced.nc.%Z")
             time = [int(t_obj.strftime('%s'))]
             print "Parsing start epoch time from v1.0 file name {0}".format(nc_files[0])
             print "start epoch time: {0}".format(time[0])
