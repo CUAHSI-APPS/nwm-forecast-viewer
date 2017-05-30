@@ -19,7 +19,6 @@ from django.views.decorators.csrf import csrf_exempt
 from tethys_sdk.gizmos import SelectInput, ToggleSwitch, Button, DatePicker
 
 
-
 import netCDF4 as nc
 import numpy as np
 import xmltodict
@@ -562,7 +561,11 @@ def loopThroughFiles(localFileDir, q_out, nc_files, var, comidIndex=None, comidI
             q_outT = prediction_dataTemp.variables[var][0, comidIndexY, comidIndexX].tolist()
             q_out.append(round(q_outT * 0.0393701, 4))
         elif var in ['RAINRATE']:
-            q_outT = prediction_dataTemp.variables[var][0, comidIndexY, comidIndexX].tolist()
+            if prediction_dataTemp.variables[var].dimensions[0] != "time":
+                # v1.0 forcing data
+                q_outT = prediction_dataTemp.variables[var][comidIndexY, comidIndexX].tolist()
+            else:
+                q_outT = prediction_dataTemp.variables[var][0, comidIndexY, comidIndexX].tolist()
             q_out.append(round(q_outT * 141.73, 4))  # mm/sec -> in/hr
     return q_out
 
