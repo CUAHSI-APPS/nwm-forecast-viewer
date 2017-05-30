@@ -529,8 +529,19 @@ def processNCFiles(localFileDir, nc_files, geom, comid, var, version="v1.1"):
     if 'time' in variables:
         time = [int(nc.num2date(prediction_data.variables["time"][0], prediction_data.variables['time'].units).strftime('%s'))]
         print "start epoch time: {0}".format(time[0])
+    elif geom == "forcing" and version == 'v1.0':
+        # extract values from v1.0 AA forcing file name
+        # nwm.20170508.t11z.fe_analysis_assim.tm00.conus.nc_georeferenced.nc
+        pattern = re.compile(r"nwm.\d\d\d\d\d\d\d\d.t\d\dz.fe_analysis_assim.tm00.conus.nc_georeferenced.nc")
+        if pattern.match(nc_files[0]):
+            t_obj = datetime.strptime(nc_files[0] + ".UTC", "nwm.%Y%m%d.t%Hz.fe_analysis_assim.tm00.conus.nc_georeferenced.nc.%Z")
+            time = [int(t_obj.strftime('%s'))]
+            print "Parsing start epoch time from v1.0 file name {0}".format(nc_files[0])
+            print "start epoch time: {0}".format(time[0])
+        else:
+            raise Exception({"Invalid netCDF file name: " + nc_files[0]})
     else:
-        return JsonResponse({'error': "Invalid netCDF file"})
+        raise Exception({"Invalid netCDF file: no var 'time' " + nc_files[0]})
     return [time, q_out, 'notLong']
 
 
