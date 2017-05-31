@@ -7,7 +7,7 @@ $(document).ready(function () {
 });
 
 //Map variables
-var map, mapView, base_layer, all_streams_layer, selected_streams_layer, watershedLayer;
+var map, mapView, base_layer, all_streams_Source, all_streams_layer, selected_streams_layer, watershedLayer;
 
 // NHD variables
 var comid;
@@ -19,21 +19,21 @@ var nc_chart, seriesData, startDate, seriesDataGroup = [];
 var $btnLoadWatershed;
 var $popupLoadWatershed;
 
-(function () {
-    var target, observer, config;
-    // select the target node
-    target = $('#app-content-wrapper')[0];
-
-    observer = new MutationObserver(function () {
-        window.setTimeout(function () {
-            map.updateSize();
-        }, 350);
-    });
-
-    config = {attributes: true};
-
-    observer.observe(target, config);
-}());
+// (function () {
+//     var target, observer, config;
+//     // select the target node
+//     target = $('#app-content-wrapper')[0];
+//
+//     observer = new MutationObserver(function () {
+//         window.setTimeout(function () {
+//             map.updateSize();
+//         }, 350);
+//     });
+//
+//     config = {attributes: true};
+//
+//     observer.observe(target, config);
+// }());
 
 function change_time_dropdown_content(config)
 {
@@ -161,13 +161,30 @@ $(function () {
     /**********************************
      **********INITIALIZE MAP *********
      **********************************/
+    var mousePositionControl = new ol.control.MousePosition({
+        coordinateFormat: ol.coordinate.createStringXY(2),
+        projection: 'EPSG:4326',
+        // comment the following two lines to have the mouse position
+        // be placed within the map.
+        className: 'custom-mouse-position',
+        target: document.getElementById('mouse-position'),
+        undefinedHTML: '&nbsp;'
+      });
+
     map = new ol.Map({
+        controls: ol.control.defaults({
+          attributionOptions: /** @type {olx.control.AttributionOptions} */
+          ({
+            collapsible: false
+          })
+        }).extend([mousePositionControl]),
         target: 'map-view',
         view: new ol.View({
             center: ol.proj.transform([-98, 38.5], 'EPSG:4326', 'EPSG:3857'),
             zoom: 4,
             minZoom: 2,
-            maxZoom: 18
+            maxZoom: 18,
+            projection:  'EPSG:3857'
         })
     });
 
@@ -242,44 +259,8 @@ $(function () {
             CenterMap(qLat, qLong);
             mapView.setZoom(12);
             lonlat = [qLong, qLat];
-            run_point_indexing_service2(lonlat);
+            //run_point_indexing_service2(lonlat);
         }
-        if (qCOMID && qGeom === 'channel_rt')
-        {
-            $.ajax({
-                url: 'https://watersgeo.epa.gov/arcgis/rest/services/NHDPlus_NP21/NHDSnapshot_NP21_Labeled/MapServer/0/query',
-                data: {
-                    where: 'COMID=' + qCOMID,
-                    returnGeometry: true,
-                    f: 'json'
-                },
-                dataType: 'json',
-                success: function (data) {
-                    var geometry = data.features[0].geometry;
-                    geometry['coordinates'] = geometry['paths'][0];
-                    delete geometry['paths'];
-                    geometry['type'] = 'LineString';
-                    selected_streams_layer.getSource().clear();
-                    var geojsonformatter = new ol.format.GeoJSON;
-                    var myGeometry = geojsonformatter.readGeometry(geometry);
-                    //name the feature according to COMID
-                    var newFeatureName = 'COMID: ' + comid;
-
-                    var newFeature = new ol.Feature({
-                        geometry: myGeometry,
-                        name: newFeatureName
-                    });
-                    selected_streams_layer.getSource().addFeature(newFeature);
-                    var newLon = geometry.coordinates[Math.floor(geometry.coordinates.length / 2)][0];
-                    var newLat = geometry.coordinates[Math.floor(geometry.coordinates.length / 2)][1];
-                    lonlat = ol.proj.transform([newLon, newLat], 'EPSG:3857', 'EPSG:4326');
-                    $('#longInput').val(lonlat[0]);
-                    $('#latInput').val(lonlat[1]);
-                    CenterMap(lonlat[1], lonlat[0]);
-                    mapView.setZoom(12);
-                } //success: function (data)
-            }); //$.ajax(
-        }//if (qCOMID)
 
         if (!check_datetime_range($("#startDate").val(), $("#endDate").val(), null))
         {
@@ -318,7 +299,7 @@ $(function () {
         crossOrigin: 'Anonymous' //This is necessary for CORS security in the browser
     });
 
-    grid = new ol.layer.Tile({
+    var grid = new ol.layer.Tile({
         source: grid_Source,
         maxResolution: 100,
         keyword: "land"
@@ -339,12 +320,26 @@ $(function () {
         keyword: "reservoir"
     });
 
+    all_streams_Source = new ol.source.TileWMS({
+        url: 'https://geoserver.byu.edu/arcgis/services/NWM/nwm_channel_v10/MapServer/WmsServer?',
+        params: {
+            LAYERS: "0"
+        },
+        crossOrigin: 'Anonymous' //This is necessary for CORS security in the browser
+    });
+
+    all_streams_layer = new ol.layer.Tile({
+        source: all_streams_Source,
+        keyword: "channel_rt"
+    });
+
     var createLineStyleFunction = function() {
         return function(feature, resolution) {
             var style = new ol.style.Style({
                 stroke: new ol.style.Stroke({
+                    //color: '#ffff00',
                     color: '#ffff00',
-                    width: 2
+                    width: 3
                 }),
 //                text: new ol.style.Text({
 //                    textAlign: 'center',
@@ -385,7 +380,7 @@ $(function () {
     var esrijsonFormat = new ol.format.EsriJSON();
     var vectorSource = new ol.source.Vector({
         loader: function(extent, resolution, projection) {
-            var url = serviceUrl + '/query/?f=json&geometry=' +
+            var url = serviceUrl + '/query/?f=json&outFields=COMID&geometry=' +
                 '{"xmin":' + extent[0] + ',"ymin":' + extent[1] + ',"xmax":' + extent[2] + ',"ymax":' + extent[3] +
                 ',"spatialReference":{"wkid":102100}}&inSR=102100&outSR=102100';
             $.ajax({
@@ -416,17 +411,17 @@ $(function () {
         }))
     });
 
-    all_streams_layer = new ol.layer.Vector({
-        source: vectorSource,
-        style: new ol.style.Style({
-            stroke: new ol.style.Stroke({
-                color: '#0000ff',
-                width: 2
-            }),
-        }),
-        maxResolution: 100,
-        keyword: 'channel_rt'
-    });
+    // all_streams_layer = new ol.layer.Vector({
+    //     source: vectorSource,
+    //     style: new ol.style.Style({
+    //         stroke: new ol.style.Stroke({
+    //             color: '#0000ff',
+    //             width: 2
+    //         }),
+    //     }),
+    //     maxResolution: 100,
+    //     keyword: 'channel_rt'
+    // });
 
     watershedLayer =  new ol.layer.Vector(
         {
@@ -478,6 +473,10 @@ $(function () {
                     'INFO_FORMAT': 'text/xml',
                     'FEATURE_COUNT': 1
                 });
+            }
+            else if (all_streams_layer.getVisible())
+            {
+                 var stream_url = "query stream";
             }
 
             // }
@@ -531,6 +530,29 @@ $(function () {
                 var coordinate = evt.coordinate;
                 lonlat = ol.proj.transform(coordinate, 'EPSG:3857', 'EPSG:4326');
             }
+            else if (stream_url) {
+                //var stream_Data = dataCall(stream_url);
+                //console.log(stream_Data);
+                var stream_info = run_point_indexing_service_byu(null, evt.coordinate, 3857, 3857);
+
+                if (stream_info != null)
+                {
+
+                    $("#comidInput").val(stream_info.comid);
+
+                    displayContent += '<tr><td>Stream COMID: ' + stream_info.comid + '</td></tr>';
+                    showPopup = true;
+                    zoomToClick = true;
+
+                    selected_streams_layer.getSource().clear();
+                    selected_streams_layer.getSource().addFeature(stream_info.feature);
+                }
+                else
+                {
+                    return ;
+                }
+
+            }
             displayContent += '</table>';
 
             if (showPopup)
@@ -556,7 +578,7 @@ $(function () {
                         mapView.setZoom(12);
                         CenterMap(lonlat[1], lonlat[0]);
                     }
-                    run_point_indexing_service(lonlat);
+                    //run_point_indexing_service(lonlat);
                 }
 
             if ($("#geom").val() == "land")
@@ -590,9 +612,11 @@ $(function () {
     {
 
         // switch layers
-        toggleLayers.forEach(function(layer) {
-                layer.setVisible($("#geom").val() === layer.get('keyword'));
-            });
+        toggleLayers.forEach(function(layer)
+        {
+            layer.setVisible($("#geom").val() === layer.get('keyword'));
+        });
+
         if ($("#geom").val() == 'channel_rt')
         {
             selected_streams_layer.setVisible(true);
@@ -609,12 +633,9 @@ $(function () {
         });
 
         // hide and disable coordinate input
-            $('#gridDiv').addClass('hidden');
-            // $('#gridInputY').attr('disabled', true);
-            // $('#gridInputX').attr('disabled', true);
+        $('#gridDiv').addClass('hidden');
         // hide and disable comid input
-            $('#comidDiv').addClass('hidden');
-            // $('#comidInput').attr('disabled', true);
+        $('#comidDiv').addClass('hidden');
 
         if ($('#geom').val() === 'channel_rt')
         {
@@ -635,17 +656,11 @@ $(function () {
             {
                 $('#velocVar').removeClass('hidden');
             }
-            // $('#gridInputY').attr('disabled', true);
-            // $('#gridInputX').attr('disabled', true);
-            // $('#gridDiv,#infVar,#outfVar,#snowhVar,#sneqVar,#snowcVar,#etVar,#ssVar,#avsnowVar,#subrunoffVar,#runoffVar,#canwVar,#ssiVar,#evapVar,#soiltVar,#soilmVar').
-            //     addClass('hidden');
         }
         else if ($('#geom').val() === 'reservoir')
         {
             if (window.location.search.includes('reservoir'))
             {
-                //$('#variable').val(window.location.search.split("&")[2].substring(window.location.search.split("&")[2].
-                //    lastIndexOf("variable=") + 9));
                 $('#variable').val(getUrlParameter('variable', null));
             }
             else
@@ -655,25 +670,15 @@ $(function () {
             $('#comidInput').attr('disabled', false);
             $('#comidDiv').removeClass('hidden');
             $('#infVar,#outfVar').removeClass('hidden');
-            // $('#gridInputY').attr('disabled', true);
-            // $('#gridInputX').attr('disabled', true);
-            // $('#gridDiv,#streamVar,#velocVar,#snowhVar,#sneqVar,#snowcVar,#etVar,#ssVar,#avsnowVar,#subrunoffVar,#runoffVar,#canwVar,#ssiVar,#evapVar,#soiltVar,#soilmVar').
-            //     addClass('hidden');
         }
         else if ($('#geom').val() === 'land' && ($('#config').val() === 'short_range' ||
             $('#config').val() === 'analysis_assim'))
         {
-            // $('#comidInput').attr('disabled', true);
-            // $('#comidDiv,#streamVar,#velocVar,#infVar,#outfVar,#subrunoffVar,#runoffVar,#evapVar,#soiltVar,#soilmVar,#canwVar,#ssiVar')
-            //     .addClass('hidden');
-
             $('#gridDiv').removeClass('hidden');
             $('#gridInputY').attr('disabled', false);
             $('#gridInputX').attr('disabled', false);
             if (window.location.search.includes('land'))
             {
-                // $('#variable').val(window.location.search.split("&")[2].substring(window.location.search.split("&")[2].
-                //     lastIndexOf("variable=") + 9));
                 $('#variable').val(getUrlParameter('variable', null));
             }
             else
@@ -684,10 +689,6 @@ $(function () {
         }
         else if ($('#geom').val() === 'land' && $('#config').val() === 'medium_range')
         {
-            // $('#comidInput').attr('disabled', true);
-            // $('#comidDiv,#streamVar,#velocVar,#infVar,#outfVar,#runoffVar,#ssiVar').
-            //     addClass('hidden');
-
             $('#gridDiv').removeClass('hidden');
             $('#gridInputY').attr('disabled', false);
             $('#gridInputX').attr('disabled', false);
@@ -706,17 +707,11 @@ $(function () {
         }
         else if ($('#geom').val() === 'land' && $('#config').val() === 'long_range')
         {
-            // $('#comidInput').attr('disabled', true);
-            // $('#comidDiv,#streamVar,#velocVar,#infVar,#outfVar,#snowhVar,#snowcVar,#avsnowVar,#evapVar,#soiltVar,#soilmVar, #rainrateVar')
-            //     .addClass('hidden');
-
             $('#gridDiv').removeClass('hidden');
             $('#gridInputY').attr('disabled', false);
             $('#gridInputX').attr('disabled', false);
             if (window.location.search.includes('land') && window.location.search.includes('long_range'))
             {
-                // $('#variable').val(window.location.search.split("&")[2].substring(window.location.search.split("&")[2].
-                //     lastIndexOf("variable=") + 9));
                 $('#variable').val(getUrlParameter('variable', null));
             }
             else
@@ -727,9 +722,6 @@ $(function () {
         }
         else if ($('#geom').val() === 'forcing' && $('#config').val() != 'long_range')
         {
-            // $('#comidInput').attr('disabled', true);
-            // $('#comidDiv,#streamVar,#velocVar,#infVar,#outfVar,#snowhVar,#snowcVar,#avsnowVar,#evapVar,#soiltVar,#soilmVar')
-            //     .addClass('hidden');
             $('#gridDiv').removeClass('hidden');
             $('#gridInputY').attr('disabled', false);
             $('#gridInputX').attr('disabled', false);
@@ -752,15 +744,40 @@ $(function () {
     {
         addGeojsonLayerToMap(watershed_geojson_str, watershed_attributes_str, false);
     }
-    $("#geom").trigger("change");
 
+
+    if (qCOMID && qGeom === 'channel_rt')
+    {
+        var stream_info = run_point_indexing_service_byu(qCOMID, null, null, 3857);
+        if (stream_info != null)
+            {
+
+                //$("#comidInput").val(stream_info.comid);
+
+                // displayContent += '<tr><td>Stream COMID: ' + stream_info.comid + '</td></tr>';
+                // showPopup = true;
+                // zoomToClick = true;
+
+                selected_streams_layer.getSource().clear();
+                selected_streams_layer.getSource().addFeature(stream_info.feature);
+                lonlat = ol.proj.transform(stream_info.mid_point, 'EPSG:3857', 'EPSG:4326');
+                $('#longInput').val(lonlat[0]);
+                $('#latInput').val(lonlat[1]);
+                CenterMap(lonlat[1], lonlat[0]);
+                mapView.setZoom(12);
+            }
+    } //if (qCOMID && qGeom === 'channel_rt')
+
+
+    $("#geom").trigger("change");
 });
 
 /****************************
  ***Popup Displaying Info***
  ****************************/
 
-function dataCall(inputURL) {
+function dataCall(inputURL)
+{
     var result = null;
     $.ajax({
         url: inputURL,
@@ -775,7 +792,8 @@ function dataCall(inputURL) {
  ***MAP VIEW FUNCTIONALITY***
  ****************************/
 
-function CenterMap(lat,lon){
+function CenterMap(lat,lon)
+{
     var dbPoint = {
         "type": "Point",
         "coordinates": [lon, lat]
@@ -788,116 +806,191 @@ function CenterMap(lat,lon){
  *********EPA WMS FUNCTIONALITY**********
  ****************************************/
 
-function run_point_indexing_service(lonlat) {
-    var inputLon = lonlat[0];
-    var inputLat = lonlat[1];
-    var wktval = "POINT(" + inputLon + " " + inputLat + ")";
-
-    var options = {
-        "success" : "pis_success",
-        "error"   : "pis_error",
-        "timeout" : 60 * 1000
-    };
-
-    var data = {
-        "pGeometry": wktval,
-        "pGeometryMod": "WKT,SRSNAME=urn:ogc:def:crs:OGC::CRS84",
-        "pPointIndexingMethod": "DISTANCE",
-        "pPointIndexingMaxDist": 10,
-        "pOutputPathFlag": "TRUE",
-        "pReturnFlowlineGeomFlag": "FULL",
-        "optOutCS": "SRSNAME=urn:ogc:def:crs:OGC::CRS84",
-        "optOutPrettyPrint": 0,
-        "optClientRef": "CodePen"
-    };
-    WATERS.Services.PointIndexingService(data, options);
-}
-
-function run_point_indexing_service2(lonlat)
+// EPA Functionality has been replaced by private WMS and WFS services hosted at BYU ArcServer
+function run_point_indexing_service_byu(comid, pnt_coordinate, pnt_epsg, output_feature_epsg)
 {
-    var qLong = lonlat[0];
-    var qLat = lonlat[1];
-    var wktval = "POINT(" + qLong + " " + qLat + ")";
-    var options = {
-        "success": "pis_success2",
-        "error": "pis_error",
-        "timeout": 60 * 1000
-    };
-    var data = {
-        "pGeometry": wktval,
-        "pGeometryMod": "WKT,SRSNAME=urn:ogc:def:crs:OGC::CRS84",
-        "pPointIndexingMethod": "DISTANCE",
-        "pPointIndexingMaxDist": 10,
-        "pOutputPathFlag": "TRUE",
-        "pReturnFlowlineGeomFlag": "FULL",
-        "optOutCS": "SRSNAME=urn:ogc:def:crs:OGC::CRS84",
-        "optOutPrettyPrint": 0,
-        "optClientRef": "CodePen"
-    };
-    WATERS.Services.PointIndexingService(data, options);
-}
+    // comid: station_id/comid of a stream
+    // pnt_coordinate: [lon, lat] coordinate
+    // pnt_epsg: epsg code of pnt_coordinate
+    // output_feature_epsg: epsg code of the resulting stream openlayer feature obj
+    // usage 1: give a comid, return its stream feature and mid point in output_feature_epsg projection
+    // usage 2: give pnt_coordinate and pnt_epsg, find a closet stream and return its comid, stream feature and mid point
 
-function pis_success(result) {
-    var srv_rez = result.output;
-    if (srv_rez == null) {
-        if (result.status.status_message !== null) {
-            report_failed_search(result.status.status_message);
-        } else {
-            report_failed_search("No reach located near your click point.");
+    if (comid == null)
+    {
+        var pnt_coordinate_3857 = pnt_coordinate;
+        if (pnt_epsg != 3857)
+        {
+            pnt_coordinate_3857 = ol.proj.transform(pnt_coordinate, 'EPSG:' + pnt_epsg.toString(), 'EPSG:3857');
         }
-        return;
+
+        var view = map.getView();
+        var viewResolution = view.getResolution();
+        // WMS GetFeatureInfo request
+        var stream_url = all_streams_Source.getGetFeatureInfoUrl(pnt_coordinate_3857, viewResolution, view.getProjection(), {
+                        'INFO_FORMAT': 'text/xml',
+                        'FEATURE_COUNT': 1
+                    });
+
+        var stream_Data = dataCall(stream_url);
+
+        var reservoir_Count = stream_Data.documentElement.childElementCount;
+        if (reservoir_Count < 1)
+        {
+            return null;
+        }
+        comid = stream_Data.documentElement.children[0].attributes['station_id'].value;
     }
 
-    var srv_fl = result.output.ary_flowlines;
-    var newLon = srv_fl[0].shape.coordinates[Math.floor(srv_fl[0].shape.coordinates.length / 2)][0];
-    var newLat = srv_fl[0].shape.coordinates[Math.floor(srv_fl[0].shape.coordinates.length / 2)][1];
-    comid = srv_fl[0].comid.toString();
-    $('#longInput').val(newLon);
-    $('#latInput').val(newLat);
-    $('#comidInput').val(comid);
-
-    var element = document.getElementById('popup');
-    lonlat = ol.proj.transform([newLon, newLat], 'EPSG:4326', 'EPSG:3857');
-    map.getOverlays().item(0).setPosition(lonlat);
-    var displayContent = "<p>COMID: " + comid + "</p>";
-    $(element).popover({
-                    'placement': 'top',
-                    'html': true,
-                    'content': displayContent
-                });
-
-                $(element).popover('show');
-                $(element).next().css('cursor', 'text');
-
-    //add the selected flow line to the map
-    for (var i in srv_fl) {
-        selected_streams_layer.getSource().clear();
-        selected_streams_layer.getSource().addFeature(geojson2feature(srv_fl[i].shape));
+    // WFS GetFeature request
+    var wfs_query_url_template = "https://geoserver.byu.edu/arcgis/services/NWM/nwm_channel_v10/MapServer/WFSServer?service=WFS&request=GetFeature&version=1.1.0&typename=drew_nwm_channel_v10:channels_nwm_ioc&Filter=<ogc:Filter><ogc:PropertyIsEqualTo><ogc:PropertyName>station_id</ogc:PropertyName><ogc:Literal>#station_id#</ogc:Literal></ogc:PropertyIsEqualTo></ogc:Filter>";
+    var wfs_query_url = wfs_query_url_template.replace("#station_id#", comid);
+    var features_4269 = new ol.format.WFS().readFeatures(dataCall(wfs_query_url));
+    if (features_4269.length < 1)
+    {
+        return null;
     }
-}
 
-function pis_success2(result) {
-    var srv_fl = result.output.ary_flowlines;
-    var newLon = srv_fl[0].shape.coordinates[Math.floor(srv_fl[0].shape.coordinates.length/2)][0];
-    var newLat = srv_fl[0].shape.coordinates[Math.floor(srv_fl[0].shape.coordinates.length/2)][1];
-    comid = srv_fl[0].comid.toString();
-
-    //add the selected flow line to the map
-    for (var i in srv_fl) {
-        selected_streams_layer.getSource().clear();
-        selected_streams_layer.getSource().addFeature(geojson2feature(srv_fl[i].shape));
+    // get first feature
+    var stream_feature = features_4269[0];
+    stream_feature.setId(comid);
+    if (output_feature_epsg != 4269)
+    {
+        stream_feature = new ol.Feature({
+                                    geometry: stream_feature.getGeometry().clone().transform('EPSG:4269','EPSG:' + output_feature_epsg.toString()),
+                                    id: comid
+                                    })
     }
-}
 
-function pis_error(XMLHttpRequest, textStatus, errorThrown) {
-    report_failed_search(textStatus);
-}
+    // calculate mid point
+    var pnt_num = stream_feature.getGeometry().getCoordinates()[0].length;
+    var mid_index = Math.floor(pnt_num/2);
+    // Note: the mid_pnt may be 3D - [X, Y, Z]
+    var mid_pnt= stream_feature.getGeometry().getCoordinates()[0][mid_index];
 
-function report_failed_search(MessageText){
-    //Set the message of the bad news
-    $('#info').append('<strong>Search Results:</strong><br>' + MessageText);
-    mapView.setZoom(4);
-}
+    return {
+            comid: comid,
+            feature: stream_feature,
+            mid_point: mid_pnt
+           };
+} //function run_point_indexing_service_byu()
+
+
+// function run_point_indexing_service(lonlat)
+// {
+//     var inputLon = lonlat[0];
+//     var inputLat = lonlat[1];
+//     var wktval = "POINT(" + inputLon + " " + inputLat + ")";
+//
+//     var options = {
+//         "success" : "pis_success",
+//         "error"   : "pis_error",
+//         "timeout" : 60 * 1000
+//     };
+//
+//     var data = {
+//         "pGeometry": wktval,
+//         "pGeometryMod": "WKT,SRSNAME=urn:ogc:def:crs:OGC::CRS84",
+//         "pPointIndexingMethod": "DISTANCE",
+//         "pPointIndexingMaxDist": 10,
+//         "pOutputPathFlag": "TRUE",
+//         "pReturnFlowlineGeomFlag": "FULL",
+//         "optOutCS": "SRSNAME=urn:ogc:def:crs:OGC::CRS84",
+//         "optOutPrettyPrint": 0,
+//         "optClientRef": "CodePen"
+//     };
+//     WATERS.Services.PointIndexingService(data, options);
+// }
+//
+// function run_point_indexing_service2(lonlat)
+// {
+//     var qLong = lonlat[0];
+//     var qLat = lonlat[1];
+//     var wktval = "POINT(" + qLong + " " + qLat + ")";
+//     var options = {
+//         "success": "pis_success2",
+//         "error": "pis_error",
+//         "timeout": 60 * 1000
+//     };
+//     var data = {
+//         "pGeometry": wktval,
+//         "pGeometryMod": "WKT,SRSNAME=urn:ogc:def:crs:OGC::CRS84",
+//         "pPointIndexingMethod": "DISTANCE",
+//         "pPointIndexingMaxDist": 10,
+//         "pOutputPathFlag": "TRUE",
+//         "pReturnFlowlineGeomFlag": "FULL",
+//         "optOutCS": "SRSNAME=urn:ogc:def:crs:OGC::CRS84",
+//         "optOutPrettyPrint": 0,
+//         "optClientRef": "CodePen"
+//     };
+//     WATERS.Services.PointIndexingService(data, options);
+// }
+//
+// function pis_success(result)
+// {
+//     var srv_rez = result.output;
+//     if (srv_rez == null)
+//     {
+//         if (result.status.status_message !== null) {
+//             report_failed_search(result.status.status_message);
+//         } else {
+//             report_failed_search("No reach located near your click point.");
+//         }
+//         return;
+//     }
+//
+//     var srv_fl = result.output.ary_flowlines;
+//     var newLon = srv_fl[0].shape.coordinates[Math.floor(srv_fl[0].shape.coordinates.length / 2)][0];
+//     var newLat = srv_fl[0].shape.coordinates[Math.floor(srv_fl[0].shape.coordinates.length / 2)][1];
+//     comid = srv_fl[0].comid.toString();
+//     $('#longInput').val(newLon);
+//     $('#latInput').val(newLat);
+//     $('#comidInput').val(comid);
+//
+//     var element = document.getElementById('popup');
+//     lonlat = ol.proj.transform([newLon, newLat], 'EPSG:4326', 'EPSG:3857');
+//     map.getOverlays().item(0).setPosition(lonlat);
+//     var displayContent = "<p>COMID: " + comid + "</p>";
+//     $(element).popover({
+//                     'placement': 'top',
+//                     'html': true,
+//                     'content': displayContent
+//                 });
+//
+//                 $(element).popover('show');
+//                 $(element).next().css('cursor', 'text');
+//
+//     //add the selected flow line to the map
+//     for (var i in srv_fl)
+//     {
+//         selected_streams_layer.getSource().clear();
+//         selected_streams_layer.getSource().addFeature(geojson2feature(srv_fl[i].shape));
+//     }
+// }
+//
+// function pis_success2(result) {
+//     var srv_fl = result.output.ary_flowlines;
+//     var newLon = srv_fl[0].shape.coordinates[Math.floor(srv_fl[0].shape.coordinates.length/2)][0];
+//     var newLat = srv_fl[0].shape.coordinates[Math.floor(srv_fl[0].shape.coordinates.length/2)][1];
+//     comid = srv_fl[0].comid.toString();
+//
+//     //add the selected flow line to the map
+//     for (var i in srv_fl)
+//     {
+//         selected_streams_layer.getSource().clear();
+//         selected_streams_layer.getSource().addFeature(geojson2feature(srv_fl[i].shape));
+//     }
+// }
+//
+// function pis_error(XMLHttpRequest, textStatus, errorThrown) {
+//     report_failed_search(textStatus);
+// }
+//
+// function report_failed_search(MessageText){
+//     //Set the message of the bad news
+//     $('#info').append('<strong>Search Results:</strong><br>' + MessageText);
+//     mapView.setZoom(4);
+// }
 
 function geojson2feature(myGeoJSON) {
     //Convert GeoJSON object into an OpenLayers 3 feature.
@@ -921,7 +1014,8 @@ function geojson2feature(myGeoJSON) {
  *******BUILD CHART FUNCTIONALITY********
  ****************************************/
 
-function get_netcdf_chart_data(config, geom, variable, comid, date, time, lag, endDate) {
+function get_netcdf_chart_data(config, geom, variable, comid, date, time, lag, endDate)
+{
     $.ajax({
         type: 'GET',
         url: 'get-netcdf-data/',
@@ -936,21 +1030,26 @@ function get_netcdf_chart_data(config, geom, variable, comid, date, time, lag, e
             'lag': lag.toString(),
             'endDate': endDate
         },
-        error: function (jqXHR, textStatus, errorThrown) {
+        error: function (jqXHR, textStatus, errorThrown)
+        {
             $('#info').html('<p class="alert alert-danger" style="text-align: center"><strong>An unknown error occurred while retrieving the data</strong></p>');
             clearErrorSelection();
         },
-        beforeSend: function () {
+        beforeSend: function ()
+        {
             $('#info').html('<p class="alert alert-info" style="text-align: center"><strong>' +
                 'Retrieving forecasts' + '</strong></p>').removeClass('hidden');
         },
-        complete: function () {
+        complete: function ()
+        {
             setTimeout(function () {
                 $('#info').addClass('hidden')
             }, 5000);
         },
-        success: function (data) {
-            if ("success" in data) {
+        success: function (data)
+        {
+            if ("success" in data)
+            {
                 if ("ts_pairs_data" in data)
                 {
                     var returned_tsPairsData = JSON.parse(data.ts_pairs_data);
@@ -984,7 +1083,9 @@ function get_netcdf_chart_data(config, geom, variable, comid, date, time, lag, e
                         } // else
                     } //for (var key i
                 } //if ("ts_pairs_data" in data)
-            } else if ("error" in data) {
+            }
+            else if ("error" in data)
+            {
                 $('#nc-chart').addClass('hidden');
                 $('#info').html('<p class="alert alert-danger" style="text-align: center"><strong>' + data['error'] + '</strong></p>').removeClass('hidden').addClass('error');
 
@@ -992,10 +1093,14 @@ function get_netcdf_chart_data(config, geom, variable, comid, date, time, lag, e
                 setTimeout(function () {
                     $('#info').addClass('hidden')
                 }, 5000);
-            } else {
+            }
+            else
+            {
                 viewer.entities.resumeEvents();
                 $('#info').html('<p><strong>An unexplainable error occurred. Why? Who knows...</strong></p>').removeClass('hidden');
-            };
+            }
+            // The following line is important. It is to force map to re-calculate/re-calibrate itself since the plotting div may have changed size of map div
+            map.updateSize();
         }
     });
 };
@@ -1004,7 +1109,8 @@ function initChart(config, startDate) {
     /****************************
      ******INITIALIZE CHART******
      ****************************/
-    if (config !== 'long_range') {
+    if (config !== 'long_range')
+    {
         default_chart_settings = {
             title: {text: "NWM Forecast"},
             chart: {zoomType: 'x'},
@@ -1057,7 +1163,9 @@ function initChart(config, startDate) {
 
         $('#nc-chart').highcharts(default_chart_settings);
         nc_chart = $('#nc-chart').highcharts();
-    } else {
+    }
+    else
+    {
         var default_chart_settings = {
             title: {text: "NWM Forecast"},
             chart: {zoomType: 'x'},
