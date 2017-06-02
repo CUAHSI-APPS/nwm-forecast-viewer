@@ -1,5 +1,6 @@
 //Map variables
-var map, mapView, base_layer, grid_layer, reservoir_layer, all_streams_layer, selected_streams_layer, watershed_layer;
+var map, mapView;
+var base_layer, grid_layer, reservoir_layer, all_streams_layer, selected_streams_layer, watershed_layer;
 var toggle_layers;
 var popup_div, popup_overlay;
 
@@ -10,6 +11,7 @@ var nc_chart, seriesData, startDate, seriesDataGroup = [];
 var btnLoadWatershed;
 var popupLoadWatershed;
 
+// // force map to updateSize() once html sturcture changes
 // (function () {
 //     var target, observer, config;
 //     // select the target node
@@ -26,67 +28,13 @@ var popupLoadWatershed;
 //     observer.observe(target, config);
 // }());
 
-function change_time_dropdown_content(config)
-{
-    var newOptions;
-    if (config=="short_range")
-    {
-          newOptions = {"00:00": "00",
-                          "01:00": "01",
-                          "02:00": "02",
-                          "03:00": "03",
-                          "04:00": "04",
-                          "05:00": "05",
-                          "06:00": "06",
-                          "07:00": "07",
-                          "08:00": "08",
-                          "09:00": "09",
-                          "10:00": "10",
-                          "11:00": "11",
-                          "12:00": "12",
-                          "13:00": "13",
-                          "14:00": "14",
-                          "15:00": "15",
-                          "16:00": "16",
-                          "17:00": "17",
-                          "18:00": "18",
-                          "19:00": "19",
-                          "20:00": "20",
-                          "21:00": "21",
-                          "22:00": "22",
-                          "23:00": "23"};
-    }
-    else if (config=="medium_range")
-    {
-         newOptions = {"00:00": "00",
-                          "06:00": "06",
-                          "12:00": "12",
-                          "18:00": "18"};
-    }
-    else
-    {
-        return ;
-    }
-
-
-    var $el = $("#time");
-    var selected_value = $el.val();
-    $el.empty(); // remove old options
-    $.each(newOptions, function(key,value) {
-        $el.append($("<option></option>")
-        .attr("value", value).text(key));
-    });
-    $el.val(selected_value);
-    if ($el.val() == null)
-    {
-        $el.val("00");
-    }
-}
+/**********************************
+ ********Config & Geom dropdowns OnChange Event *********
+ **********************************/
 
 $('#config').on('change', function ()
 {
-
-    //if ($('#config').val() != 'analysis_assim')
+    // disable "Forcing" in Geometry dropdown for long range
     if ($('#config').val() == 'long_range')
     {
         $("#geom option[value='forcing']").attr('disabled','disabled');
@@ -104,7 +52,7 @@ $('#config').on('change', function ()
     if ($('#config').val() === 'medium_range')
     {
         $('#endDate,#endDateLabel, #timeLag').addClass('hidden');
-        change_time_dropdown_content($('#config').val());
+        _change_time_dropdown_content($('#config').val());
         $('#time').parent().removeClass('hidden');
         if ($('#geom').val() === 'channel_rt' && $('#config').val() !== 'long_range')
         {
@@ -120,7 +68,7 @@ $('#config').on('change', function ()
     else if ($('#config').val() === 'short_range')
     {
         $('#endDate,#endDateLabel,#timeLag').addClass('hidden');
-        change_time_dropdown_content($('#config').val());
+        _change_time_dropdown_content($('#config').val());
         $('#time').parent().removeClass('hidden');
         if ($('#geom').val() === 'channel_rt' && $('#config').val() !== 'long_range') {
             $('#velocVar').removeClass('hidden');
@@ -141,7 +89,10 @@ $('#config').on('change', function ()
 
 $('#geom').on('change', function ()
 {
-    // switch layers
+    // destroy existing popup
+    $(popup_div).popover('destroy');
+
+    // switch layer visibility
     toggle_layers.forEach(function(layer)
     {
         layer.setVisible($("#geom").val() === layer.get('keyword'));
@@ -268,18 +219,99 @@ $('#geom').on('change', function ()
 
 });
 
-$(document).ready(function () {
+function _change_time_dropdown_content(config)
+{
+    var newOptions;
+    if (config=="short_range")
+    {
+          newOptions = {"00:00": "00",
+                          "01:00": "01",
+                          "02:00": "02",
+                          "03:00": "03",
+                          "04:00": "04",
+                          "05:00": "05",
+                          "06:00": "06",
+                          "07:00": "07",
+                          "08:00": "08",
+                          "09:00": "09",
+                          "10:00": "10",
+                          "11:00": "11",
+                          "12:00": "12",
+                          "13:00": "13",
+                          "14:00": "14",
+                          "15:00": "15",
+                          "16:00": "16",
+                          "17:00": "17",
+                          "18:00": "18",
+                          "19:00": "19",
+                          "20:00": "20",
+                          "21:00": "21",
+                          "22:00": "22",
+                          "23:00": "23"};
+    }
+    else if (config=="medium_range")
+    {
+         newOptions = {"00:00": "00",
+                          "06:00": "06",
+                          "12:00": "12",
+                          "18:00": "18"};
+    }
+    else
+    {
+        return ;
+    }
+
+
+    var $el = $("#time");
+    var selected_value = $el.val();
+    $el.empty(); // remove old options
+    $.each(newOptions, function(key,value) {
+        $el.append($("<option></option>")
+        .attr("value", value).text(key));
+    });
+    $el.val(selected_value);
+    if ($el.val() == null)
+    {
+        $el.val("00");
+    }
+}
+
+/**********************************
+ ********Init/Restore UI & Map *********
+ **********************************/
+$(document).ready(function ()
+{
     if (!window.location.search.includes('?'))
     {
         $("#welcome-popup").modal("show");
     }
 
-    setup_map();
-
+    init_restore_ui_map();
 });
 
+function _switch_on_long_range_lag_toggle(lag_switch_on_list)
+{
+    // first turn off all lag switch
+    $('#00z, #06z, #12z, #18z').attr('checked', false);
+    $('#00z, #06z, #12z, #18z').parent().parent().removeClass('bootstrap-switch-on');
+    $('#00z, #06z, #12z, #18z').parent().parent().addClass('bootstrap-switch-off');
+    // turn on lag switch if it is in url
+    for (var i = 0; i < lag_switch_on_list.length; i++)
+    {
+        var lag_sw_name = lag_switch_on_list[i];
+        if (lag_sw_name[0] == "t")
+        {
+            lag_sw_name = lag_sw_name.substring(1, 4);
+        }
 
-function setup_map() {
+        $('#' + lag_sw_name).attr('checked', true);
+        $('#' + lag_sw_name).parent().parent().removeClass('bootstrap-switch-off');
+        $('#' + lag_sw_name).parent().parent().addClass('bootstrap-switch-on');
+    }
+}
+
+function init_restore_ui_map()
+{
     //turns toggle navigation icon off
 //    $(".toggle-nav").removeClass('toggle-nav');
 
@@ -329,7 +361,7 @@ function setup_map() {
         var qConfig = getUrlParameter('config', null);
         $('#config').val(qConfig);
         // change options in 'time' dropdown according to config value
-        change_time_dropdown_content(qConfig);
+        _change_time_dropdown_content(qConfig);
         var qGeom = getUrlParameter('geom', null);
         $('#geom').val(qGeom);
         var qVar = getUrlParameter('variable', null);
@@ -356,21 +388,21 @@ function setup_map() {
         $('#endDate').val(qDateEnd);
 
         var qLag = [];
-        // first turn off all lag switch
-        $('#00z, #06Z, #12Z, #18z').attr('checked', false);
-        $('#00z, #06Z, #12Z, #18z').parent().parent().addClass('bootstrap-switch-off');
+
         // turn on lag switch if it is in url
         var lag_switch_list = ["00z", "06z", "12z", "18z"];
-        for (var i = 0; i < lag_switch_list.length; i++) {
+        for (var i = 0; i < lag_switch_list.length; i++)
+        {
             var lag_sw_name = lag_switch_list[i];
-            if ("on" == getUrlParameter(lag_sw_name, null)) {
+            if ("on" == getUrlParameter(lag_sw_name, null))
+            {
                 qLag.push('t' + lag_sw_name);
-                $('#' + lag_sw_name).attr('checked', true);
-                $('#' + lag_sw_name).parent().parent().removeClass('bootstrap-switch-off')
             }
         }
+        _switch_on_long_range_lag_toggle(qLag);
 
-        if (!check_datetime_range($("#startDate").val(), $("#endDate").val(), null)) {
+        if (!_check_datetime_range($("#startDate").val(), $("#endDate").val(), null))
+        {
             alert("Invalid start/end date");
         }
 
@@ -382,7 +414,6 @@ function setup_map() {
     /**********************************
      ********INITIALIZE LAYERS*********
      **********************************/
-
     base_layer = new ol.layer.Tile({
         source: new ol.source.BingMaps({
             key: 'eLVu8tDRPeQqmBlKAjcw~82nOqZJe2EpKmqd-kQrSmg~AocUZ43djJ-hMBHQdYDyMbT-Enfsk0mtUIGws1WeDuOvjY4EXCH-9OK3edNLDgkc',
@@ -483,11 +514,11 @@ function setup_map() {
     map.on('singleclick', map_singleclick);
     map.on('pointermove', map_pointermove);
 
-
     // add watershed polygon to map
     var watershed_geojson_str = $("#watershed_geojson_str").val();
     var watershed_attributes_str = $("#watershed_attributes_str").val();
-    if (watershed_geojson_str.length > 0) {
+    if (watershed_geojson_str.length > 0)
+    {
         addGeojsonLayerToMap(watershed_geojson_str, watershed_attributes_str, false);
     }
 
@@ -523,22 +554,14 @@ function setup_map() {
 
 }
 
-
 /****************************
  ***Map Event***
  ****************************/
-
-function reproject_point(X_lon, Y_lat, in_epsg, out_epsg)
-{
-    return ol.proj.transform([parseFloat(X_lon), parseFloat(Y_lat)], 'EPSG:' + in_epsg.toString(), 'EPSG:' + out_epsg.toString());
-}
 
 function map_singleclick(evt)
 {
     // destroy existing popup
     $(popup_div).popover('destroy');
-    // if ((map.getTargetElement().style.cursor == "pointer")) {
-    map.updateSize();
     var view = map.getView();
     var viewResolution = view.getResolution();
 
@@ -648,7 +671,7 @@ function map_pointermove(evt)
 {
     if (evt.dragging)
     {
-                return;
+        return;
     }
     var pixel = map.getEventPixel(evt.originalEvent);
     var hit = map.forEachLayerAtPixel(pixel, function(layer)
@@ -657,13 +680,13 @@ function map_pointermove(evt)
         {
             return true;
         }
-    })
+    });
     map.getTargetElement().style.cursor = hit ? 'pointer' : '';
 }
+
 /****************************
  ***Popup Displaying Info***
  ****************************/
-
 function dataCall(inputURL)
 {
     var result = null;
@@ -679,6 +702,10 @@ function dataCall(inputURL)
 /****************************
  ***MAP VIEW FUNCTIONALITY***
  ****************************/
+function reproject_point(X_lon, Y_lat, in_epsg, out_epsg)
+{
+    return ol.proj.transform([parseFloat(X_lon), parseFloat(Y_lat)], 'EPSG:' + in_epsg.toString(), 'EPSG:' + out_epsg.toString());
+}
 
 function CenterMap(X_lon, Y_lat, in_epsg)
 {
@@ -860,7 +887,8 @@ function get_netcdf_chart_data(config, geom, variable, comid, date, time, lag, e
     });
 }
 
-function initChart(config, startDate) {
+function initChart(config, startDate)
+{
     /****************************
      ******INITIALIZE CHART******
      ****************************/
@@ -1070,13 +1098,15 @@ var plotData = function(config, geom, variable, data, start, colorIndex, seriesD
     } // else
 }; //var plotData = function
 
-function clearErrorSelection() {
+function clearErrorSelection()
+{
     var numFeatures = selected_streams_layer.getSource().getFeatures().length;
     var lastFeature = selected_streams_layer.getSource().getFeatures()[numFeatures-1];
     selected_streams_layer.getSource().removeFeature(lastFeature);
 }
 
-function changeUnits(config) {
+function changeUnits(config)
+{
     if (config !== 'long_range') {
         var calib = calibrateModel(config, geom, startDate);
         if (nc_chart.yAxis[0].axisTitle.textStr === 'Flow (cfs)') {
@@ -1156,7 +1186,8 @@ function changeUnits(config) {
     }
 }
 
-function calibrateModel(config, geom, date) {
+function calibrateModel(config, geom, date)
+{
     var interval;
     var start = date;
     if (config === 'short_range')
@@ -1192,7 +1223,12 @@ function calibrateModel(config, geom, date) {
     return {'interval': interval, 'start': start}
 }
 
-function getHSWatershedList () {
+/****************************************
+ *******Watershed Functionality********
+ ****************************************/
+
+function getHSWatershedList ()
+{
     $.ajax({
         type: 'GET',
         url: 'get-hs-watershed-list',
@@ -1231,8 +1267,8 @@ function getHSWatershedList () {
     });
 }
 
-function onClickLoadWatershed() {
-
+function onClickLoadWatershed()
+{
     btnLoadWatershed.prop('disabled', true);
     var $rdoRes = $('.rdo-res:checked');
     var resId = $rdoRes.val();
@@ -1241,7 +1277,8 @@ function onClickLoadWatershed() {
     loadWatershed(resId, filename);
 }
 
-function loadWatershed(resId, filename) {
+function loadWatershed(resId, filename)
+{
     $.ajax({
         type: 'GET',
         url: 'load-watershed',
@@ -1295,7 +1332,7 @@ function addGeojsonLayerToMap(geojsonStr, attributeStr, zoomTo)
     // $("#watershed_geojson_str").val(geojsonStr);
 }
 
-//https://davidwalsh.name/query-string-javascript
+// see: https://davidwalsh.name/query-string-javascript
 function getUrlParameter(name, url)
 {
     name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
@@ -1311,6 +1348,10 @@ function getUrlParameter(name, url)
 
     return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
 }
+
+/****************************************
+ *******Sebset Watershed Functionality********
+ ****************************************/
 
 $("#subsetBtn").on("click", function()
 {
@@ -1343,7 +1384,7 @@ $("#subsetBtn").on("click", function()
         replace_dict["#res_titile#"]=res_title_str;
 
         var res_title_template = "NWM subset: #time# #config# #geometry# files for region - #res_titile#";
-        var res_title = render_str_template(res_title_template, replace_dict);
+        var res_title = _render_str_template(res_title_template, replace_dict);
         $('#resource-title-subset').val(res_title);
 
         var abstract_template = "A subset of NWM data for region #res_titile#: " +
@@ -1351,11 +1392,11 @@ $("#subsetBtn").on("click", function()
             "Geometry: #geometry#; " +
             "Date time/range: #time#; ";
 
-        var res_abstract = render_str_template(abstract_template, replace_dict);
+        var res_abstract = _render_str_template(abstract_template, replace_dict);
         $('#resource-abstract-subset').val(res_abstract);
 
         var keywords_template = "NWM, subset, #time#, #config#, #geometry#";
-        var res_keywords = render_str_template(keywords_template, replace_dict);
+        var res_keywords = _render_str_template(keywords_template, replace_dict);
         $('#resource-keywords-subset').val(res_keywords);
 
         $('#display-status-subset').empty().removeClass("success error uploading");
@@ -1367,7 +1408,7 @@ $("#subsetBtn").on("click", function()
     subset_watershed_download();
 }); //$("#subsetBtn").on("click", function()
 
-function render_str_template(template_str, replace_dict)
+function _render_str_template(template_str, replace_dict)
 {
     var str = template_str;
     for(var key in replace_dict)
@@ -1414,7 +1455,7 @@ function _prepare_watershed_data()
     // analysis_assim date range no more than 3 days
     if (parameter.config == "analysis_assim")
     {
-        if (!check_datetime_range($("#startDate").val(), $("#endDate").val(), 3))
+        if (!_check_datetime_range($("#startDate").val(), $("#endDate").val(), 3))
         {
             alert("Invalid start/end date; You may subset Analysis & Assimilation data for 3 days or less");
             $("#subsetBtn, #watershedBtn, #submitBtn").removeAttr('disabled');
@@ -1533,7 +1574,7 @@ function subset_watershed_download()
     xhttp.send(JSON.stringify(data));
 }
 
-function check_datetime_range(startDate, endDate, delta_days)
+function _check_datetime_range(startDate, endDate, delta_days)
 {
     var startDate_obj = new Date();
     startDate_obj.setUTCFullYear(startDate.split("-")[0]);
@@ -1562,8 +1603,8 @@ function check_datetime_range(startDate, endDate, delta_days)
     return true;
 }
 
-
-function getCookie(name) {
+function getCookie(name)
+{
     var cookieValue = null;
     if (document.cookie && document.cookie != '') {
         var cookies = document.cookie.split(';');
