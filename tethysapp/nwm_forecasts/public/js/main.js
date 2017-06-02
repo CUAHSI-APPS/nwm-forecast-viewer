@@ -1,23 +1,14 @@
-$(document).ready(function () {
-    if (!window.location.search.includes('?'))
-    {
-        $("#welcome-popup").modal("show");
-    }
-
-});
-
 //Map variables
-var map, mapView, base_layer, all_streams_Source, all_streams_layer, selected_streams_layer, watershedLayer;
-
-// NHD variables
-var comid;
+var map, mapView, base_layer, grid_layer, reservoir_layer, all_streams_layer, selected_streams_layer, watershed_layer;
+var toggle_layers;
+var popup_div, popup_overlay;
 
 //Chart variables
 var nc_chart, seriesData, startDate, seriesDataGroup = [];
 
 //jQuery handle variables
-var $btnLoadWatershed;
-var $popupLoadWatershed;
+var btnLoadWatershed;
+var popupLoadWatershed;
 
 // (function () {
 //     var target, observer, config;
@@ -92,7 +83,8 @@ function change_time_dropdown_content(config)
     }
 }
 
-$('#config').on('change', function () {
+$('#config').on('change', function ()
+{
 
     //if ($('#config').val() != 'analysis_assim')
     if ($('#config').val() == 'long_range')
@@ -147,36 +139,176 @@ $('#config').on('change', function () {
     $("#geom").trigger("change");
 });
 
-$(function () {
+$('#geom').on('change', function ()
+{
+    // switch layers
+    toggle_layers.forEach(function(layer)
+    {
+        layer.setVisible($("#geom").val() === layer.get('keyword'));
+    });
+
+    if ($("#geom").val() == 'channel_rt')
+    {
+        selected_streams_layer.setVisible(true);
+    }
+    else if ($("#geom").val() == 'forcing')
+    {
+        grid_layer.setVisible(true);
+    }
+
+    // hide all variable options in variable dropdown list (display them later)
+    $("#variable option").each(function()
+    {
+        $(this).addClass('hidden')
+    });
+
+    // hide and disable coordinate input
+    $('#gridDiv').addClass('hidden');
+    // hide and disable comid input
+    $('#comidDiv').addClass('hidden');
+
+    if ($('#geom').val() === 'channel_rt')
+    {
+        if (window.location.search.includes('channel_rt') && window.location.search.includes('long_range') === false)
+        {
+            $('#variable').val(getUrlParameter('variable', null));
+        }
+        else
+        {
+            $('#variable').val('streamflow');
+        }
+
+        $('#comidDiv').removeClass('hidden');
+        $('#comidInput').attr('disabled', false);
+        $('#streamVar').removeClass('hidden');
+
+        if ($('#config').val() !== 'long_range')
+        {
+            $('#velocVar').removeClass('hidden');
+        }
+    }
+    else if ($('#geom').val() === 'reservoir')
+    {
+        if (window.location.search.includes('reservoir'))
+        {
+            $('#variable').val(getUrlParameter('variable', null));
+        }
+        else
+        {
+            $('#variable').val('inflow');
+        }
+        $('#comidInput').attr('disabled', false);
+        $('#comidDiv').removeClass('hidden');
+        $('#infVar,#outfVar').removeClass('hidden');
+    }
+    else if ($('#geom').val() === 'land' && ($('#config').val() === 'short_range' ||
+        $('#config').val() === 'analysis_assim'))
+    {
+        $('#gridDiv').removeClass('hidden');
+        $('#gridInputY').attr('disabled', false);
+        $('#gridInputX').attr('disabled', false);
+        if (window.location.search.includes('land'))
+        {
+            $('#variable').val(getUrlParameter('variable', null));
+        }
+        else
+        {
+            $('#variable').val('SNOWH');
+        }
+        $('#snowhVar,#sneqVar,#snowcVar,#etVar,#ssVar,#avsnowVar').removeClass('hidden');
+    }
+    else if ($('#geom').val() === 'land' && $('#config').val() === 'medium_range')
+    {
+        $('#gridDiv').removeClass('hidden');
+        $('#gridInputY').attr('disabled', false);
+        $('#gridInputX').attr('disabled', false);
+        if (window.location.search.includes('land'))
+        {
+            // $('#variable').val(window.location.search.split("&")[2].substring(window.location.search.split("&")[2].
+            //     lastIndexOf("variable=") + 9));
+            $('#variable').val(getUrlParameter('variable', null));
+        }
+        else
+        {
+            $('#variable').val('SNOWH');
+        }
+        $('#snowhVar,#sneqVar,#snowcVar,#etVar,#ssVar,#avsnowVar,#subrunoffVar,#evapVar,#canwVar,#soiltVar,#soilmVar').
+        removeClass('hidden');
+    }
+    else if ($('#geom').val() === 'land' && $('#config').val() === 'long_range')
+    {
+        $('#gridDiv').removeClass('hidden');
+        $('#gridInputY').attr('disabled', false);
+        $('#gridInputX').attr('disabled', false);
+        if (window.location.search.includes('land') && window.location.search.includes('long_range'))
+        {
+            $('#variable').val(getUrlParameter('variable', null));
+        }
+        else
+        {
+            $('#variable').val('SNEQV');
+        }
+        $('#sneqVar,#etVar,#ssVar,#subrunoffVar,#runoffVar,#canwVar,#ssiVar').removeClass('hidden');
+    }
+    else if ($('#geom').val() === 'forcing' && $('#config').val() != 'long_range')
+    {
+        $('#gridDiv').removeClass('hidden');
+        $('#gridInputY').attr('disabled', false);
+        $('#gridInputX').attr('disabled', false);
+        if (window.location.search.includes('forcing') && window.location.search.includes('analysis_assim'))
+        {
+            $('#variable').val(getUrlParameter('variable', null));
+        }
+        else
+        {
+            $('#variable').val('RAINRATE');
+        }
+        $('#rainrateVar').removeClass('hidden');
+    }
+
+});
+
+$(document).ready(function () {
+    if (!window.location.search.includes('?'))
+    {
+        $("#welcome-popup").modal("show");
+    }
+
+    setup_map();
+
+});
+
+
+function setup_map() {
     //turns toggle navigation icon off
 //    $(".toggle-nav").removeClass('toggle-nav');
 
-    $btnLoadWatershed = $('#btn-load-watershed');
+    btnLoadWatershed = $('#btn-load-watershed');
+    btnLoadWatershed.on('click', onClickLoadWatershed);
+    // load watershed resource list from HS
     getHSWatershedList();
-    $btnLoadWatershed.on('click', onClickLoadWatershed);
-    $popupLoadWatershed = $('#popup-load-watershed');
+    popupLoadWatershed = $('#popup-load-watershed');
 
     $('[data-toggle="tooltip"]').tooltip();
 
     /**********************************
      **********INITIALIZE MAP *********
      **********************************/
+
+        // show mouse position on map
     var mousePositionControl = new ol.control.MousePosition({
-        coordinateFormat: ol.coordinate.createStringXY(2),
-        projection: 'EPSG:4326',
-        // comment the following two lines to have the mouse position
-        // be placed within the map.
-        className: 'custom-mouse-position',
-        target: document.getElementById('mouse-position'),
-        undefinedHTML: '&nbsp;'
-      });
+            coordinateFormat: ol.coordinate.createStringXY(2),
+            projection: 'EPSG:4326',
+            className: 'custom-mouse-position',
+            target: document.getElementById('mouse-position'),
+            undefinedHTML: '&nbsp;'
+        });
 
     map = new ol.Map({
         controls: ol.control.defaults({
-          attributionOptions: /** @type {olx.control.AttributionOptions} */
-          ({
-            collapsible: false
-          })
+            attributionOptions: ({
+                collapsible: false
+            })
         }).extend([mousePositionControl]),
         target: 'map-view',
         view: new ol.View({
@@ -184,105 +316,72 @@ $(function () {
             zoom: 4,
             minZoom: 2,
             maxZoom: 18,
-            projection:  'EPSG:3857'
+            projection: 'EPSG:3857'
         })
     });
 
     mapView = map.getView();
 
-    if (window.location.search.includes('?'))
-    {
-        //var query = window.location.search.split("&");
+    var qLong, qLat;
 
+    // parse url query string to restore UI
+    if (window.location.search.includes('?')) {
         var qConfig = getUrlParameter('config', null);
         $('#config').val(qConfig);
+        // change options in 'time' dropdown according to config value
         change_time_dropdown_content(qConfig);
         var qGeom = getUrlParameter('geom', null);
         $('#geom').val(qGeom);
         var qVar = getUrlParameter('variable', null);
         $('#variable').val(qVar);
-        var qLat = Number(getUrlParameter('latitude', null));
+        qLat = Number(getUrlParameter('lat', null));
         $('#latInput').val(qLat);
-        var qLong = Number(getUrlParameter('longitude', null));
+        qLong = Number(getUrlParameter('lon', null));
         $('#longInput').val(qLong);
         var qDate = getUrlParameter("startDate", null);
         $('#startDate').val(qDate);
         var qTime = getUrlParameter("time", null);
         $('#time').val(qTime);
-        if (qGeom === 'channel_rt' || qGeom === 'reservoir')
-        {
+
+        if (qGeom === 'channel_rt' || qGeom === 'reservoir') {
             var qCOMID = getUrlParameter('COMID', null);
             $('#comidInput').val(qCOMID);
         }
-        else
-        {
-            var qCOMID = getUrlParameter("Y", null) + ',' +  getUrlParameter("X", null);
+        else {
+            var qCOMID = getUrlParameter("Y", null) + ',' + getUrlParameter("X", null);
             $('#gridInputY').val(qCOMID.split(',')[0]);
             $('#gridInputX').val(qCOMID.split(',')[1]);
         }
         var qDateEnd = getUrlParameter("endDate", null);
         $('#endDate').val(qDateEnd);
+
         var qLag = [];
-        if (window.location.search.indexOf('00z') > -1)
-        {
-            qLag.push('00z');
-            $('#00z').attr('checked', true);
-            $('#00z').parent().parent().removeClass('bootstrap-switch-off')
-        }
-        else
-        {
-            $('#00z').attr('checked', false);
-            $('#00z').parent().parent().addClass('bootstrap-switch-off')
-        }
-        if (window.location.search.indexOf('06z') > -1)
-        {
-            qLag.push('06z');
-            $('#06z').attr('checked', true);
-            $('#06z').parent().parent().removeClass('bootstrap-switch-off')
-        }
-        if (window.location.search.indexOf('12z') > -1)
-        {
-            qLag.push('12z');
-            $('#12z').attr('checked', true);
-            $('#12z').parent().parent().removeClass('bootstrap-switch-off')
-        }
-        if (window.location.search.indexOf('18z') > -1)
-        {
-            qLag.push('18z');
-            $('#18z').attr('checked', true);
-            $('#18z').parent().parent().removeClass('bootstrap-switch-off')
+        // first turn off all lag switch
+        $('#00z, #06Z, #12Z, #18z').attr('checked', false);
+        $('#00z, #06Z, #12Z, #18z').parent().parent().addClass('bootstrap-switch-off');
+        // turn on lag switch if it is in url
+        var lag_switch_list = ["00z", "06z", "12z", "18z"];
+        for (var i = 0; i < lag_switch_list.length; i++) {
+            var lag_sw_name = lag_switch_list[i];
+            if ("on" == getUrlParameter(lag_sw_name, null)) {
+                qLag.push('t' + lag_sw_name);
+                $('#' + lag_sw_name).attr('checked', true);
+                $('#' + lag_sw_name).parent().parent().removeClass('bootstrap-switch-off')
+            }
         }
 
-
-        if (($('#longInput').val() !== '-98' && $('#latInput').val() !== '38.5') && qGeom!== 'channel_rt')
-        {
-            CenterMap(qLat, qLong);
-            mapView.setZoom(12);
-            lonlat = [qLong, qLat];
-            //run_point_indexing_service2(lonlat);
-        }
-
-        if (!check_datetime_range($("#startDate").val(), $("#endDate").val(), null))
-        {
+        if (!check_datetime_range($("#startDate").val(), $("#endDate").val(), null)) {
             alert("Invalid start/end date");
         }
+
+        // Retrieve timeseries data from backend
         initChart(qConfig, startDate, seriesData);
-
         get_netcdf_chart_data(qConfig, qGeom, qVar, qCOMID, qDate, qTime, qLag, qDateEnd);
-    }
-
-    $("#config").trigger("change");
-    $("#geom").trigger("change");
+    } //if (window.location.search.includes('?'))
 
     /**********************************
      ********INITIALIZE LAYERS*********
      **********************************/
-
-    var lonlat;
-    map.on('click', function(evt) {
-        if ($("#geom").val() == "channel_rt") {
-        }
-    });
 
     base_layer = new ol.layer.Tile({
         source: new ol.source.BingMaps({
@@ -299,13 +398,13 @@ $(function () {
         crossOrigin: 'Anonymous' //This is necessary for CORS security in the browser
     });
 
-    var grid = new ol.layer.Tile({
+    grid_layer = new ol.layer.Tile({
         source: grid_Source,
         maxResolution: 100,
         keyword: "land"
     });
 
-    grid.setOpacity(0.4);
+    grid_layer.setOpacity(0.4);
 
     var reservoir_Source = new ol.source.TileWMS({
         url: 'https://geoserver.byu.edu/arcgis/services/NWM/reservoir/MapServer/WmsServer?',
@@ -315,12 +414,12 @@ $(function () {
         crossOrigin: 'Anonymous' //This is necessary for CORS security in the browser
     });
 
-    reservoir = new ol.layer.Tile({
+    reservoir_layer = new ol.layer.Tile({
         source: reservoir_Source,
         keyword: "reservoir"
     });
 
-    all_streams_Source = new ol.source.TileWMS({
+    var all_streams_Source = new ol.source.TileWMS({
         url: 'https://geoserver.byu.edu/arcgis/services/NWM/nwm_channel_v10/MapServer/WmsServer?',
         params: {
             LAYERS: "0"
@@ -333,40 +432,16 @@ $(function () {
         keyword: "channel_rt"
     });
 
-    var createLineStyleFunction = function() {
-        return function(feature, resolution) {
+    var createLineStyleFunction = function () {
+        return function (feature, resolution) {
             var style = new ol.style.Style({
                 stroke: new ol.style.Stroke({
-                    //color: '#ffff00',
                     color: '#ffff00',
                     width: 3
-                }),
-//                text: new ol.style.Text({
-//                    textAlign: 'center',
-//                    textBaseline: 'middle',
-//                    font: 'bold 12px Verdana',
-//                    text: getText(feature, resolution),
-//                    fill: new ol.style.Fill({
-//                        color: '#cc00cc'
-//                    }),
-//                    stroke: new ol.style.Stroke({
-//                        color: 'black',
-//                        width: 0.5
-//                    })
-//                })
+                })
             });
             return [style];
         };
-    };
-
-    var getText = function(feature, resolution)
-    {
-        var maxResolution = 100;
-        var text = feature.get('name');
-        if (resolution > maxResolution) {
-            text = '';
-        }
-        return text;
     };
 
     selected_streams_layer = new ol.layer.Vector({
@@ -375,403 +450,216 @@ $(function () {
         keyword: 'selected_streams_layer'
     });
 
-    var serviceUrl = 'https://watersgeo.epa.gov/arcgis/rest/services/NHDPlus_NP21/NHDSnapshot_NP21_Labeled/MapServer/0';
-    // var serviceUrl = 'http://geoserver.byu.edu/arcgis/rest/services/NWC/NWM_Geofabric/MapServer/1';
-    var esrijsonFormat = new ol.format.EsriJSON();
-    var vectorSource = new ol.source.Vector({
-        loader: function(extent, resolution, projection) {
-            var url = serviceUrl + '/query/?f=json&outFields=COMID&geometry=' +
-                '{"xmin":' + extent[0] + ',"ymin":' + extent[1] + ',"xmax":' + extent[2] + ',"ymax":' + extent[3] +
-                ',"spatialReference":{"wkid":102100}}&inSR=102100&outSR=102100';
-            $.ajax({
-                url: url,
-                dataType: 'jsonp',
-                success: function(response) {
-                    if (response.error)
-                    {
-                        alert(response.error.message + '\n' +
-                            response.error.details.join('\n'));
-                    }
-                    else
-                    {
-                        // dataProjection will be read from document
-                        var features = esrijsonFormat.readFeatures(response, {
-                            featureProjection: projection
-                        });
-                        if (features.length > 0)
-                        {
-                            vectorSource.addFeatures(features);
-                        }
-                    }
-                }
-            });
-        },
-        strategy: ol.loadingstrategy.tile(ol.tilegrid.createXYZ({
-            tileSize: 512
-        }))
-    });
-
-    // all_streams_layer = new ol.layer.Vector({
-    //     source: vectorSource,
-    //     style: new ol.style.Style({
-    //         stroke: new ol.style.Stroke({
-    //             color: '#0000ff',
-    //             width: 2
-    //         }),
-    //     }),
-    //     maxResolution: 100,
-    //     keyword: 'channel_rt'
-    // });
-
-    watershedLayer =  new ol.layer.Vector(
+    watershed_layer = new ol.layer.Vector(
         {
-        source: new ol.source.Vector(),
-        keyword: 'watershedLayer',
-            style: new ol.style.Style({stroke:new ol.style.Stroke({ color: '#ffffff',
-                width: 2}), fill: new ol.style.Fill({ color: [255,0,255,0.5]})})
+            source: new ol.source.Vector(),
+            keyword: 'watershed_layer',
+            style: new ol.style.Style({
+                stroke: new ol.style.Stroke({
+                    color: '#ffffff',
+                    width: 2
+                }), fill: new ol.style.Fill({color: [255, 0, 255, 0.5]})
+            })
         }
     );
 
     map.addLayer(base_layer);
-    map.addLayer(watershedLayer);
-    map.addLayer(grid);
-    map.addLayer(reservoir);
+    map.addLayer(watershed_layer);
+    map.addLayer(grid_layer);
+    map.addLayer(reservoir_layer);
     map.addLayer(all_streams_layer);
     map.addLayer(selected_streams_layer);
 
+    toggle_layers = [grid_layer, reservoir_layer, all_streams_layer, selected_streams_layer];
 
-    toggleLayers = [grid, reservoir, all_streams_layer, selected_streams_layer];
-
-    var element = document.getElementById('popup');
-
-    var popup = new ol.Overlay({
-        element: element,
+    popup_div = document.getElementById('popup');
+    popup_overlay = new ol.Overlay({
+        element: popup_div,
         positioning: 'bottom-center',
         stopEvent: true
     });
 
-    map.addOverlay(popup);
-
-    //Click funtion to choose gauge on map
-    map.on('singleclick', function(evt)
-    {
-        $(element).popover('destroy');
-        // if ((map.getTargetElement().style.cursor == "pointer")) {
-            var view = map.getView();
-            var viewResolution = view.getResolution();
-
-            if (grid.getVisible())
-            {
-                var grid_url = grid_Source.getGetFeatureInfoUrl(evt.coordinate, viewResolution, view.getProjection(), {
-                    'INFO_FORMAT': 'text/xml',
-                    'FEATURE_COUNT': 1
-                });
-            }
-            else if (reservoir.getVisible())
-            {
-                var reservoir_url = reservoir_Source.getGetFeatureInfoUrl(evt.coordinate, viewResolution, view.getProjection(), {
-                    'INFO_FORMAT': 'text/xml',
-                    'FEATURE_COUNT': 1
-                });
-            }
-            else if (all_streams_layer.getVisible())
-            {
-                 var stream_url = "query stream";
-            }
-
-            // }
-            var displayContent = "<table>";
-            var showPopup = false;
-            var zoomToClick = false;
-//            var displayContent = "COMID: " + comid;
-            if (grid_url)
-            {
-                var grid_Data = dataCall(grid_url);
-                var grid_Count = grid_Data.documentElement.childElementCount;
-
-                //This is for the land grid
-                for (var i = 0; i < grid_Count; i++)
-                {
-                    var south_north = grid_Data.documentElement.children[i].attributes['south_north'].value;
-                    var west_east = grid_Data.documentElement.children[i].attributes['west_east'].value;
-                    var lon_layer = grid_Data.documentElement.children[i].attributes['XLONG_M'].value;
-                    var lat_layer = grid_Data.documentElement.children[i].attributes['XLAT_M'].value;
-                    console.log(lon_layer);
-                    console.log(lat_layer);
-
-                    $("#gridInputY").val(south_north);
-                    $("#gridInputX").val(west_east);
+    map.addOverlay(popup_overlay);
+    map.on('singleclick', map_singleclick);
+    map.on('pointermove', map_pointermove);
 
 
-                    displayContent += '<tr><td>south_north: ' + south_north + '</td><td>west_east: ' + west_east + '</td></tr>';
-                    showPopup = true;
-                    zoomToClick = true;
-                }
-            }
-            else if (reservoir_url)
-            {
-                var reservoir_Data = dataCall(reservoir_url);
-                var reservoir_Count = reservoir_Data.documentElement.childElementCount;
-                if (reservoir_Count < 1)
-                {
-                    return;
-                }
-                //This is for the reservoirs
-                for (i = 0; i < reservoir_Count; i++)
-                {
-                    var reservoirID = reservoir_Data.documentElement.children[i].attributes['lake_id'].value;
-                    $("#comidInput").val(reservoirID);
-
-                    displayContent += '<tr><td>Reservoir COMID: ' + reservoirID + '</td></tr>';
-                }
-                showPopup = true;
-                zoomToClick = false;
-
-                var coordinate = evt.coordinate;
-                lonlat = ol.proj.transform(coordinate, 'EPSG:3857', 'EPSG:4326');
-            }
-            else if (stream_url) {
-                //var stream_Data = dataCall(stream_url);
-                //console.log(stream_Data);
-                var stream_info = run_point_indexing_service_byu(null, evt.coordinate, 3857, 3857);
-
-                if (stream_info != null)
-                {
-
-                    $("#comidInput").val(stream_info.comid);
-
-                    displayContent += '<tr><td>Stream COMID: ' + stream_info.comid + '</td></tr>';
-                    showPopup = true;
-                    zoomToClick = true;
-
-                    selected_streams_layer.getSource().clear();
-                    selected_streams_layer.getSource().addFeature(stream_info.feature);
-                }
-                else
-                {
-                    return ;
-                }
-
-            }
-            displayContent += '</table>';
-
-            if (showPopup)
-            {
-                var clickCoord = evt.coordinate;
-                lonlat = ol.proj.transform(clickCoord, 'EPSG:3857', 'EPSG:4326');
-                console.log(lonlat);
-                popup.setPosition(clickCoord);
-                $(element).popover({
-                    'placement': 'top',
-                    'html': true,
-                    'content': displayContent
-                });
-
-                $(element).popover('show');
-                $(element).next().css('cursor', 'text');
-            }
-
-            if ($("#geom").val() == "channel_rt") {
-                    var coordinate = evt.coordinate;
-                    lonlat = ol.proj.transform(coordinate, 'EPSG:3857', 'EPSG:4326');
-                    if (mapView.getZoom() < 12) {
-                        mapView.setZoom(12);
-                        CenterMap(lonlat[1], lonlat[0]);
-                    }
-                    //run_point_indexing_service(lonlat);
-                }
-
-            if ($("#geom").val() == "land")
-            {
-                    var coordinate = evt.coordinate;
-                    lonlat = ol.proj.transform(coordinate, 'EPSG:3857', 'EPSG:4326');
-                    if (mapView.getZoom() < 12) {
-                        mapView.setZoom(12);
-                        CenterMap(lonlat[1], lonlat[0]);
-                    }
-            }
-            $('#longInput').val(lonlat[0]);
-            $('#latInput').val(lonlat[1]);
-    }); //map.on('singleclick', function(evt)
-
-    map.on('pointermove', function(evt)
-    {
-        if (evt.dragging) {
-            return;
-        }
-        var pixel = map.getEventPixel(evt.originalEvent);
-        var hit = map.forEachLayerAtPixel(pixel, function(layer) {
-            if (layer != base_layer) {
-                return true;
-            }
-        });
-        map.getTargetElement().style.cursor = hit ? 'pointer' : '';
-    }); // map.on('pointermove', function(evt)
-
-    $('#geom').on('change', function ()
-    {
-
-        // switch layers
-        toggleLayers.forEach(function(layer)
-        {
-            layer.setVisible($("#geom").val() === layer.get('keyword'));
-        });
-
-        if ($("#geom").val() == 'channel_rt')
-        {
-            selected_streams_layer.setVisible(true);
-        }
-        else if ($("#geom").val() == 'forcing')
-        {
-            grid.setVisible(true);
-        }
-
-        // hide all variable options in variable dropdown list (display them later)
-        $("#variable option").each(function()
-        {
-            $(this).addClass('hidden')
-        });
-
-        // hide and disable coordinate input
-        $('#gridDiv').addClass('hidden');
-        // hide and disable comid input
-        $('#comidDiv').addClass('hidden');
-
-        if ($('#geom').val() === 'channel_rt')
-        {
-            if (window.location.search.includes('channel_rt') && window.location.search.includes('long_range') === false)
-            {
-                $('#variable').val(getUrlParameter('variable', null));
-            }
-            else
-            {
-                $('#variable').val('streamflow');
-            }
-
-            $('#comidDiv').removeClass('hidden');
-            $('#comidInput').attr('disabled', false);
-            $('#streamVar').removeClass('hidden');
-
-            if ($('#config').val() !== 'long_range')
-            {
-                $('#velocVar').removeClass('hidden');
-            }
-        }
-        else if ($('#geom').val() === 'reservoir')
-        {
-            if (window.location.search.includes('reservoir'))
-            {
-                $('#variable').val(getUrlParameter('variable', null));
-            }
-            else
-            {
-                $('#variable').val('inflow');
-            }
-            $('#comidInput').attr('disabled', false);
-            $('#comidDiv').removeClass('hidden');
-            $('#infVar,#outfVar').removeClass('hidden');
-        }
-        else if ($('#geom').val() === 'land' && ($('#config').val() === 'short_range' ||
-            $('#config').val() === 'analysis_assim'))
-        {
-            $('#gridDiv').removeClass('hidden');
-            $('#gridInputY').attr('disabled', false);
-            $('#gridInputX').attr('disabled', false);
-            if (window.location.search.includes('land'))
-            {
-                $('#variable').val(getUrlParameter('variable', null));
-            }
-            else
-            {
-                $('#variable').val('SNOWH');
-            }
-            $('#snowhVar,#sneqVar,#snowcVar,#etVar,#ssVar,#avsnowVar').removeClass('hidden');
-        }
-        else if ($('#geom').val() === 'land' && $('#config').val() === 'medium_range')
-        {
-            $('#gridDiv').removeClass('hidden');
-            $('#gridInputY').attr('disabled', false);
-            $('#gridInputX').attr('disabled', false);
-            if (window.location.search.includes('land'))
-            {
-                // $('#variable').val(window.location.search.split("&")[2].substring(window.location.search.split("&")[2].
-                //     lastIndexOf("variable=") + 9));
-                $('#variable').val(getUrlParameter('variable', null));
-            }
-            else
-            {
-                $('#variable').val('SNOWH');
-            }
-            $('#snowhVar,#sneqVar,#snowcVar,#etVar,#ssVar,#avsnowVar,#subrunoffVar,#evapVar,#canwVar,#soiltVar,#soilmVar').
-                removeClass('hidden');
-        }
-        else if ($('#geom').val() === 'land' && $('#config').val() === 'long_range')
-        {
-            $('#gridDiv').removeClass('hidden');
-            $('#gridInputY').attr('disabled', false);
-            $('#gridInputX').attr('disabled', false);
-            if (window.location.search.includes('land') && window.location.search.includes('long_range'))
-            {
-                $('#variable').val(getUrlParameter('variable', null));
-            }
-            else
-            {
-                $('#variable').val('SNEQV');
-            }
-            $('#sneqVar,#etVar,#ssVar,#subrunoffVar,#runoffVar,#canwVar,#ssiVar').removeClass('hidden');
-        }
-        else if ($('#geom').val() === 'forcing' && $('#config').val() != 'long_range')
-        {
-            $('#gridDiv').removeClass('hidden');
-            $('#gridInputY').attr('disabled', false);
-            $('#gridInputX').attr('disabled', false);
-            if (window.location.search.includes('forcing') && window.location.search.includes('analysis_assim'))
-            {
-                $('#variable').val(getUrlParameter('variable', null));
-            }
-            else
-            {
-                $('#variable').val('RAINRATE');
-            }
-            $('#rainrateVar').removeClass('hidden');
-        }
-
-    }); //  $('#geom').on('change', function ()
-
+    // add watershed polygon to map
     var watershed_geojson_str = $("#watershed_geojson_str").val();
     var watershed_attributes_str = $("#watershed_attributes_str").val();
-    if (watershed_geojson_str.length > 0)
-    {
+    if (watershed_geojson_str.length > 0) {
         addGeojsonLayerToMap(watershed_geojson_str, watershed_attributes_str, false);
     }
 
-
+    var center_map_at_pnt_3857;
+    if (qLong && qLat)
+    {
+        center_map_at_pnt_3857 = reproject_point(qLong, qLat, 4326, 3857);
+    }
+    // highlight selected stream
     if (qCOMID && qGeom === 'channel_rt')
     {
         var stream_info = run_point_indexing_service_byu(qCOMID, null, null, 3857);
         if (stream_info != null)
-            {
+        {
+            selected_streams_layer.getSource().clear();
+            selected_streams_layer.getSource().addFeature(stream_info.feature);
+            center_map_at_pnt_3857 = stream_info.mid_point;
+        }
+    }
+    if (center_map_at_pnt_3857)
+    {
+        CenterMap(center_map_at_pnt_3857[0], center_map_at_pnt_3857[1], 3857);
+        mapView.setZoom(12);
+    }
+    $("#config").trigger("change");
 
-                //$("#comidInput").val(stream_info.comid);
+    // if (qLong && qLat)
+    // {
+    //     var center_map_at_pnt_3857 = reproject_point(qLong, qLat, 4326, 3857);
+    //     var evt_fake = {coordinate: center_map_at_pnt_3857};
+    //     map_singleclick(evt_fake);
+    // }
 
-                // displayContent += '<tr><td>Stream COMID: ' + stream_info.comid + '</td></tr>';
-                // showPopup = true;
-                // zoomToClick = true;
-
-                selected_streams_layer.getSource().clear();
-                selected_streams_layer.getSource().addFeature(stream_info.feature);
-                lonlat = ol.proj.transform(stream_info.mid_point, 'EPSG:3857', 'EPSG:4326');
-                $('#longInput').val(lonlat[0]);
-                $('#latInput').val(lonlat[1]);
-                CenterMap(lonlat[1], lonlat[0]);
-                mapView.setZoom(12);
-            }
-    } //if (qCOMID && qGeom === 'channel_rt')
+}
 
 
-    $("#geom").trigger("change");
-});
+/****************************
+ ***Map Event***
+ ****************************/
 
+function reproject_point(X_lon, Y_lat, in_epsg, out_epsg)
+{
+    return ol.proj.transform([parseFloat(X_lon), parseFloat(Y_lat)], 'EPSG:' + in_epsg.toString(), 'EPSG:' + out_epsg.toString());
+}
+
+function map_singleclick(evt)
+{
+    // destroy existing popup
+    $(popup_div).popover('destroy');
+    // if ((map.getTargetElement().style.cursor == "pointer")) {
+    map.updateSize();
+    var view = map.getView();
+    var viewResolution = view.getResolution();
+
+    var displayContent = "<table>";
+    var popup_point_3857;
+    if (grid_layer.getVisible())
+    {
+        var grid_url = grid_layer.getSource().getGetFeatureInfoUrl(evt.coordinate, viewResolution, view.getProjection(), {
+            'INFO_FORMAT': 'text/xml',
+            'FEATURE_COUNT': 1
+        });
+
+        var grid_Data = dataCall(grid_url);
+        var grid_Count = grid_Data.documentElement.childElementCount;
+
+        if (grid_Count != 1)
+        {
+            return;
+        }
+
+        var south_north = grid_Data.documentElement.children[0].attributes['south_north'].value;
+        var west_east = grid_Data.documentElement.children[0].attributes['west_east'].value;
+        var lon = grid_Data.documentElement.children[0].attributes['XLONG_M'].value;
+        var lat = grid_Data.documentElement.children[0].attributes['XLAT_M'].value;
+
+        $("#gridInputY").val(south_north);
+        $("#gridInputX").val(west_east);
+
+
+        displayContent += '<tr><td>south_north: ' + south_north + '</td><td>west_east: ' + west_east + '</td></tr>';
+
+        // popup shows at center of cell
+        popup_point_3857 = reproject_point(lon, lat, 4326, 3857);
+
+    }
+    else if (reservoir_layer.getVisible())
+    {
+        var reservoir_url = reservoir_layer.getSource().getGetFeatureInfoUrl(evt.coordinate, viewResolution, view.getProjection(), {
+            'INFO_FORMAT': 'text/xml',
+            'FEATURE_COUNT': 1
+        });
+
+        var reservoir_Data = dataCall(reservoir_url);
+        var reservoir_Count = reservoir_Data.documentElement.childElementCount;
+        if (reservoir_Count != 1)
+        {
+            return;
+        }
+
+        var reservoirID = reservoir_Data.documentElement.children[0].attributes['lake_id'].value;
+        var lon = reservoir_Data.documentElement.children[0].attributes['longitude'].value;
+        var lat = reservoir_Data.documentElement.children[0].attributes['latitude'].value;
+
+        $("#comidInput").val(reservoirID);
+
+        displayContent += '<tr><td>Reservoir COMID: ' + reservoirID + '</td></tr>';
+
+        // popup shows at reservoir point
+        popup_point_3857 = reproject_point(lon, lat, 4326, 3857);
+
+    }
+    else if (all_streams_layer.getVisible())
+    {
+        // query stream info at point evt.coordinate in EPSG:3857
+        var stream_info = run_point_indexing_service_byu(null, evt.coordinate, 3857, 3857);
+
+        if (stream_info == null)
+        {
+            return ;
+        }
+        $("#comidInput").val(stream_info.comid);
+        displayContent += '<tr><td>Stream COMID: ' + stream_info.comid + '</td></tr>';
+
+        selected_streams_layer.getSource().clear();
+        selected_streams_layer.getSource().addFeature(stream_info.feature);
+        // popup shows at mid point of this stream
+        popup_point_3857 = stream_info.mid_point;
+    }
+    else
+    {
+        return;
+    }
+
+    displayContent += '</table>';
+    var lonlat = reproject_point(popup_point_3857[0], popup_point_3857[1], 3857, 4326);
+    $('#longInput').val(lonlat[0]);
+    $('#latInput').val(lonlat[1]);
+
+    popup_overlay.setPosition(popup_point_3857);
+    $(popup_div).popover({
+        'placement': 'top',
+        'html': true,
+        'content': displayContent
+    });
+
+    $(popup_div).popover('show');
+    $(popup_div).next().css('cursor', 'text');
+
+    if (mapView.getZoom() < 12)
+    {
+        mapView.setZoom(12);
+        CenterMap(lonlat[0], lonlat[1], 4326);
+    }
+}
+
+function map_pointermove(evt)
+{
+    if (evt.dragging)
+    {
+                return;
+    }
+    var pixel = map.getEventPixel(evt.originalEvent);
+    var hit = map.forEachLayerAtPixel(pixel, function(layer)
+    {
+        if (layer != base_layer)
+        {
+            return true;
+        }
+    })
+    map.getTargetElement().style.cursor = hit ? 'pointer' : '';
+}
 /****************************
  ***Popup Displaying Info***
  ****************************/
@@ -781,7 +669,7 @@ function dataCall(inputURL)
     var result = null;
     $.ajax({
         url: inputURL,
-        async: false,
+        async: false
     }).then(function(response) {
         result = response;
     });
@@ -792,14 +680,15 @@ function dataCall(inputURL)
  ***MAP VIEW FUNCTIONALITY***
  ****************************/
 
-function CenterMap(lat,lon)
+function CenterMap(X_lon, Y_lat, in_epsg)
 {
-    var dbPoint = {
-        "type": "Point",
-        "coordinates": [lon, lat]
-    };
-    var coords = ol.proj.transform(dbPoint.coordinates, 'EPSG:4326','EPSG:3857');
-    mapView.setCenter(coords);
+    var pnt_3857 = [parseFloat(X_lon), parseFloat(Y_lat)];
+    if (in_epsg != 3857)
+    {
+        pnt_3857 = reproject_point(X_lon, Y_lat, in_epsg, 3857);
+    }
+
+    mapView.setCenter(pnt_3857);
 }
 
 /****************************************
@@ -827,7 +716,7 @@ function run_point_indexing_service_byu(comid, pnt_coordinate, pnt_epsg, output_
         var view = map.getView();
         var viewResolution = view.getResolution();
         // WMS GetFeatureInfo request
-        var stream_url = all_streams_Source.getGetFeatureInfoUrl(pnt_coordinate_3857, viewResolution, view.getProjection(), {
+        var stream_url = all_streams_layer.getSource().getGetFeatureInfoUrl(pnt_coordinate_3857, viewResolution, view.getProjection(), {
                         'INFO_FORMAT': 'text/xml',
                         'FEATURE_COUNT': 1
                     });
@@ -875,140 +764,6 @@ function run_point_indexing_service_byu(comid, pnt_coordinate, pnt_epsg, output_
            };
 } //function run_point_indexing_service_byu()
 
-
-// function run_point_indexing_service(lonlat)
-// {
-//     var inputLon = lonlat[0];
-//     var inputLat = lonlat[1];
-//     var wktval = "POINT(" + inputLon + " " + inputLat + ")";
-//
-//     var options = {
-//         "success" : "pis_success",
-//         "error"   : "pis_error",
-//         "timeout" : 60 * 1000
-//     };
-//
-//     var data = {
-//         "pGeometry": wktval,
-//         "pGeometryMod": "WKT,SRSNAME=urn:ogc:def:crs:OGC::CRS84",
-//         "pPointIndexingMethod": "DISTANCE",
-//         "pPointIndexingMaxDist": 10,
-//         "pOutputPathFlag": "TRUE",
-//         "pReturnFlowlineGeomFlag": "FULL",
-//         "optOutCS": "SRSNAME=urn:ogc:def:crs:OGC::CRS84",
-//         "optOutPrettyPrint": 0,
-//         "optClientRef": "CodePen"
-//     };
-//     WATERS.Services.PointIndexingService(data, options);
-// }
-//
-// function run_point_indexing_service2(lonlat)
-// {
-//     var qLong = lonlat[0];
-//     var qLat = lonlat[1];
-//     var wktval = "POINT(" + qLong + " " + qLat + ")";
-//     var options = {
-//         "success": "pis_success2",
-//         "error": "pis_error",
-//         "timeout": 60 * 1000
-//     };
-//     var data = {
-//         "pGeometry": wktval,
-//         "pGeometryMod": "WKT,SRSNAME=urn:ogc:def:crs:OGC::CRS84",
-//         "pPointIndexingMethod": "DISTANCE",
-//         "pPointIndexingMaxDist": 10,
-//         "pOutputPathFlag": "TRUE",
-//         "pReturnFlowlineGeomFlag": "FULL",
-//         "optOutCS": "SRSNAME=urn:ogc:def:crs:OGC::CRS84",
-//         "optOutPrettyPrint": 0,
-//         "optClientRef": "CodePen"
-//     };
-//     WATERS.Services.PointIndexingService(data, options);
-// }
-//
-// function pis_success(result)
-// {
-//     var srv_rez = result.output;
-//     if (srv_rez == null)
-//     {
-//         if (result.status.status_message !== null) {
-//             report_failed_search(result.status.status_message);
-//         } else {
-//             report_failed_search("No reach located near your click point.");
-//         }
-//         return;
-//     }
-//
-//     var srv_fl = result.output.ary_flowlines;
-//     var newLon = srv_fl[0].shape.coordinates[Math.floor(srv_fl[0].shape.coordinates.length / 2)][0];
-//     var newLat = srv_fl[0].shape.coordinates[Math.floor(srv_fl[0].shape.coordinates.length / 2)][1];
-//     comid = srv_fl[0].comid.toString();
-//     $('#longInput').val(newLon);
-//     $('#latInput').val(newLat);
-//     $('#comidInput').val(comid);
-//
-//     var element = document.getElementById('popup');
-//     lonlat = ol.proj.transform([newLon, newLat], 'EPSG:4326', 'EPSG:3857');
-//     map.getOverlays().item(0).setPosition(lonlat);
-//     var displayContent = "<p>COMID: " + comid + "</p>";
-//     $(element).popover({
-//                     'placement': 'top',
-//                     'html': true,
-//                     'content': displayContent
-//                 });
-//
-//                 $(element).popover('show');
-//                 $(element).next().css('cursor', 'text');
-//
-//     //add the selected flow line to the map
-//     for (var i in srv_fl)
-//     {
-//         selected_streams_layer.getSource().clear();
-//         selected_streams_layer.getSource().addFeature(geojson2feature(srv_fl[i].shape));
-//     }
-// }
-//
-// function pis_success2(result) {
-//     var srv_fl = result.output.ary_flowlines;
-//     var newLon = srv_fl[0].shape.coordinates[Math.floor(srv_fl[0].shape.coordinates.length/2)][0];
-//     var newLat = srv_fl[0].shape.coordinates[Math.floor(srv_fl[0].shape.coordinates.length/2)][1];
-//     comid = srv_fl[0].comid.toString();
-//
-//     //add the selected flow line to the map
-//     for (var i in srv_fl)
-//     {
-//         selected_streams_layer.getSource().clear();
-//         selected_streams_layer.getSource().addFeature(geojson2feature(srv_fl[i].shape));
-//     }
-// }
-//
-// function pis_error(XMLHttpRequest, textStatus, errorThrown) {
-//     report_failed_search(textStatus);
-// }
-//
-// function report_failed_search(MessageText){
-//     //Set the message of the bad news
-//     $('#info').append('<strong>Search Results:</strong><br>' + MessageText);
-//     mapView.setZoom(4);
-// }
-
-function geojson2feature(myGeoJSON) {
-    //Convert GeoJSON object into an OpenLayers 3 feature.
-    //Also force jquery coordinates into real js Array if needed
-    var geojsonformatter = new ol.format.GeoJSON;
-    if (myGeoJSON.coordinates instanceof Array == false) {
-        myGeoJSON.coordinates = WATERS.Utilities.RepairArray(myGeoJSON.coordinates,0);
-    }
-    var myGeometry = geojsonformatter.readGeometry(myGeoJSON);
-    myGeometry.transform('EPSG:4326','EPSG:3857');
-    //name the feature according to COMID
-    var newFeatureName = 'COMID: ' + comid;
-
-    return new ol.Feature({
-        geometry: myGeometry,
-        name: newFeatureName
-    });
-}
 
 /****************************************
  *******BUILD CHART FUNCTIONALITY********
@@ -1103,7 +858,7 @@ function get_netcdf_chart_data(config, geom, variable, comid, date, time, lag, e
             map.updateSize();
         }
     });
-};
+}
 
 function initChart(config, startDate) {
     /****************************
@@ -1210,10 +965,10 @@ function initChart(config, startDate) {
 
 var plotData = function(config, geom, variable, data, start, colorIndex, seriesDesc)
 {
-    if (config !== 'long_range')
-    {
+    // if (config !== 'long_range')
+    // {
         $('#actionBtns').removeClass('hidden');
-    }
+    // }
 
     var calib = calibrateModel(config, geom, start);
 
@@ -1450,7 +1205,7 @@ function getHSWatershedList () {
                 if (response.hasOwnProperty('resources')) {
                     resources = JSON.parse(response.resources);
                     if (resources.length === 0) {
-                        $popupLoadWatershed.find('.modal-body').html('<b>It appears that you do not own any HydroShare resource that can be imported as watershed.</b>');
+                        popupLoadWatershed.find('.modal-body').html('<b>It appears that you do not own any HydroShare resource that can be imported as watershed.</b>');
                     }
                     else
                     {
@@ -1463,14 +1218,14 @@ function getHSWatershedList () {
                                 '</tr>';
                         });
                         resTableHtml += '</tbody></table>';
-                        $popupLoadWatershed.find('.modal-body').html(resTableHtml);
-                        $btnLoadWatershed
+                        popupLoadWatershed.find('.modal-body').html(resTableHtml);
+                        btnLoadWatershed
                             .removeClass('hidden')
                             .prop('disabled', false);
                     }
                 }
             } else if (response.hasOwnProperty('error')) {
-                $popupLoadWatershed.find('.modal-body').html('<h6>' + response.error + '</h6>');
+                popupLoadWatershed.find('.modal-body').html('<h6>' + response.error + '</h6>');
             }
         }
     });
@@ -1478,7 +1233,7 @@ function getHSWatershedList () {
 
 function onClickLoadWatershed() {
 
-    $btnLoadWatershed.prop('disabled', true);
+    btnLoadWatershed.prop('disabled', true);
     var $rdoRes = $('.rdo-res:checked');
     var resId = $rdoRes.val();
     var filename = $rdoRes.attr('data-filename');
@@ -1502,13 +1257,13 @@ function loadWatershed(resId, filename) {
             if (ajax_resp.hasOwnProperty('success'))
             {
                 addGeojsonLayerToMap(ajax_resp.watershed.geojson_str, JSON.stringify(ajax_resp.watershed.attributes), true);
-                $popupLoadWatershed.modal('hide');
+                popupLoadWatershed.modal('hide');
             }
             else
             {
                 alert(ajax_resp.error);
             }
-            $btnLoadWatershed.prop('disabled', false);
+            btnLoadWatershed.prop('disabled', false);
         }
     });
 }
@@ -1521,7 +1276,7 @@ function addGeojsonLayerToMap(geojsonStr, attributeStr, zoomTo)
     var geoJson = JSON.parse(geojsonStr);
     var attributeJson = JSON.parse(attributeStr);
 
-    watershedLayer.getSource().clear();
+    watershed_layer.getSource().clear();
 
     // this geojson obj is the "Geometry" part (Polygon) of a geojson, not FeatureCollection or others
     var geometry = new ol.format.GeoJSON().readGeometry(geoJson);
@@ -1530,11 +1285,11 @@ function addGeojsonLayerToMap(geojsonStr, attributeStr, zoomTo)
             geometry: geometry
         });
     fea.setProperties(attributeJson);
-    watershedLayer.getSource().addFeature(fea);
+    watershed_layer.getSource().addFeature(fea);
 
     if (zoomTo)
     {
-        mapView.fit(watershedLayer.getSource().getExtent(), map.getSize());
+        mapView.fit(watershed_layer.getSource().getExtent(), map.getSize());
     }
     // $('#watershed_attributes_str').val(attributeStr);
     // $("#watershed_geojson_str").val(geojsonStr);
@@ -1559,7 +1314,7 @@ function getUrlParameter(name, url)
 
 $("#subsetBtn").on("click", function()
 {
-    var watershed_fea_list = watershedLayer.getSource().getFeatures();
+    var watershed_fea_list = watershed_layer.getSource().getFeatures();
     if (watershed_fea_list.length != 1)
     {
         alert("no watershed loaded");
@@ -1625,8 +1380,8 @@ function render_str_template(template_str, replace_dict)
 
 function _prepare_watershed_data()
 {
-    // check watershedLayer has a feature
-    var watershed_fea_list = watershedLayer.getSource().getFeatures();
+    // check watershed_layer has a feature
+    var watershed_fea_list = watershed_layer.getSource().getFeatures();
     if (watershed_fea_list.length == 0)
     {
         alert("no watershed loaded");

@@ -155,11 +155,21 @@ def home(request):
             comid = request.GET['COMID']
         else:
             comid = ','.join([request.GET['Y'], request.GET['X']])
-        lon = request.GET['longitude']
-        lat = request.GET['latitude']
+        lon = ''
+        if 'lon' in request.GET:
+            lon = request.GET['lon']
+        lat = ''
+        if 'lat' in request.GET:
+            lat = request.GET['lat']
         startDate = request.GET['startDate']
-        endDate = request.GET['endDate']
-        time = request.GET['time']
+
+        endDate = ''
+        if 'endDate' in request.GET:
+            endDate = request.GET['endDate']
+
+        time = ''
+        if 'time' in request.GET:
+            time = request.GET['time']
 
         lagList = []
         if '00z' in request.GET:
@@ -237,18 +247,19 @@ def get_netcdf_data(request):
             config = get_data['config']
             geom = get_data['geom']
             var = get_data['variable']
+
             if geom != 'land' and geom != 'forcing':
                 comid = int(get_data['COMID'])
             else:
                 comid = get_data['COMID']
+
             startDate = get_data['startDate']
             dateDir = startDate.replace('-', '')
-            time = get_data['time']
-            timeCheck = ''.join(['t', time, 'z'])
-            lag = get_data['lag'].split(',')
 
             if config == 'short_range' or config == 'medium_range':
 
+                time = get_data['time']
+                timeCheck = ''.join(['t', time, 'z'])
                 if geom == "forcing":
                     if local_vm_test:
                         localFileDir = os.path.join(app_dir, "fe_" + config, dateDir)  # local test
@@ -326,8 +337,19 @@ def get_netcdf_data(request):
                 })
 
             elif config == 'long_range':
+                if 'lag' in get_data:
+                    lag = get_data['lag']
+                    if len(lag) == 0:
+                        raise Exception("Parameter 'lag' is required for long range")
+                    lag = lag.split(",")
+                else:
+                    raise Exception("Parameter 'lag' is required for long range")
+
                 q_out_group = []
-                for lg in lag:
+                for timeCheck in lag:
+                    if "t" != timeCheck[0]:
+                        timeCheck = "t" + timeCheck
+
                     localFileDir = os.path.join(app_dir, config, dateDir)
 
                     q_out_1 = []
@@ -1202,11 +1224,11 @@ def get_data_waterml(request):
             comid = int(request.GET['COMID'])
         else:
             comid = request.GET['COMID']
-        if "lat=" in request.GET:
+        if "lat" in request.GET:
             lat = request.GET["lat"]
         else:
             lat = ''
-        if "lon=" in request.GET:
+        if "lon" in request.GET:
             lon = request.GET["lon"]
         else:
             lon = ''
@@ -1218,13 +1240,11 @@ def get_data_waterml(request):
                 end = (datetime.datetime.strptime(start, '%Y-%m-%d') + datetime.timedelta(days=1)).strftime('%Y-%m-%d')
         else:
             end = '9999-99-99'
-        if config == 'short_range':
+        if config == 'short_range' or config == 'medium_range':
             try:
                 time = request.GET['time']
             except:
                 time = '00'
-        elif config == 'medium_range':
-            time = '06'
         else:
             time = '00'
 
@@ -1255,7 +1275,7 @@ def get_data_waterml(request):
         elif var in ['SNOWT_AVG', 'SOIL_T']:
             units = {'name': 'Temperature', 'short': 'K', 'long': 'Kelvin'}
         elif var in ['RAINRATE']:
-            units = {'name': 'Rain Rate', 'short': 'mm/s', 'long': 'Millimeter per Second'}
+            units = {'name': 'Rain Rate', 'short': 'in/hr', 'long': 'Millimeter per Second'}
 
         nodata_value = -9999
 
