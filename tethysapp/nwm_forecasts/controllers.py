@@ -6,6 +6,7 @@ import tempfile
 import logging
 import uuid
 import datetime
+import zipfile
 
 logger = logging.getLogger(__name__)
 
@@ -927,11 +928,19 @@ def subset_watershed(request):
                 hydroshare_dict = request_dict["hydroshare"]
                 resource_id = hs.createResource(hydroshare_dict["res_type"],
                                                 hydroshare_dict["title"],
-                                                resource_file=bag_save_to_path,
+                                                #resource_file=bag_save_to_path,
                                                 keywords=hydroshare_dict["keywords"].split(','),
                                                 abstract=hydroshare_dict["abstract"])
 
-                print resource_id
+                resource_id = hs.addResourceFile(resource_id, bag_save_to_path)
+
+                options = {
+                            "zip_with_rel_path": os.path.basename(bag_save_to_path),
+                            "remove_original_zip": True
+                          }
+
+                unzipping_resp = hs.resource(resource_id).functions.unzip(options)
+
                 return JsonResponse({"status": "success", "res_id": resource_id})
 
             else:  # return file binary stream
@@ -965,31 +974,29 @@ def subset_watershed_api(request):
     bag_save_to_path = None
     try:
         if request.method == 'POST':
-            logger.error("222222222222222222222222222222222222222222222")
             logger.error(request)
             request_dict = json.loads(request.body)
-
             watershed_geometry = request_dict['watershed_geometry']
-            logger.error(watershed_geometry)
             watershed_epsg = int(request_dict['watershed_epsg'])
-            logger.error(watershed_epsg)
             subset_parameter_dict = request_dict['subset_parameter']
-            logger.error(subset_parameter_dict)
             logger.error("------START: subset_watershed_api--------")
             job_id, bag_save_to_path = _perform_subset(watershed_geometry,
                                                        watershed_epsg,
                                                        subset_parameter_dict)
 
-        response = FileResponse(open(bag_save_to_path, 'rb'), content_type='application/zip')
-        response['Content-Disposition'] = 'attachment; filename="' + '{0}.zip"'.format(job_id)
-        response['Content-Length'] = os.path.getsize(bag_save_to_path)
-        logger.error("------END: subset_watershed_api--------")
-        return response
+            response = FileResponse(open(bag_save_to_path, 'rb'), content_type='application/zip')
+            response['Content-Disposition'] = 'attachment; filename="' + '{0}.zip"'.format(job_id)
+            response['Content-Length'] = os.path.getsize(bag_save_to_path)
+            logger.error("------END: subset_watershed_api--------")
+            return response
+        else:
+            raise Exception("Not a POST request, Note: this api endpoint must end with a slash '/'")
 
     except Exception as ex:
         logger.exception(ex.message)
         logger.error("------ERROR: subset_watershed_api--------")
         return HttpResponse(status=500, content=ex.message)
+
     finally:
         if bag_save_to_path is not None:
             if os.path.exists(bag_save_to_path):
@@ -1127,12 +1134,32 @@ def _perform_subset(geom_str, in_epsg, subset_parameter_dict):
                                    netcdf_folder_path=output_netcdf_folder_path,
                                    cleanup=cleanup)
 
-    zip_path = os.path.join(output_folder_path, job_id)
-    shutil.make_archive(zip_path, 'zip', output_folder_path, job_id)
+    # zip_path = os.path.join(output_folder_path, job_id)
+    # shutil.make_archive(zip_path, 'zip', output_folder_path, job_id)
 
-    bag_save_to_path = zip_path + ".zip"
+    job_folder_path = os.path.join(output_folder_path, job_id)
+    zip_file_path = job_folder_path + '.zip'
+    _zip_folder_contents(zip_file_path, job_folder_path)
+
+    bag_save_to_path = zip_file_path
 
     return job_id, bag_save_to_path
+
+
+def _zip_folder_contents(zip_file_path, source_folder_path):
+
+    '''
+    zip up all contents (files, subfolders) under source_folder_path to zip_file_path
+    :param zip_file_path: path to save the resulting zip file
+    :param source_folder_path: the contents of which will be zipped
+    :return:
+    '''
+
+    zip_handle = zipfile.ZipFile(zip_file_path, 'w', zipfile.ZIP_DEFLATED)
+    os.chdir(source_folder_path)
+    for root, dirs, files in os.walk('.'):
+        for f in files:
+            zip_handle.write(os.path.join(root, f))
 
 # ***----------------------------------------------------------------------------------------*** #
 # ***                                                                                        *** #
