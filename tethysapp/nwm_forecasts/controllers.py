@@ -33,7 +33,6 @@ from subset_nwm_netcdf.subset import start_subset_nwm_netcdf_job
 from subset_nwm_netcdf.merge import start_merge_nwm_netcdf_job
 
 
-
 local_vm_test = True
 
 hs_hostname = 'www.hydroshare.org'
@@ -905,6 +904,7 @@ def upload_to_hydroshare(request):
 
 @login_required()
 def subset_watershed(request):
+
     bag_save_to_path = None
     upload_to_hydroshare = False
 
@@ -917,139 +917,9 @@ def subset_watershed(request):
             if "hydroshare" in request_dict:
                 upload_to_hydroshare = True
 
-            db_file_path = "/nwm.sqlite"
-            job_id = str(uuid.uuid4())
-
-            all_start_dt = datetime.datetime.now()
-            logger.info("-------------Process Started-------------------")
-            logger.info(all_start_dt)
-
-            # geojson example
-            query_type = "geojson"
-            shp_path = None
-            geom_str = request_dict['watershed_geometry']
-            in_epsg = 3857  # epsg is required
-            huc_id = None
-
-            query_result_dict = query_comids_and_grid_indices(job_id=job_id,
-                                                              db_file_path=db_file_path,
-                                                              query_type=query_type,
-                                                              shp_path=shp_path,
-                                                              geom_str=geom_str,
-                                                              in_epsg=in_epsg,
-                                                              huc_id=huc_id)
-            if query_result_dict is None:
-                raise Exception("Failed to retrieve spatial query result")
-
-            subset_parameter_dict = request_dict['subset_parameter']
-
-            netcdf_folder_path = "/projects/water/nwm/data/nomads/"
-
-            # Path of output folder
-            output_folder_path = "/tmp"
-
-            # shrink dimension size to cover subsetting domain only
-            resize_dimension_grid = True
-            resize_dimension_feature = True
-            # merge resulting netcdfs
-            merge_netcdfs = subset_parameter_dict['merge']
-            # remove intermediate files
-            cleanup = True
-
-            # list of simulation dates
-
-
-            if len(subset_parameter_dict["endDate"]) > 0 and subset_parameter_dict["config"] == "analysis_assim":
-                if int(subset_parameter_dict["endDate"].replace("-", "")) < \
-                        int(subset_parameter_dict["startDate"].replace("-", "")):
-                    raise Exception("endDate is earlier than startDate.")
-                startDate_obj = datetime.datetime.strptime(subset_parameter_dict["startDate"], "%Y-%m-%d")
-                endDate_obj = datetime.datetime.strptime(subset_parameter_dict["endDate"], "%Y-%m-%d")
-                dateDelta_obj = endDate_obj - startDate_obj
-                dateRange_obj_list = [startDate_obj + datetime.timedelta(days=x) for x in range(0, dateDelta_obj.days + 1)]
-                simulation_date_list = [x.strftime("%Y%m%d") for x in dateRange_obj_list]
-            else:
-                simulation_date_list = [subset_parameter_dict["startDate"].replace("-", "")]
-            print simulation_date_list
-
-            # list of model configurations
-            #model_configuration_list = ['analysis_assim', 'short_range', 'medium_range', 'long_range']
-            model_configuration_list = [subset_parameter_dict["config"]]
-
-            # list of model result data types
-            #data_type_list = ['reservoir', 'channel', 'land', 'terrain']
-            if subset_parameter_dict['geom'] == "forcing":
-                data_type_list = []
-            else:
-                data_type_list = [subset_parameter_dict['geom'].replace("channel_rt", "channel")]
-
-            # list of model file types
-            # file_type_list = ["forecast", 'forcing']
-            if subset_parameter_dict['geom'] == "forcing":
-                file_type_list = ["forcing"]
-            else:
-                file_type_list = ["forecast"]
-
-            # list of time stamps or model cycles
-            # [1, 2, ...];  [] or None means all default time stamps
-            if subset_parameter_dict['config'] == "analysis_assim":
-                time_stamp_list = []
-            elif subset_parameter_dict['config'] == "long_range":
-                time_stamp_list = []
-                if subset_parameter_dict['lag_00z'] == "on":
-                   time_stamp_list.append(0)
-                if subset_parameter_dict['lag_06z'] == "on":
-                    time_stamp_list.append(6)
-                if subset_parameter_dict['lag_12z'] == "on":
-                    time_stamp_list.append(12)
-                if subset_parameter_dict['lag_18z'] == "on":
-                    time_stamp_list.append(18)
-            else:
-                time_stamp_list = [int(subset_parameter_dict['time'])]
-
-            grid_land_dict = query_result_dict["grid_land"]
-            grid_terrain_dict = query_result_dict["grid_terrain"]
-            stream_comid_list = query_result_dict["stream"]["comids"]
-            reservoir_comid_list = query_result_dict["reservoir"]["comids"]
-
-            if "long_range" in model_configuration_list:
-                model_configuration_list.remove("long_range")
-                for i in range(1, 5):
-                    model_configuration_list.append("long_range_mem{0}".format(str(i)))
-
-            output_netcdf_folder_path = os.path.join(output_folder_path, job_id)
-
-            start_subset_nwm_netcdf_job(job_id=job_id,
-                                        input_netcdf_folder_path=netcdf_folder_path,
-                                        output_netcdf_folder_path=output_netcdf_folder_path,
-                                        simulation_date_list=simulation_date_list,
-                                        file_type_list=file_type_list,
-                                        model_configuration_list=model_configuration_list,
-                                        data_type_list=data_type_list,
-                                        time_stamp_list=time_stamp_list,
-                                        grid_land_dict=grid_land_dict,
-                                        grid_terrain_dict=grid_terrain_dict,
-                                        stream_comid_list=stream_comid_list,
-                                        reservoir_comid_list=reservoir_comid_list,
-                                        resize_dimension_grid=resize_dimension_grid,
-                                        resize_dimension_feature=resize_dimension_feature,
-                                        cleanup=cleanup,
-                                        include_AA_tm12=False)
-
-            if merge_netcdfs:
-                start_merge_nwm_netcdf_job(job_id=job_id,
-                                           simulation_date_list=simulation_date_list,
-                                           file_type_list=file_type_list,
-                                           model_cfg_list=model_configuration_list,
-                                           data_type_list=data_type_list,
-                                           time_stamp_list=time_stamp_list,
-                                           netcdf_folder_path=output_netcdf_folder_path,
-                                           cleanup=cleanup)
-
-            zip_path = os.path.join(output_folder_path, job_id)
-            shutil.make_archive(zip_path, 'zip', output_folder_path, job_id)
-
-            bag_save_to_path = zip_path + ".zip"
+            job_id, bag_save_to_path = _perform_subset(request_dict['watershed_geometry'],
+                                                       int(request_dict['watershed_epsg']),
+                                                       request_dict['subset_parameter'])
 
             # upload to hydroshare
             if upload_to_hydroshare:
@@ -1089,6 +959,180 @@ def subset_watershed(request):
                 shutil.rmtree(bag_save_to_path.replace(".zip", ""))
 
 
+@csrf_exempt
+def subset_watershed_api(request):
+
+    bag_save_to_path = None
+    try:
+        if request.method == 'POST':
+            logger.error("222222222222222222222222222222222222222222222")
+            logger.error(request)
+            request_dict = json.loads(request.body)
+
+            watershed_geometry = request_dict['watershed_geometry']
+            logger.error(watershed_geometry)
+            watershed_epsg = int(request_dict['watershed_epsg'])
+            logger.error(watershed_epsg)
+            subset_parameter_dict = request_dict['subset_parameter']
+            logger.error(subset_parameter_dict)
+            logger.error("------START: subset_watershed_api--------")
+            job_id, bag_save_to_path = _perform_subset(watershed_geometry,
+                                                       watershed_epsg,
+                                                       subset_parameter_dict)
+
+        response = FileResponse(open(bag_save_to_path, 'rb'), content_type='application/zip')
+        response['Content-Disposition'] = 'attachment; filename="' + '{0}.zip"'.format(job_id)
+        response['Content-Length'] = os.path.getsize(bag_save_to_path)
+        logger.error("------END: subset_watershed_api--------")
+        return response
+
+    except Exception as ex:
+        logger.exception(ex.message)
+        logger.error("------ERROR: subset_watershed_api--------")
+        return HttpResponse(status=500, content=ex.message)
+    finally:
+        if bag_save_to_path is not None:
+            if os.path.exists(bag_save_to_path):
+                os.remove(bag_save_to_path)
+            if os.path.exists(bag_save_to_path.replace(".zip", "")):
+                shutil.rmtree(bag_save_to_path.replace(".zip", ""))
+
+
+def _perform_subset(geom_str, in_epsg, subset_parameter_dict):
+
+    db_file_path = "/nwm.sqlite"
+    job_id = str(uuid.uuid4())
+
+    all_start_dt = datetime.datetime.now()
+    logger.info("-------------Process Started-------------------")
+    logger.info(all_start_dt)
+
+    # geojson example
+    query_type = "geojson"
+    shp_path = None
+    # geom_str = request_dict['watershed_geometry']
+    # in_epsg = 3857  # epsg is required
+    huc_id = None
+
+    query_result_dict = query_comids_and_grid_indices(job_id=job_id,
+                                                      db_file_path=db_file_path,
+                                                      query_type=query_type,
+                                                      shp_path=shp_path,
+                                                      geom_str=geom_str,
+                                                      in_epsg=in_epsg,
+                                                      huc_id=huc_id)
+    if query_result_dict is None:
+        raise Exception("Failed to retrieve spatial query result")
+
+    # subset_parameter_dict = request_dict['subset_parameter']
+
+    netcdf_folder_path = "/projects/water/nwm/data/nomads/"
+
+    # Path of output folder
+    output_folder_path = "/tmp"
+
+    # shrink dimension size to cover subsetting domain only
+    resize_dimension_grid = True
+    resize_dimension_feature = True
+    # merge resulting netcdfs
+    merge_netcdfs = subset_parameter_dict['merge']
+    # remove intermediate files
+    cleanup = True
+
+    # list of simulation dates
+    if len(subset_parameter_dict["endDate"]) > 0 and subset_parameter_dict["config"] == "analysis_assim":
+        if int(subset_parameter_dict["endDate"].replace("-", "")) < \
+                int(subset_parameter_dict["startDate"].replace("-", "")):
+            raise Exception("endDate is earlier than startDate.")
+        startDate_obj = datetime.datetime.strptime(subset_parameter_dict["startDate"], "%Y-%m-%d")
+        endDate_obj = datetime.datetime.strptime(subset_parameter_dict["endDate"], "%Y-%m-%d")
+        dateDelta_obj = endDate_obj - startDate_obj
+        dateRange_obj_list = [startDate_obj + datetime.timedelta(days=x) for x in range(0, dateDelta_obj.days + 1)]
+        simulation_date_list = [x.strftime("%Y%m%d") for x in dateRange_obj_list]
+    else:
+        simulation_date_list = [subset_parameter_dict["startDate"].replace("-", "")]
+    print simulation_date_list
+
+    # list of model configurations
+    # model_configuration_list = ['analysis_assim', 'short_range', 'medium_range', 'long_range']
+    model_configuration_list = [subset_parameter_dict["config"]]
+
+    # list of model result data types
+    # data_type_list = ['reservoir', 'channel', 'land', 'terrain']
+    if subset_parameter_dict['geom'] == "forcing":
+        data_type_list = []
+    else:
+        data_type_list = [subset_parameter_dict['geom'].replace("channel_rt", "channel")]
+
+    # list of model file types
+    # file_type_list = ["forecast", 'forcing']
+    if subset_parameter_dict['geom'] == "forcing":
+        file_type_list = ["forcing"]
+    else:
+        file_type_list = ["forecast"]
+
+    # list of time stamps or model cycles
+    # [1, 2, ...];  [] or None means all default time stamps
+    if subset_parameter_dict['config'] == "analysis_assim":
+        time_stamp_list = []
+    elif subset_parameter_dict['config'] == "long_range":
+        time_stamp_list = []
+        if subset_parameter_dict['lag_00z'] == "on":
+            time_stamp_list.append(0)
+        if subset_parameter_dict['lag_06z'] == "on":
+            time_stamp_list.append(6)
+        if subset_parameter_dict['lag_12z'] == "on":
+            time_stamp_list.append(12)
+        if subset_parameter_dict['lag_18z'] == "on":
+            time_stamp_list.append(18)
+    else:
+        time_stamp_list = [int(subset_parameter_dict['time'])]
+
+    grid_land_dict = query_result_dict["grid_land"]
+    grid_terrain_dict = query_result_dict["grid_terrain"]
+    stream_comid_list = query_result_dict["stream"]["comids"]
+    reservoir_comid_list = query_result_dict["reservoir"]["comids"]
+
+    if "long_range" in model_configuration_list:
+        model_configuration_list.remove("long_range")
+        for i in range(1, 5):
+            model_configuration_list.append("long_range_mem{0}".format(str(i)))
+
+    output_netcdf_folder_path = os.path.join(output_folder_path, job_id)
+
+    start_subset_nwm_netcdf_job(job_id=job_id,
+                                input_netcdf_folder_path=netcdf_folder_path,
+                                output_netcdf_folder_path=output_netcdf_folder_path,
+                                simulation_date_list=simulation_date_list,
+                                file_type_list=file_type_list,
+                                model_configuration_list=model_configuration_list,
+                                data_type_list=data_type_list,
+                                time_stamp_list=time_stamp_list,
+                                grid_land_dict=grid_land_dict,
+                                grid_terrain_dict=grid_terrain_dict,
+                                stream_comid_list=stream_comid_list,
+                                reservoir_comid_list=reservoir_comid_list,
+                                resize_dimension_grid=resize_dimension_grid,
+                                resize_dimension_feature=resize_dimension_feature,
+                                cleanup=cleanup,
+                                include_AA_tm12=False)
+
+    if merge_netcdfs:
+        start_merge_nwm_netcdf_job(job_id=job_id,
+                                   simulation_date_list=simulation_date_list,
+                                   file_type_list=file_type_list,
+                                   model_cfg_list=model_configuration_list,
+                                   data_type_list=data_type_list,
+                                   time_stamp_list=time_stamp_list,
+                                   netcdf_folder_path=output_netcdf_folder_path,
+                                   cleanup=cleanup)
+
+    zip_path = os.path.join(output_folder_path, job_id)
+    shutil.make_archive(zip_path, 'zip', output_folder_path, job_id)
+
+    bag_save_to_path = zip_path + ".zip"
+
+    return job_id, bag_save_to_path
 
 # ***----------------------------------------------------------------------------------------*** #
 # ***                                                                                        *** #

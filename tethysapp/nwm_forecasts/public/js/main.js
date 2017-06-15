@@ -1,3 +1,4 @@
+var target, observer, config;
 //Map variables
 var map, mapView;
 var base_layer, grid_layer, reservoir_layer, all_streams_layer, selected_streams_layer, watershed_layer;
@@ -10,23 +11,6 @@ var nc_chart, seriesData, startDate, seriesDataGroup = [];
 //jQuery handle variables
 var btnLoadWatershed;
 var popupLoadWatershed;
-
-// // force map to updateSize() once html sturcture changes
-// (function () {
-//     var target, observer, config;
-//     // select the target node
-//     target = $('#app-content-wrapper')[0];
-//
-//     observer = new MutationObserver(function () {
-//         window.setTimeout(function () {
-//             map.updateSize();
-//         }, 350);
-//     });
-//
-//     config = {attributes: true};
-//
-//     observer.observe(target, config);
-// }());
 
 /**********************************
  ********Config & Geom dropdowns OnChange Event *********
@@ -286,6 +270,20 @@ $(document).ready(function ()
         $("#welcome-popup").modal("show");
     }
 
+    // // force map to updateSize() once html structure changes
+    // // select the target node
+    // target = $('#app-content-wrapper')[0];
+    // observer = new MutationObserver(function () {
+    //     window.setTimeout(function () {
+    //         if (map)
+    //         {
+    //              map.updateSize();
+    //         }
+    //     }, 350);
+    // });
+    // config = {attributes: true};
+    // observer.observe(target, config);
+
     init_restore_ui_map();
 });
 
@@ -327,7 +325,7 @@ function init_restore_ui_map()
      **********INITIALIZE MAP *********
      **********************************/
 
-        // show mouse position on map
+    // show mouse position on map
     var mousePositionControl = new ol.control.MousePosition({
             coordinateFormat: ol.coordinate.createStringXY(2),
             projection: 'EPSG:4326',
@@ -519,13 +517,16 @@ function init_restore_ui_map()
     var watershed_attributes_str = $("#watershed_attributes_str").val();
     if (watershed_geojson_str.length > 0)
     {
-        addGeojsonLayerToMap(watershed_geojson_str, watershed_attributes_str, false);
+        addGeojsonLayerToMap(watershed_geojson_str, watershed_attributes_str, true);
     }
 
-    var center_map_at_pnt_3857;
+    var center_map_at_pnt_3857 = null;
     if (qLong && qLat)
     {
-        center_map_at_pnt_3857 = reproject_point(qLong, qLat, 4326, 3857);
+        if (parseFloat(qLong) != -98 && parseFloat(qLat) != 38.5 && qCOMID != "")
+        {
+            center_map_at_pnt_3857 = reproject_point(qLong, qLat, 4326, 3857);
+        }
     }
     // highlight selected stream
     if (qCOMID && qGeom === 'channel_rt')
@@ -1146,7 +1147,7 @@ function changeUnits(config)
             }
             nc_chart.yAxis[0].setTitle({text: 'Flow (cms)'});
 
-            for (i = 0; i < seriesDataGroup.length; i++) {
+            for (var i = 0; i < seriesDataGroup.length; i++) {
                 var newSeries = [];
                 seriesDataGroup[i][0].forEach(function (j) {
                     newSeries.push(j * 0.0283168);
@@ -1170,7 +1171,7 @@ function changeUnits(config)
             }
             nc_chart.yAxis[0].setTitle({text: 'Flow (cfs)'});
 
-            for (i = 0; i < seriesDataGroup.length; i++)
+            for (var i = 0; i < seriesDataGroup.length; i++)
             {
                 var calib = calibrateModel(config, geom);
                 var data_series = {

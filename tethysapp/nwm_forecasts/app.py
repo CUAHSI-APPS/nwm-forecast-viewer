@@ -39,7 +39,10 @@ class nwmForecasts(TethysAppBase):
                            controller='nwm_forecasts.controllers.load_watershed'),
                     UrlMap(name='subset_watershed',
                            url='nwm-forecasts/subset-watershed',
-                           controller='nwm_forecasts.controllers.subset_watershed')
+                           controller='nwm_forecasts.controllers.subset_watershed'),
+                    UrlMap(name='subset_watershed_api',
+                           url='nwm-forecasts/subset-watershed-api',
+                           controller='nwm_forecasts.controllers.subset_watershed_api')
                     )
 
         return url_maps
