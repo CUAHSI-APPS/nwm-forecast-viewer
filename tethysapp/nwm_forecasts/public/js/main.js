@@ -1255,6 +1255,7 @@ function getHSWatershedList ()
                                 '</tr>';
                         });
                         resTableHtml += '</tbody></table>';
+                        resTableHtml += '<div id="add_watershed_loading" class="hidden" disabled><img src="/static/nwm_forecasts/images/loading-animation.gif"></div>';
                         popupLoadWatershed.find('.modal-body').html(resTableHtml);
                         btnLoadWatershed
                             .removeClass('hidden')
@@ -1274,7 +1275,7 @@ function onClickLoadWatershed()
     var $rdoRes = $('.rdo-res:checked');
     var resId = $rdoRes.val();
     var filename = $rdoRes.attr('data-filename');
-
+    $('#add_watershed_loading').prop('disabled', false).removeClass('hidden');
     loadWatershed(resId, filename);
 }
 
@@ -1289,9 +1290,12 @@ function loadWatershed(resId, filename)
             filename: filename
         },
         error: function () {
-            console.error('Failed to load watershed!');
+            alert('Failed to load watershed!');
+            $('#add_watershed_loading').prop('disabled', true).addClass('hidden');
+            btnLoadWatershed.prop('disabled', false);
         },
         success: function (ajax_resp) {
+            $('#add_watershed_loading').prop('disabled', true).addClass('hidden');
             if (ajax_resp.hasOwnProperty('success'))
             {
                 addGeojsonLayerToMap(ajax_resp.watershed.geojson_str, JSON.stringify(ajax_resp.watershed.attributes), true);
@@ -1362,6 +1366,7 @@ $("#subsetBtn").on("click", function()
         alert("no watershed loaded");
         return;
     }
+
     $("#subsetBtn, #watershedBtn, #submitBtn").attr('disabled','disabled');
     if ($("#chkbox-upload-subset-to-hs").prop('checked'))
     {
@@ -1405,7 +1410,7 @@ $("#subsetBtn").on("click", function()
         $('#hydroshare-subset').modal('show');
         return;
     }
-
+    $('#subset_watershed_loading').prop('disabled', false).removeClass('hidden');
     subset_watershed_download();
 }); //$("#subsetBtn").on("click", function()
 
@@ -1501,7 +1506,6 @@ function subset_watershed_hydroshare()
 
     $('#hydroshare-proceed-subset').prop('disabled', true);
     var csrf_token = getCookie('csrftoken');
-
     $.ajax({
         type: 'POST',
         url: '/apps/nwm-forecasts/subset-watershed/',
@@ -1526,6 +1530,7 @@ function subset_watershed_hydroshare()
             $("#subsetBtn, #watershedBtn, #submitBtn").removeAttr('disabled');
         },
         error: function (jqXHR, textStatus, errorThrown) {
+            $('#subset_watershed_loading').prop('disabled', true).addClass('hidden');
             $('#hydroshare-proceed-subset').prop('disabled', false);
             displayStatus.removeClass('uploading');
             displayStatus.addClass('error');
@@ -1533,7 +1538,6 @@ function subset_watershed_hydroshare()
             $("#subsetBtn, #watershedBtn, #submitBtn").removeAttr('disabled');
         }
     });
-
 }
 
 function subset_watershed_download()
@@ -1556,12 +1560,14 @@ function subset_watershed_download()
             document.body.appendChild(a);
             a.click();
             $("#subsetBtn, #watershedBtn, #submitBtn").removeAttr('disabled');
+            $('#subset_watershed_loading').prop('disabled', true).addClass('hidden');
         }
         else if  (xhttp.status != 200 && xhttp.status != 0)
         {
             xhttp.abort();
             alert("Failed to subset this watershed");
             $("#subsetBtn, #watershedBtn, #submitBtn").removeAttr('disabled');
+            $('#subset_watershed_loading').prop('disabled', true).addClass('hidden');
         }
 
     }; //xhttp.onreadystatechange
