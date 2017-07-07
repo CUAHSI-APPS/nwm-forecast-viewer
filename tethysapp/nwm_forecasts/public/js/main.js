@@ -334,6 +334,7 @@ function init_restore_ui_map()
             undefinedHTML: '&nbsp;'
         });
 
+
     map = new ol.Map({
         controls: ol.control.defaults({
             attributionOptions: ({
@@ -349,7 +350,6 @@ function init_restore_ui_map()
             projection: 'EPSG:3857'
         })
     });
-
     mapView = map.getView();
 
     var qLong, qLat;
@@ -424,7 +424,9 @@ function init_restore_ui_map()
         params: {
             LAYERS: "0"
         },
-        crossOrigin: 'Anonymous' //This is necessary for CORS security in the browser
+        //see: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img#attr-crossorigin
+        //http://openlayers.org/en/v3.12.1/apidoc/ol.source.TileWMS.html
+        crossOrigin: 'anonymous' //This is necessary for CORS security in the browser
     });
 
     grid_layer = new ol.layer.Tile({
@@ -440,7 +442,10 @@ function init_restore_ui_map()
         params: {
             LAYERS: "0"
         },
-        crossOrigin: 'Anonymous' //This is necessary for CORS security in the browser
+        //see: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img#attr-crossorigin
+        //http://openlayers.org/en/v3.12.1/apidoc/ol.source.TileWMS.html
+        crossOrigin: 'anonymous' //This is necessary for CORS security in the browser
+
     });
 
     reservoir_layer = new ol.layer.Tile({
@@ -448,17 +453,32 @@ function init_restore_ui_map()
         keyword: "reservoir"
     });
 
+    var sld_body_all_streams = '<?xml version="1.0" encoding="UTF-8"?><sld:StyledLayerDescriptor version="1.0.0" xmlns="http://www.opengis.net/ogc" xmlns:sld="http://www.opengis.net/sld" xmlns:ogc="http://www.opengis.net/ogc" xmlns:gml="http://www.opengis.net/gml" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.opengis.net/sld http://schemas.opengis.net/sld/1.0.0/StyledLayerDescriptor.xsd"><sld:NamedLayer><sld:Name>0</sld:Name><sld:UserStyle><sld:Name>lineSymbolizer</sld:Name><sld:Title>lineSymbolizer</sld:Title><sld:FeatureTypeStyle><sld:Rule><sld:MinScaleDenominator>0</sld:MinScaleDenominator><sld:MaxScaleDenominator>5000000</sld:MaxScaleDenominator><sld:LineSymbolizer><sld:Stroke><sld:CssParameter name="stroke">#FF0000</sld:CssParameter><sld:CssParameter name="stroke-opacity">1</sld:CssParameter><sld:CssParameter name="stroke-width">2</sld:CssParameter></sld:Stroke></sld:LineSymbolizer></sld:Rule></sld:FeatureTypeStyle></sld:UserStyle></sld:NamedLayer></sld:StyledLayerDescriptor>';
+    var sld_body_all_streams_usgs = '<?xml version="1.0" encoding="UTF-8"?><sld:StyledLayerDescriptor version="1.0.0" xmlns="http://www.opengis.net/ogc" xmlns:sld="http://www.opengis.net/sld" xmlns:ogc="http://www.opengis.net/ogc" xmlns:gml="http://www.opengis.net/gml" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.opengis.net/sld http://schemas.opengis.net/sld/1.0.0/StyledLayerDescriptor.xsd"><sld:NamedLayer><sld:Name>4</sld:Name><sld:UserStyle><sld:Name>lineSymbolizer</sld:Name><sld:Title>lineSymbolizer</sld:Title><sld:FeatureTypeStyle><sld:Rule><sld:MinScaleDenominator>0</sld:MinScaleDenominator><sld:MaxScaleDenominator>10000000</sld:MaxScaleDenominator><sld:LineSymbolizer><sld:Stroke><sld:CssParameter name="stroke">#FF0000</sld:CssParameter><sld:CssParameter name="stroke-opacity">1</sld:CssParameter><sld:CssParameter name="stroke-width">2</sld:CssParameter></sld:Stroke></sld:LineSymbolizer></sld:Rule></sld:FeatureTypeStyle></sld:UserStyle></sld:NamedLayer></sld:StyledLayerDescriptor>';
+
     var all_streams_Source = new ol.source.TileWMS({
         url: 'https://geoserver.byu.edu/arcgis/services/NWM/nwm_channel_v10/MapServer/WmsServer?',
+        //url: 'https://services.nationalmap.gov/arcgis/services/nhd/MapServer/WMSServer?',
         params: {
-            LAYERS: "0"
+            LAYERS: "0",
+            //LAYERS: "4", //USGS
+            // use a external sld xml file works slowly
+            //SLD: 'https://www.hydroshare.org/django_irods/download/4023737940134bbabcab5a1af9e30bae/data/contents/stream_sld.xml',
+            //STYLES: "lineSymbolizer",
+            // send a sld xml body/contents is faster
+            //SLD_BODY: sld_body_all_streams
+            //SLD_BODY: sld_body_all_streams_usgs
         },
-        crossOrigin: 'Anonymous' //This is necessary for CORS security in the browser
+        //see: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img#attr-crossorigin
+        //http://openlayers.org/en/v3.12.1/apidoc/ol.source.TileWMS.html
+        crossOrigin: 'anonymous' //This is necessary for CORS security in the browser
     });
 
     all_streams_layer = new ol.layer.Tile({
         source: all_streams_Source,
-        keyword: "channel_rt"
+        keyword: "channel_rt",
+        // minResolution: 0, // show layer when resolution is greater than 0 meters/pixel
+        // maxResolution: 50 // show layer when resolution is smaller than 50 meters/pixel
     });
 
     var createLineStyleFunction = function () {
@@ -532,7 +552,7 @@ function init_restore_ui_map()
     if (qCOMID && qGeom === 'channel_rt')
     {
         var stream_info = run_point_indexing_service_byu(qCOMID, null, null, 3857);
-        if (stream_info != null)
+        if (stream_info != null && stream_info.feature != null && stream_info.mid_point != null)
         {
             selected_streams_layer.getSource().clear();
             selected_streams_layer.getSource().addFeature(stream_info.feature);
@@ -624,22 +644,29 @@ function map_singleclick(evt)
         popup_point_3857 = reproject_point(lon, lat, 4326, 3857);
 
     }
-    else if (all_streams_layer.getVisible())
-    {
+    else if (all_streams_layer.getVisible()) {
         // query stream info at point evt.coordinate in EPSG:3857
         var stream_info = run_point_indexing_service_byu(null, evt.coordinate, 3857, 3857);
 
         if (stream_info == null)
         {
-            return ;
+            return;
         }
-        $("#comidInput").val(stream_info.comid);
-        displayContent += '<tr><td>Stream COMID: ' + stream_info.comid + '</td></tr>';
-
-        selected_streams_layer.getSource().clear();
-        selected_streams_layer.getSource().addFeature(stream_info.feature);
-        // popup shows at mid point of this stream
-        popup_point_3857 = stream_info.mid_point;
+        if (stream_info.comid != null)
+        {
+            $("#comidInput").val(stream_info.comid);
+            displayContent += '<tr><td>Stream COMID: ' + stream_info.comid + '</td></tr>';
+        }
+        if (stream_info.feature != null)
+        {
+            selected_streams_layer.getSource().clear();
+            selected_streams_layer.getSource().addFeature(stream_info.feature);
+        }
+        if (stream_info.mid_point != null)
+        {
+            // popup shows at mid point of this stream
+            popup_point_3857 = stream_info.mid_point;
+        }
     }
     else
     {
@@ -733,7 +760,7 @@ function run_point_indexing_service_byu(comid, pnt_coordinate, pnt_epsg, output_
     // usage 1: give a comid, return its stream feature and mid point in output_feature_epsg projection
     // usage 2: give pnt_coordinate and pnt_epsg, find a closet stream and return its comid, stream feature and mid point
 
-    if (comid == null)
+    if (comid == null) // comid is unknown, perform spatial query to get comid
     {
         var pnt_coordinate_3857 = pnt_coordinate;
         if (pnt_epsg != 3857)
@@ -749,6 +776,23 @@ function run_point_indexing_service_byu(comid, pnt_coordinate, pnt_epsg, output_
                         'FEATURE_COUNT': 1
                     });
 
+        // get rid of "SLD_BODY=*" from stream_url, if any
+        var regex = new RegExp('SLD_BODY=');
+        var reg_result = regex.exec(stream_url);
+        if (reg_result != null)
+        {
+            var start_index = reg_result.index;
+            var end_index = stream_url.indexOf("&", start_index);
+            if (end_index != -1)
+            {
+                stream_url = stream_url.substring(0, start_index) + stream_url.substring(end_index, start_index.length);
+            }
+            else
+            {
+                stream_url = stream_url.substring(0, start_index);
+            }
+        }
+
         var stream_Data = dataCall(stream_url);
 
         var reservoir_Count = stream_Data.documentElement.childElementCount;
@@ -757,39 +801,53 @@ function run_point_indexing_service_byu(comid, pnt_coordinate, pnt_epsg, output_
             return null;
         }
         comid = stream_Data.documentElement.children[0].attributes['station_id'].value;
+        //comid = stream_Data.documentElement.children[0].attributes['PERMANENT_IDENTIFIER'].value;
     }
 
-    // WFS GetFeature request
-    var wfs_query_url_template = "https://geoserver.byu.edu/arcgis/services/NWM/nwm_channel_v10/MapServer/WFSServer?service=WFS&request=GetFeature&version=1.1.0&typename=drew_nwm_channel_v10:channels_nwm_ioc&Filter=<ogc:Filter><ogc:PropertyIsEqualTo><ogc:PropertyName>station_id</ogc:PropertyName><ogc:Literal>#station_id#</ogc:Literal></ogc:PropertyIsEqualTo></ogc:Filter>";
-    var wfs_query_url = wfs_query_url_template.replace("#station_id#", comid);
-    var features_4269 = new ol.format.WFS().readFeatures(dataCall(wfs_query_url));
-    if (features_4269.length < 1)
+    if (comid != null) // comid is unknown now
+    {
+        // WFS GetFeature request
+        var wfs_query_url_template = "https://geoserver.byu.edu/arcgis/services/NWM/nwm_channel_v10/MapServer/WFSServer?service=WFS&request=GetFeature&version=1.1.0&typename=drew_nwm_channel_v10:channels_nwm_ioc&Filter=<ogc:Filter><ogc:PropertyIsEqualTo><ogc:PropertyName>station_id</ogc:PropertyName><ogc:Literal>#station_id#</ogc:Literal></ogc:PropertyIsEqualTo></ogc:Filter>";
+        var wfs_query_url = wfs_query_url_template.replace("#station_id#", comid);
+        var features_4269 = new ol.format.WFS().readFeatures(dataCall(wfs_query_url));
+        if (features_4269.length < 1)
+        {
+            //return null;
+            return {
+                comid: comid,
+                feature: null,
+                mid_point: null
+               };
+        }
+
+        // get first feature
+        var stream_feature = features_4269[0];
+        stream_feature.setId(comid);
+        if (output_feature_epsg != 4269)
+        {
+            stream_feature = new ol.Feature({
+                                        geometry: stream_feature.getGeometry().clone().transform('EPSG:4269','EPSG:' + output_feature_epsg.toString()),
+                                        id: comid
+                                        })
+        }
+
+        // calculate mid point
+        var pnt_num = stream_feature.getGeometry().getCoordinates()[0].length;
+        var mid_index = Math.floor(pnt_num/2);
+        // Note: the mid_pnt may be 3D - [X, Y, Z]
+        var mid_pnt= stream_feature.getGeometry().getCoordinates()[0][mid_index];
+
+        return {
+                comid: comid,
+                feature: stream_feature,
+                mid_point: mid_pnt
+               };
+    }
+    else
     {
         return null;
     }
 
-    // get first feature
-    var stream_feature = features_4269[0];
-    stream_feature.setId(comid);
-    if (output_feature_epsg != 4269)
-    {
-        stream_feature = new ol.Feature({
-                                    geometry: stream_feature.getGeometry().clone().transform('EPSG:4269','EPSG:' + output_feature_epsg.toString()),
-                                    id: comid
-                                    })
-    }
-
-    // calculate mid point
-    var pnt_num = stream_feature.getGeometry().getCoordinates()[0].length;
-    var mid_index = Math.floor(pnt_num/2);
-    // Note: the mid_pnt may be 3D - [X, Y, Z]
-    var mid_pnt= stream_feature.getGeometry().getCoordinates()[0][mid_index];
-
-    return {
-            comid: comid,
-            feature: stream_feature,
-            mid_point: mid_pnt
-           };
 } //function run_point_indexing_service_byu()
 
 
@@ -1606,7 +1664,6 @@ function _check_datetime_range(startDate, endDate, delta_days)
             return false;
         }
     }
-
     return true;
 }
 
@@ -1625,4 +1682,15 @@ function getCookie(name)
         }
     }
     return cookieValue;
+}
+
+// https://gis.stackexchange.com/questions/167284/zoom-scale-in-openlayers-3
+function getResolutionFromScale(scale){
+    //map.getView().getResolution();
+
+    var units = map.getView().getProjection().getUnits();
+    var dpi = 25.4 / 0.28;
+    var mpu = ol.proj.METERS_PER_UNIT[units];
+    var resolution = scale/(mpu * 39.37 * dpi);
+    return resolution;
 }

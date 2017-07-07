@@ -165,8 +165,8 @@ if __name__ == "__main__":
     # or use a hydroshare geographic feature resource
     use_hydroshare = True
     ########################## input HydroShare account info if above 'use_hydroshare' is True #################
-    hs_username = "USERNAME"  # Your hydroshare username
-    hs_password = "PASSWORD"  # Your hydroshare password
+    hs_username = "drew"  # Your hydroshare username
+    hs_password = "123456"  # Your hydroshare password
     # hydroshare geographic feature resource id
     # TwoMileCreek watershed at Tuscaloosa, Alabama
     # This is a public resource so anyone can access it.
@@ -197,9 +197,9 @@ if __name__ == "__main__":
     data = {
         'subset_parameter': {
             'config': "analysis_assim",  # analysis_assim, short_range, medium_range, long_range
-            'startDate': "2017-06-10",  # 2017-06-01
-            'endDate': "2017-06-11",  # 2017-06-02 (only for analysis_assim)
-            'geom': "land",  # channel_rt, reservoir, land, forcing
+            'startDate': "2017-06-20",  # 2017-06-01
+            'endDate': "2017-06-20",  # 2017-06-02 (only for analysis_assim)
+            'geom': "forcing",  # channel_rt, reservoir, land, forcing
             'time': "01",  # 00, 01 ...23 (only for short_range and medium_range)
             'lag_00z': "on",  # "on" or ""  (only for long_range)
             'lag_06z': "",
@@ -254,7 +254,7 @@ if __name__ == "__main__":
     print list_hydrologic_variables(netcdf_path)
 
     # get timeseries for var "SOILSAT_TOP"
-    date_list, value_list = get_variable_values(netcdf_path, "SOILSAT_TOP", None)
+    date_list, value_list = get_variable_values(netcdf_path, "RAINRATE", None)
 
     for i in range(len(date_list)):
         timestamp = date_list[i]
