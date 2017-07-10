@@ -55,13 +55,9 @@ except Exception:
     hydroshare_ready = False
 
 
-@login_required()
-def home(request):
-    """
-    Controller for the app home page.
-    """
+def _init_left_panel_ui():
 
-    config_input = SelectInput(display_text='Enter Configuration',
+    config_input = SelectInput(display_text='Configuration',
                                name='config',
                                multiple=False,
                                options=[('Analysis and Assimilation', 'analysis_assim'),
@@ -71,7 +67,7 @@ def home(request):
                                initial=['Short Range'],
                                original=True)
 
-    geom_input = SelectInput(display_text='Enter Geometry',
+    geom_input = SelectInput(display_text='Geometry',
                              name='geom',
                              multiple=False,
                              options=[('Channel', 'channel_rt'),
@@ -81,9 +77,8 @@ def home(request):
                              initial=['Channel'],
                              original=True)
 
-
     start_date = DatePicker(name='startDate',
-                            display_text='Enter Beginning Date',
+                            display_text='Begin Date',
                             end_date='0d',
                             autoclose=True,
                             format='yyyy-mm-dd',
@@ -100,7 +95,7 @@ def home(request):
                           initial=datetime.datetime.utcnow().strftime("%Y-%m-%d"),
                           classes="hidden")
 
-    start_time = SelectInput(display_text='Enter Initialization Time (UTC)',
+    start_time = SelectInput(display_text='Initialization Time (UTC)',
                              name='time',
                              multiple=False,
                              options=[('00:00', '00'), ('01:00', '01'),
@@ -123,7 +118,20 @@ def home(request):
     longRangeLag12 = ToggleSwitch(display_text='', name='12z', size='mini')
     longRangeLag18 = ToggleSwitch(display_text='', name='18z', size='mini')
 
-    submit_button = Button(display_text='Submit',
+    return config_input, geom_input, start_date, end_date, start_time, \
+           longRangeLag00, longRangeLag06, longRangeLag12, longRangeLag18
+
+
+@login_required()
+def home(request):
+    """
+    Controller for the app home page.
+    """
+
+    config_input, geom_input, start_date, end_date, start_time, \
+    longRangeLag00, longRangeLag06, longRangeLag12, longRangeLag18 = _init_left_panel_ui()
+
+    submit_button = Button(display_text='View Forecast',
                            name='submit',
                            attributes='id="submitBtn" form=paramForm value="Success"',
                            submit=True)
@@ -226,6 +234,119 @@ def home(request):
             'watershed_geojson_str': ""
         }
         return render(request, 'nwm_forecasts/home.html', context)
+
+
+def download(request):
+    """
+    Controller for the app home page.
+    """
+
+    config_input, geom_input, start_date, end_date, start_time, \
+    longRangeLag00, longRangeLag06, longRangeLag12, longRangeLag18 = _init_left_panel_ui()
+
+    submit_button = Button(display_text='Subset',
+                           name='submit',
+                           attributes='id="submitBtn" form=paramForm value="Success"',
+                           submit=False)
+
+    global hydroshare_ready
+    if hydroshare_ready:
+        try:
+            hs = get_oauth_hs(request)
+        except Exception:
+            hydroshare_ready = False
+
+    if request.GET:
+        # Make the waterml url query string
+        config = request.GET['config']
+        if config == "medium_range":
+            start_time = SelectInput(display_text='Enter Initialization Time (UTC)',
+                                     name='time',
+                                     multiple=False,
+                                     options=[('00:00', '00'),
+                                              ('06:00', '06'),
+                                              ('12:00', '12'),
+                                              ('18:00', '18')],
+                                     initial=['00:00'],
+                                     original=True)
+
+        geom = request.GET['geom']
+        variable = request.GET['variable']
+        if geom != 'land' and geom != 'forcing':
+            comid = request.GET['COMID']
+        else:
+            comid = ','.join([request.GET['Y'], request.GET['X']])
+        lon = ''
+        if 'lon' in request.GET:
+            lon = request.GET['lon']
+        lat = ''
+        if 'lat' in request.GET:
+            lat = request.GET['lat']
+        startDate = request.GET['startDate']
+
+        endDate = ''
+        if 'endDate' in request.GET:
+            endDate = request.GET['endDate']
+
+        time = ''
+        if 'time' in request.GET:
+            time = request.GET['time']
+
+        lagList = []
+        if '00z' in request.GET:
+            lagList.append('t00z')
+        if '06z' in request.GET:
+            lagList.append('t06z')
+        if '12z' in request.GET:
+            lagList.append('t12z')
+        if '18z' in request.GET:
+            lagList.append('t18z')
+
+        lag = ','.join(lagList)
+        waterml_url = '?config=%s&geom=%s&variable=%s&COMID=%s&lon=%s&lat=%s&startDate=%s&endDate=%s&time=%s&lag=%s' % \
+                      (config, geom, variable, comid, lon, lat, startDate, endDate, time, lag)
+
+        watershed_obj_session = request.session.get("watershed", None)
+
+        context = {
+            'config_input': config_input,
+            'geom_input': geom_input,
+            'start_date': start_date,
+            'end_date': end_date,
+            'start_time': start_time,
+            'longRangeLag00': longRangeLag00,
+            'longRangeLag06': longRangeLag06,
+            'longRangeLag12': longRangeLag12,
+            'longRangeLag18': longRangeLag18,
+            'submit_button': submit_button,
+            'waterml_url': waterml_url,
+            'hs_ready': hydroshare_ready,
+            'watershed_geojson_str': watershed_obj_session['geojson_str'] if watershed_obj_session is not None else "",
+            'watershed_attributes_str': json.dumps(watershed_obj_session['attributes']) if watershed_obj_session is not None else ""
+        }
+
+        return render(request, 'nwm_forecasts/home.html', context)
+
+    else:
+        if 'watershed_geojson_str' in request.session:
+            del request.session['watershed_geojson_str']
+            request.session.modified = True
+
+        context = {
+            'config_input': config_input,
+            'geom_input': geom_input,
+            'start_date': start_date,
+            'start_time': start_time,
+            'end_date': end_date,
+            'longRangeLag00': longRangeLag00,
+            'longRangeLag06': longRangeLag06,
+            'longRangeLag12': longRangeLag12,
+            'longRangeLag18': longRangeLag18,
+            'submit_button': submit_button,
+            'hs_ready': hydroshare_ready,
+            'watershed_geojson_str': ""
+        }
+        return render(request, 'nwm_forecasts/download.html', context)
 
 
 def timestamp_early_than_transition_v11(fn, transition_timestamp):

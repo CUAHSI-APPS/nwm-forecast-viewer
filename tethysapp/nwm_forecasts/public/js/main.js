@@ -68,6 +68,10 @@ $('#config').on('change', function ()
             $('#velocVar').removeClass('hidden');
         }
     }
+
+    // set client sessionStorage
+    sessionStorage.config = $('#config').val();
+
     $("#geom").trigger("change");
 });
 
@@ -201,10 +205,72 @@ $('#geom').on('change', function ()
         $('#rainrateVar').removeClass('hidden');
     }
 
+    sessionStorage.geom = $('#geom').val();
+    $("#variable").trigger("change");
+});
+
+
+$('#variable').on('change', function ()
+{
+    sessionStorage.variable = $('#variable').val();
+});
+
+$('#comidInput').on('change', function ()
+{
+    sessionStorage.comidInput = $('#comidInput').val();
+});
+
+$('#gridInputY').on('change', function ()
+{
+    sessionStorage.gridInputY = $('#gridInputY').val();
+});
+
+$('#gridInputX').on('change', function ()
+{
+    sessionStorage.gridInputX = $('#gridInputX').val();
+});
+
+$('#startDate').on('change', function ()
+{
+    sessionStorage.startDate = $('#startDate').val();
+});
+
+$('#endDate').on('change', function ()
+{
+    sessionStorage.endDate = $('#endDate').val();
+});
+
+$('#time').on('change', function ()
+{
+    sessionStorage.time = $('#time').val();
+});
+
+$('#00z').on('change.bootstrapSwitch', function(e, state)
+{
+    sessionStorage.lag_00z = e.target.checked;
+});
+
+$('#06z').on('change.bootstrapSwitch', function (e, state)
+{
+    sessionStorage.lag_06z = e.target.checked;
+});
+
+$('#12z').on('change.bootstrapSwitch', function (e, state)
+{
+    sessionStorage.lag_12z = e.target.checked;
+});
+
+$('#18z').on('change.bootstrapSwitch', function (e, state)
+{
+    sessionStorage.lag_18z = e.target.checked;
 });
 
 function _change_time_dropdown_content(config)
 {
+    if (config == null || config == "")
+    {
+        return ;
+    }
     var newOptions;
     if (config=="short_range")
     {
@@ -285,10 +351,22 @@ $(document).ready(function ()
     // observer.observe(target, config);
 
     init_restore_ui_map();
+    if (sessionStorage.clickcount)
+    {
+        sessionStorage.clickcount = Number(sessionStorage.clickcount) + 1;
+    }
+    else
+    {
+        sessionStorage.clickcount = 1;
+    }
 });
 
 function _switch_on_long_range_lag_toggle(lag_switch_on_list)
 {
+    if (lag_switch_on_list.length == 0)
+    {
+        return;
+    }
     // first turn off all lag switch
     $('#00z, #06z, #12z, #18z').attr('checked', false);
     $('#00z, #06z, #12z, #18z').parent().parent().removeClass('bootstrap-switch-on');
@@ -352,62 +430,256 @@ function init_restore_ui_map()
     });
     mapView = map.getView();
 
-    var qLong, qLat;
+    var qLong, qLat, qConfig, qGeom, qVar, qDate, qTime, qCOMID, qDateEnd;
 
-    // parse url query string to restore UI
-    if (window.location.search.includes('?')) {
-        var qConfig = getUrlParameter('config', null);
+    // Restore UI
+    var parse_url = false;
+    if (window.location.search.includes('?'))
+    {
+        parse_url = true;
+    }
+
+    // config UI
+    if (parse_url)
+    {
+        qConfig = getUrlParameter('config', null);
+    }
+    else
+    {
+        qConfig = sessionStorage.config;
+    }
+    if (qConfig) // not null & not ""
+    {
         $('#config').val(qConfig);
-        // change options in 'time' dropdown according to config value
         _change_time_dropdown_content(qConfig);
-        var qGeom = getUrlParameter('geom', null);
-        $('#geom').val(qGeom);
-        var qVar = getUrlParameter('variable', null);
-        $('#variable').val(qVar);
-        qLat = Number(getUrlParameter('lat', null));
-        $('#latInput').val(qLat);
-        qLong = Number(getUrlParameter('lon', null));
-        $('#longInput').val(qLong);
-        var qDate = getUrlParameter("startDate", null);
-        $('#startDate').val(qDate);
-        var qTime = getUrlParameter("time", null);
-        $('#time').val(qTime);
+    }
 
-        if (qGeom === 'channel_rt' || qGeom === 'reservoir') {
-            var qCOMID = getUrlParameter('COMID', null);
-            $('#comidInput').val(qCOMID);
+    // geom UI
+    if (parse_url)
+    {
+        qGeom = getUrlParameter('geom', null);
+    }
+    else
+    {
+        qGeom = sessionStorage.geom;
+    }
+    if (qGeom)
+    {
+        $('#geom').val(qGeom);
+    }
+
+    // variable UI
+    if (parse_url)
+    {
+        qVar = getUrlParameter('variable', null);
+    }
+    else
+    {
+        qVar = sessionStorage.variable;
+    }
+    if (qVar)
+    {
+        $('#variable').val(qVar);
+    }
+
+    // lat UI
+    if (parse_url)
+    {
+        qLat = Number(getUrlParameter('lat', null));
+    }
+    else
+    {
+        qLat = Number(sessionStorage.latInput);
+    }
+    if (qLat)
+    {
+        $('#lat').val(qLat);
+    }
+
+    // long UI
+    if (parse_url)
+    {
+        qLong = Number(getUrlParameter('lon', null));
+    }
+    else
+    {
+        qLong = Number(sessionStorage.longInput);
+    }
+    if (qLong)
+    {
+        $('#lon').val(qLong);
+    }
+
+    // startDate UI
+    if (parse_url)
+    {
+        qDate = getUrlParameter('startDate', null);
+    }
+    else
+    {
+        qDate = sessionStorage.startDate;
+    }
+    if (qDate)
+    {
+        $('#startDate').val(qDate);
+    }
+
+    // time UI
+    if (parse_url)
+    {
+        qTime = getUrlParameter('time', null);
+    }
+    else
+    {
+        qTime = sessionStorage.time;
+    }
+    if (qTime)
+    {
+        $('#time').val(qTime);
+    }
+
+    // COMID/Grid cell UI
+    if (qGeom === 'channel_rt' || qGeom === 'reservoir')
+    {   //comid
+        if (parse_url) {
+            qCOMID = getUrlParameter('COMID', null);
         }
         else {
-            var qCOMID = getUrlParameter("Y", null) + ',' + getUrlParameter("X", null);
+            qCOMID = sessionStorage.comidInput;
+        }
+        if (qCOMID) {
+            $('#comidInput').val(qCOMID);
+        }
+    }
+    else
+    {   //grid cell
+        if (parse_url)
+        {
+            qCOMID =  getUrlParameter("Y", null) + ',' + getUrlParameter("X", null);
+        }
+        else
+        {
+            qCOMID = sessionStorage.gridInputY + ',' + sessionStorage.gridInputX;
+        }
+        if (qCOMID && qCOMID.indexOf("undefined") == -1)
+        {
             $('#gridInputY').val(qCOMID.split(',')[0]);
             $('#gridInputX').val(qCOMID.split(',')[1]);
         }
-        var qDateEnd = getUrlParameter("endDate", null);
+    }
+
+    // endDate UI
+    if (parse_url)
+    {
+        qDateEnd = getUrlParameter('endDate', null);
+    }
+    else
+    {
+        qDateEnd = sessionStorage.endDate;
+    }
+    if (qDateEnd)
+    {
         $('#endDate').val(qDateEnd);
+    }
 
-        var qLag = [];
-
-        // turn on lag switch if it is in url
+    var qLag = [];
+    // turn on lag switch if it is in url
+    if (parse_url)
+    {
         var lag_switch_list = ["00z", "06z", "12z", "18z"];
         for (var i = 0; i < lag_switch_list.length; i++)
         {
             var lag_sw_name = lag_switch_list[i];
-            if ("on" == getUrlParameter(lag_sw_name, null))
-            {
-                qLag.push('t' + lag_sw_name);
-            }
+             if ("on" == getUrlParameter(lag_sw_name, null))
+             {
+                 qLag.push('t' + lag_sw_name);
+             }
         }
-        _switch_on_long_range_lag_toggle(qLag);
-
-        if (!_check_datetime_range($("#startDate").val(), $("#endDate").val(), null))
+    }
+    else
+    {
+        if (sessionStorage.lag_00z == 'true')
         {
-            alert("Invalid start/end date");
+             qLag.push('t00z');
         }
+        if (sessionStorage.lag_06z == 'true')
+        {
+             qLag.push('t06z');
+        }
+        if (sessionStorage.lag_12z == 'true')
+        {
+             qLag.push('t12z');
+        }
+        if (sessionStorage.lag_18z == 'true')
+        {
+             qLag.push('t18z');
+        }
+    }
 
-        // Retrieve timeseries data from backend
-        initChart(qConfig, startDate, seriesData);
-        get_netcdf_chart_data(qConfig, qGeom, qVar, qCOMID, qDate, qTime, qLag, qDateEnd);
-    } //if (window.location.search.includes('?'))
+    _switch_on_long_range_lag_toggle(qLag);
+
+    initChart(qConfig, startDate, seriesData);
+    get_netcdf_chart_data(qConfig, qGeom, qVar, qCOMID, qDate, qTime, qLag, qDateEnd);
+
+    // if (window.location.search.includes('?'))
+    // {
+    //     var qConfig = getUrlParameter('config', null);
+    //     $('#config').val(qConfig);
+    //     // change options in 'time' dropdown according to config value
+    //     _change_time_dropdown_content(qConfig);
+    //     var qGeom = getUrlParameter('geom', null);
+    //     $('#geom').val(qGeom);
+    //
+    //     var qVar = getUrlParameter('variable', null);
+    //     $('#variable').val(qVar);
+    //
+    //     qLat = Number(getUrlParameter('lat', null));
+    //     $('#latInput').val(qLat);
+    //
+    //     qLong = Number(getUrlParameter('lon', null));
+    //     $('#longInput').val(qLong);
+    //
+    //     var qDate = getUrlParameter("startDate", null);
+    //     $('#startDate').val(qDate);
+    //
+    //     var qTime = getUrlParameter("time", null);
+    //     $('#time').val(qTime);
+    //
+    //     if (qGeom === 'channel_rt' || qGeom === 'reservoir') {
+    //         var qCOMID = getUrlParameter('COMID', null);
+    //         $('#comidInput').val(qCOMID);
+    //     }
+    //     else {
+    //         var qCOMID = getUrlParameter("Y", null) + ',' + getUrlParameter("X", null);
+    //         $('#gridInputY').val(qCOMID.split(',')[0]);
+    //         $('#gridInputX').val(qCOMID.split(',')[1]);
+    //     }
+    //     var qDateEnd = getUrlParameter("endDate", null);
+    //     $('#endDate').val(qDateEnd);
+    //
+    //     var qLag = [];
+    //
+    //     // turn on lag switch if it is in url
+    //     var lag_switch_list = ["00z", "06z", "12z", "18z"];
+    //     for (var i = 0; i < lag_switch_list.length; i++)
+    //     {
+    //         var lag_sw_name = lag_switch_list[i];
+    //         if ("on" == getUrlParameter(lag_sw_name, null))
+    //         {
+    //             qLag.push('t' + lag_sw_name);
+    //         }
+    //     }
+    //     _switch_on_long_range_lag_toggle(qLag);
+    //
+    //     if (!_check_datetime_range($("#startDate").val(), $("#endDate").val(), null))
+    //     {
+    //         alert("Invalid start/end date");
+    //     }
+    //
+    //     // Retrieve timeseries data from backend
+    //     initChart(qConfig, startDate, seriesData);
+    //     get_netcdf_chart_data(qConfig, qGeom, qVar, qCOMID, qDate, qTime, qLag, qDateEnd);
+    // } //if (window.location.search.includes('?'))
 
     /**********************************
      ********INITIALIZE LAYERS*********

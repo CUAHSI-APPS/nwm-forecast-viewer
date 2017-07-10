@@ -17,8 +17,13 @@ p {
     width: 270px;
 }
 
-#map-view {
+.map-view {
     height: 400px;
+    width: 100%;
+}
+
+.full-map-view {
+    height: 100%;
     width: 100%;
 }
 
