@@ -9,6 +9,13 @@
 <li class="active"><a href="">Download</a></li>
 
 <form id="paramForm" method="get" action="{% url 'nwm_forecasts:download' %}">
+
+    {% if hs_ready|lower == "true" %}
+    <br />
+    <button id="watershedBtn" type="button" class="btn btn-primary" data-toggle="modal" data-target="#popup-load-watershed">Add Watershed</button>
+    <br />
+    {% endif %}
+
     {% gizmo select_input config_input %}
     {% gizmo select_input geom_input %}
     <!--<div class="form-group hidden">-->
@@ -84,11 +91,19 @@
     </div>
     <label id="endDateLabel" class="control-label hidden" for="endDate">End Date</label>
     {% gizmo date_picker end_date %}
-    {% gizmo button submit_button %}
+
+    {% if hs_ready|lower == "true" %}
+    <br />
+    <input type="checkbox" id="chkbox-subset-merge" name="chkbox-subset-merge">Merge results<br>
+    <input type="checkbox" id="chkbox-upload-subset-to-hs" name="chkbox-upload-subset-to-hs">Upload to HydroShare<br>
+    <button id="subsetBtn" type="button" class="btn btn-primary">Subset Watershed</button>
+    <div id="subset_watershed_loading" class="hidden" disabled><img src="/static/nwm_forecasts/images/loading-animation.gif"></div>
+    {%endif%}
+
   </form>
 
-  <input type="text" id="watershed_attributes_str" name="watershed_attributes_str" value='{{watershed_attributes_str}}' hidden >
-  <input type="text" id="watershed_geojson_str" name="watershed_geojson_str" value='{{watershed_geojson_str}}' hidden >
+  <!--<input type="text" id="watershed_attributes_str" name="watershed_attributes_str" value='{{watershed_attributes_str}}' hidden >-->
+  <!--<input type="text" id="watershed_geojson_str" name="watershed_geojson_str" value='{{watershed_geojson_str}}' hidden >-->
 
 
 {% endblock%}

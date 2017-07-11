@@ -245,22 +245,40 @@ $('#time').on('change', function ()
     sessionStorage.time = $('#time').val();
 });
 
-$('#00z').on('change.bootstrapSwitch', function(e, state)
+// see: http://bootstrapswitch.com/events.html
+$('#00z').on('switchChange.bootstrapSwitch', function(e, state)
 {
     sessionStorage.lag_00z = e.target.checked;
 });
 
-$('#06z').on('change.bootstrapSwitch', function (e, state)
+// see: http://bootstrapswitch.com/events.html
+$('#00z').on('init.bootstrapSwitch', function(e, state)
+{
+    if (sessionStorage.lag_00z == "false")
+    {
+        // if sessionStorage.lag_00z is false, init switch to false
+        //e.target.checked = false;
+        $('#00z').attr('checked', false);
+        $('#00z').parent().parent().removeClass('bootstrap-switch-on');
+        $('#00z').parent().parent().addClass('bootstrap-switch-off');
+    }
+    else
+    {
+        sessionStorage.lag_00z= true;
+    }
+});
+
+$('#06z').on('switchChange.bootstrapSwitch', function (e, state)
 {
     sessionStorage.lag_06z = e.target.checked;
 });
 
-$('#12z').on('change.bootstrapSwitch', function (e, state)
+$('#12z').on('switchChange.bootstrapSwitch', function (e, state)
 {
     sessionStorage.lag_12z = e.target.checked;
 });
 
-$('#18z').on('change.bootstrapSwitch', function (e, state)
+$('#18z').on('switchChange.bootstrapSwitch', function (e, state)
 {
     sessionStorage.lag_18z = e.target.checked;
 });
@@ -351,14 +369,6 @@ $(document).ready(function ()
     // observer.observe(target, config);
 
     init_restore_ui_map();
-    if (sessionStorage.clickcount)
-    {
-        sessionStorage.clickcount = Number(sessionStorage.clickcount) + 1;
-    }
-    else
-    {
-        sessionStorage.clickcount = 1;
-    }
 });
 
 function _switch_on_long_range_lag_toggle(lag_switch_on_list)
@@ -394,8 +404,8 @@ function init_restore_ui_map()
     btnLoadWatershed = $('#btn-load-watershed');
     btnLoadWatershed.on('click', onClickLoadWatershed);
     // load watershed resource list from HS
-    getHSWatershedList();
     popupLoadWatershed = $('#popup-load-watershed');
+    getHSWatershedList();
 
     $('[data-toggle="tooltip"]').tooltip();
 
@@ -451,6 +461,7 @@ function init_restore_ui_map()
     if (qConfig) // not null & not ""
     {
         $('#config').val(qConfig);
+        sessionStorage.config = qConfig;
         _change_time_dropdown_content(qConfig);
     }
 
@@ -465,6 +476,7 @@ function init_restore_ui_map()
     }
     if (qGeom)
     {
+        sessionStorage.geom = qGeom;
         $('#geom').val(qGeom);
     }
 
@@ -479,6 +491,7 @@ function init_restore_ui_map()
     }
     if (qVar)
     {
+        sessionStorage.variable = qVar;
         $('#variable').val(qVar);
     }
 
@@ -493,6 +506,7 @@ function init_restore_ui_map()
     }
     if (qLat)
     {
+        sessionStorage.latInput = qLat;
         $('#lat').val(qLat);
     }
 
@@ -507,6 +521,7 @@ function init_restore_ui_map()
     }
     if (qLong)
     {
+        sessionStorage.longInput = qLong;
         $('#lon').val(qLong);
     }
 
@@ -521,6 +536,7 @@ function init_restore_ui_map()
     }
     if (qDate)
     {
+        sessionStorage.startDate = qDate;
         $('#startDate').val(qDate);
     }
 
@@ -535,6 +551,7 @@ function init_restore_ui_map()
     }
     if (qTime)
     {
+        sessionStorage.time = qTime;
         $('#time').val(qTime);
     }
 
@@ -544,10 +561,13 @@ function init_restore_ui_map()
         if (parse_url) {
             qCOMID = getUrlParameter('COMID', null);
         }
-        else {
+        else
+        {
             qCOMID = sessionStorage.comidInput;
         }
-        if (qCOMID) {
+        if (qCOMID)
+        {
+            sessionStorage.comidInput = qCOMID;
             $('#comidInput').val(qCOMID);
         }
     }
@@ -563,8 +583,12 @@ function init_restore_ui_map()
         }
         if (qCOMID && qCOMID.indexOf("undefined") == -1)
         {
-            $('#gridInputY').val(qCOMID.split(',')[0]);
-            $('#gridInputX').val(qCOMID.split(',')[1]);
+            var gridInputY = qCOMID.split(',')[0];
+            var gridInputX = qCOMID.split(',')[1];
+            sessionStorage.gridInputY= gridInputY;
+            sessionStorage.gridInputX = gridInputX;
+            $('#gridInputY').val(gridInputY);
+            $('#gridInputX').val(gridInputX);
         }
     }
 
@@ -579,6 +603,7 @@ function init_restore_ui_map()
     }
     if (qDateEnd)
     {
+        sessionStorage.endDate = qDateEnd;
         $('#endDate').val(qDateEnd);
     }
 
@@ -586,14 +611,34 @@ function init_restore_ui_map()
     // turn on lag switch if it is in url
     if (parse_url)
     {
-        var lag_switch_list = ["00z", "06z", "12z", "18z"];
-        for (var i = 0; i < lag_switch_list.length; i++)
+        // var lag_switch_list = ["00z", "06z", "12z", "18z"];
+        // for (var i = 0; i < lag_switch_list.length; i++)
+        // {
+        //     var lag_sw_name = lag_switch_list[i];
+        //      if ("on" == getUrlParameter(lag_sw_name, null))
+        //      {
+        //          qLag.push('t' + lag_sw_name);
+        //      }
+        // }
+        if ("on" == getUrlParameter("00z", null))
         {
-            var lag_sw_name = lag_switch_list[i];
-             if ("on" == getUrlParameter(lag_sw_name, null))
-             {
-                 qLag.push('t' + lag_sw_name);
-             }
+            sessionStorage.lag_00z == 'true';
+            qLag.push('t00z');
+        }
+        if ("on" == getUrlParameter("06z", null))
+        {
+            sessionStorage.lag_06z == 'true';
+            qLag.push('t06z');
+        }
+        if ("on" == getUrlParameter("12z", null))
+        {
+            sessionStorage.lag_12z == 'true';
+            qLag.push('t12z');
+        }
+        if ("on" == getUrlParameter("18z", null))
+        {
+            sessionStorage.lag_18z == 'true';
+            qLag.push('t18z');
         }
     }
     else
@@ -805,9 +850,17 @@ function init_restore_ui_map()
     map.on('pointermove', map_pointermove);
 
     // add watershed polygon to map
-    var watershed_geojson_str = $("#watershed_geojson_str").val();
-    var watershed_attributes_str = $("#watershed_attributes_str").val();
-    if (watershed_geojson_str.length > 0)
+    // var watershed_geojson_str = $("#watershed_geojson_str").val();
+    // var watershed_attributes_str = $("#watershed_attributes_str").val();
+    var watershed_geojson_str = null;
+    var watershed_attributes_str = null;
+    if(sessionStorage.watershed_geojson_str && sessionStorage.watershed_attributes_str)
+    {
+        watershed_geojson_str = sessionStorage.watershed_geojson_str;
+        watershed_attributes_str = sessionStorage.watershed_attributes_str;
+    }
+
+    if (watershed_geojson_str && watershed_attributes_str)
     {
         addGeojsonLayerToMap(watershed_geojson_str, watershed_attributes_str, true);
     }
@@ -880,8 +933,8 @@ function map_singleclick(evt)
         var lon = grid_Data.documentElement.children[0].attributes['XLONG_M'].value;
         var lat = grid_Data.documentElement.children[0].attributes['XLAT_M'].value;
 
-        $("#gridInputY").val(south_north);
-        $("#gridInputX").val(west_east);
+        $("#gridInputY").val(south_north).change(); //trigger change event so value saved to sessionStorage
+        $("#gridInputX").val(west_east).change();
 
 
         displayContent += '<tr><td>south_north: ' + south_north + '</td><td>west_east: ' + west_east + '</td></tr>';
@@ -908,7 +961,7 @@ function map_singleclick(evt)
         var lon = reservoir_Data.documentElement.children[0].attributes['longitude'].value;
         var lat = reservoir_Data.documentElement.children[0].attributes['latitude'].value;
 
-        $("#comidInput").val(reservoirID);
+        $("#comidInput").val(reservoirID).change();
 
         displayContent += '<tr><td>Reservoir COMID: ' + reservoirID + '</td></tr>';
 
@@ -916,7 +969,8 @@ function map_singleclick(evt)
         popup_point_3857 = reproject_point(lon, lat, 4326, 3857);
 
     }
-    else if (all_streams_layer.getVisible()) {
+    else if (all_streams_layer.getVisible())
+    {
         // query stream info at point evt.coordinate in EPSG:3857
         var stream_info = run_point_indexing_service_byu(null, evt.coordinate, 3857, 3857);
 
@@ -926,7 +980,7 @@ function map_singleclick(evt)
         }
         if (stream_info.comid != null)
         {
-            $("#comidInput").val(stream_info.comid);
+            $("#comidInput").val(stream_info.comid).change();
             displayContent += '<tr><td>Stream COMID: ' + stream_info.comid + '</td></tr>';
         }
         if (stream_info.feature != null)
@@ -1131,7 +1185,7 @@ function get_netcdf_chart_data(config, geom, variable, comid, date, time, lag, e
 {
     $.ajax({
         type: 'GET',
-        url: 'get-netcdf-data/',
+        url: '/apps/nwm-forecasts/get-netcdf-data/',
         dataType: 'json',
         data: {
             'config': config,
@@ -1558,45 +1612,70 @@ function calibrateModel(config, geom, date)
  *******Watershed Functionality********
  ****************************************/
 
-function getHSWatershedList ()
+function getHSWatershedList()
 {
-    $.ajax({
-        type: 'GET',
-        url: 'get-hs-watershed-list',
-        dataType: 'json',
-        success: function (response) {
-            var resources,
-                resTableHtml = '<table id="tbl-watersheds"><thead><th></th><th>Title</th><th>File</th><th>Owner</th></thead><tbody>';
-
-            if (response.hasOwnProperty('success')) {
-                if (response.hasOwnProperty('resources')) {
-                    resources = JSON.parse(response.resources);
-                    if (resources.length === 0) {
-                        popupLoadWatershed.find('.modal-body').html('<b>It appears that you do not own any HydroShare resource that can be imported as watershed.</b>');
-                    }
-                    else
-                    {
-                        resources.forEach(function (resource) {
-                            resTableHtml += '<tr>' +
-                                '<td><input type="radio" name="resource" class="rdo-res" data-filename="' + resource.filename + '" value="' + resource.id + '"></td>' +
-                                '<td class="res_title">' + resource.title + '</td>' +
-                                '<td class="res_title">' + resource.filename + '</td>' +
-                                '<td class="res_title">' + resource.owner + '</td>' +
-                                '</tr>';
-                        });
-                        resTableHtml += '</tbody></table>';
-                        resTableHtml += '<div id="add_watershed_loading" class="hidden" disabled><img src="/static/nwm_forecasts/images/loading-animation.gif"></div>';
-                        popupLoadWatershed.find('.modal-body').html(resTableHtml);
-                        btnLoadWatershed
-                            .removeClass('hidden')
-                            .prop('disabled', false);
-                    }
+    if (sessionStorage.hs_resource_list)
+    {
+        // re-use front-end saved hs resource list str
+        var resource_list_json_obj = JSON.parse(sessionStorage.hs_resource_list);
+        _build_hs_resource_html_table(resource_list_json_obj);
+    }
+    else
+    {   //retrieve list from backend
+        $.ajax({
+                type: 'GET',
+                url: '/apps/nwm-forecasts/get-hs-watershed-list/',
+                dataType: 'json',
+                success: function(response)
+                        {
+                            if (response.hasOwnProperty('success'))
+                            {
+                                if (response.hasOwnProperty('resources'))
+                                {
+                                    // save json string to client session storage
+                                    sessionStorage.hs_resource_list = response.resources;
+                                    var resource_list_json_obj = JSON.parse(response.resources);
+                                    _build_hs_resource_html_table(resource_list_json_obj);
+                                }
+                            }
+                            else if (response.hasOwnProperty('error'))
+                            {
+                                popupLoadWatershed.find('.modal-body').html('<h6>' + response.error + '</h6>');
+                            }
+                        },
+                error: function(response)
+                {
+                   popupLoadWatershed.find('.modal-body').html('<h6>Failed to load your HydroShare resources</h6>');
                 }
-            } else if (response.hasOwnProperty('error')) {
-                popupLoadWatershed.find('.modal-body').html('<h6>' + response.error + '</h6>');
-            }
-        }
-    });
+            });
+    }
+    btnLoadWatershed.removeClass('hidden').prop('disabled', false);
+}
+
+function _build_hs_resource_html_table(resource_list_json_obj)
+{
+    var resTableHtml = '<table id="tbl-watersheds"><thead><th></th><th>Title</th><th>File</th><th>Owner</th></thead><tbody>';
+    var resources = resource_list_json_obj;
+
+    popupLoadWatershed.find('.modal-body').html('');
+    if (resources.length === 0)
+    {
+        popupLoadWatershed.find('.modal-body').html('<b>It appears that you do not own any HydroShare resource that can be imported as watershed.</b>');
+    }
+    else
+    {
+        resources.forEach(function (resource) {
+            resTableHtml += '<tr>' +
+                '<td><input type="radio" name="resource" class="rdo-res" data-filename="' + resource.filename + '" value="' + resource.id + '"></td>' +
+                '<td class="res_title">' + resource.title + '</td>' +
+                '<td class="res_title">' + resource.filename + '</td>' +
+                '<td class="res_title">' + resource.owner + '</td>' +
+                '</tr>';
+        });
+        resTableHtml += '</tbody></table>';
+        resTableHtml += '<div id="add_watershed_loading" class="hidden" disabled><img src="/static/nwm_forecasts/images/loading-animation.gif"></div>';
+        popupLoadWatershed.find('.modal-body').html(resTableHtml);
+    }
 }
 
 function onClickLoadWatershed()
@@ -1613,7 +1692,8 @@ function loadWatershed(resId, filename)
 {
     $.ajax({
         type: 'GET',
-        url: 'load-watershed',
+        //url: 'load-watershed',
+        url: '/apps/nwm-forecasts/load-watershed/',
         dataType: 'json',
         data: {
             res_id: resId,
@@ -1628,7 +1708,10 @@ function loadWatershed(resId, filename)
             $('#add_watershed_loading').prop('disabled', true).addClass('hidden');
             if (ajax_resp.hasOwnProperty('success'))
             {
-                addGeojsonLayerToMap(ajax_resp.watershed.geojson_str, JSON.stringify(ajax_resp.watershed.attributes), true);
+                var watershed_attr_str = JSON.stringify(ajax_resp.watershed.attributes);
+                sessionStorage.watershed_geojson_str = ajax_resp.watershed.geojson_str;
+                sessionStorage.watershed_attributes_str = watershed_attr_str;
+                addGeojsonLayerToMap(ajax_resp.watershed.geojson_str, watershed_attr_str, true);
                 popupLoadWatershed.modal('hide');
             }
             else
@@ -1902,7 +1985,7 @@ function subset_watershed_download()
 
     }; //xhttp.onreadystatechange
     // Post data to URL which handles post request
-    xhttp.open("POST", 'subset-watershed/');
+    xhttp.open("POST", '/apps/nwm-forecasts/subset-watershed/');
     xhttp.setRequestHeader("Content-Type", "application/json");
     var csrf_token = getCookie('csrftoken');
     xhttp.setRequestHeader("X-CSRFToken", csrf_token);

@@ -133,7 +133,7 @@ def home(request):
 
     submit_button = Button(display_text='View Forecast',
                            name='submit',
-                           attributes='id="submitBtn" form=paramForm value="Success"',
+                           attributes='id="submitBtn" form=paramForm value="Success" class="btn btn-primary"',
                            submit=True)
 
     global hydroshare_ready
@@ -193,7 +193,7 @@ def home(request):
         waterml_url = '?config=%s&geom=%s&variable=%s&COMID=%s&lon=%s&lat=%s&startDate=%s&endDate=%s&time=%s&lag=%s' % \
                       (config, geom, variable, comid, lon, lat, startDate, endDate, time, lag)
 
-        watershed_obj_session = request.session.get("watershed", None)
+        # watershed_obj_session = request.session.get("watershed", None)
 
         context = {
             'config_input': config_input,
@@ -208,16 +208,16 @@ def home(request):
             'submit_button': submit_button,
             'waterml_url': waterml_url,
             'hs_ready': hydroshare_ready,
-            'watershed_geojson_str': watershed_obj_session['geojson_str'] if watershed_obj_session is not None else "",
-            'watershed_attributes_str': json.dumps(watershed_obj_session['attributes']) if watershed_obj_session is not None else ""
+            # 'watershed_geojson_str': watershed_obj_session['geojson_str'] if watershed_obj_session is not None else "",
+            # 'watershed_attributes_str': json.dumps(watershed_obj_session['attributes']) if watershed_obj_session is not None else ""
         }
 
         return render(request, 'nwm_forecasts/home.html', context)
 
     else:
-        if 'watershed_geojson_str' in request.session:
-            del request.session['watershed_geojson_str']
-            request.session.modified = True
+        # if 'watershed_geojson_str' in request.session:
+        #     del request.session['watershed_geojson_str']
+        #     request.session.modified = True
 
         context = {
             'config_input': config_input,
@@ -231,7 +231,7 @@ def home(request):
             'longRangeLag18': longRangeLag18,
             'submit_button': submit_button,
             'hs_ready': hydroshare_ready,
-            'watershed_geojson_str': ""
+            # 'watershed_geojson_str': ""
         }
         return render(request, 'nwm_forecasts/home.html', context)
 
@@ -306,7 +306,7 @@ def download(request):
         waterml_url = '?config=%s&geom=%s&variable=%s&COMID=%s&lon=%s&lat=%s&startDate=%s&endDate=%s&time=%s&lag=%s' % \
                       (config, geom, variable, comid, lon, lat, startDate, endDate, time, lag)
 
-        watershed_obj_session = request.session.get("watershed", None)
+        # watershed_obj_session = request.session.get("watershed", None)
 
         context = {
             'config_input': config_input,
@@ -321,16 +321,16 @@ def download(request):
             'submit_button': submit_button,
             'waterml_url': waterml_url,
             'hs_ready': hydroshare_ready,
-            'watershed_geojson_str': watershed_obj_session['geojson_str'] if watershed_obj_session is not None else "",
-            'watershed_attributes_str': json.dumps(watershed_obj_session['attributes']) if watershed_obj_session is not None else ""
+            # 'watershed_geojson_str': watershed_obj_session['geojson_str'] if watershed_obj_session is not None else "",
+            # 'watershed_attributes_str': json.dumps(watershed_obj_session['attributes']) if watershed_obj_session is not None else ""
         }
 
         return render(request, 'nwm_forecasts/home.html', context)
 
     else:
-        if 'watershed_geojson_str' in request.session:
-            del request.session['watershed_geojson_str']
-            request.session.modified = True
+        # if 'watershed_geojson_str' in request.session:
+        #     del request.session['watershed_geojson_str']
+        #     request.session.modified = True
 
         context = {
             'config_input': config_input,
@@ -798,6 +798,7 @@ def get_hs_watershed_list(request):
 
                 response_obj['success'] = 'Resources obtained successfully.'
                 response_obj['resources'] = resources_json
+                response_obj['username'] = request.user.username
         else:
             raise Exception("not a ajax GET request")
 
@@ -895,11 +896,11 @@ def _get_geojson_from_hs_resource(res_id, filename, request):
                             }
                     }
 
-        session_key = "watershed"
-        if session_key in request.session:
-            del request.session[session_key]
-        request.session[session_key] = watershed
-        request.session.modified = True
+        # session_key = "watershed"
+        # if session_key in request.session:
+        #     del request.session[session_key]
+        # request.session[session_key] = watershed
+        # request.session.modified = True
 
         response_obj['success'] = 'Geojson obtained successfully.'
         response_obj['watershed'] = watershed

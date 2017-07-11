@@ -8,6 +8,12 @@
 <li class="active"><a href="">Home</a></li>
 <li><a href="{% url 'nwm_forecasts:download' %}">Download</a></li>
 
+{% if hs_ready|lower == "true" %}
+    <br />
+    <button id="watershedBtn" type="button" class="btn btn-primary" data-toggle="modal" data-target="#popup-load-watershed">Add Watershed</button>
+    <br />
+{%endif%}
+
 <form id="paramForm" method="get" action="{% url 'nwm_forecasts:home' %}">
     {% gizmo select_input config_input %}
     {% gizmo select_input geom_input %}
@@ -84,11 +90,14 @@
     </div>
     <label id="endDateLabel" class="control-label hidden" for="endDate">End Date</label>
     {% gizmo date_picker end_date %}
-    {% gizmo button submit_button %}
+    <!--{% gizmo button submit_button %}-->
+    <button name="submit" type="submit" class="btn btn-primary" type="submit" value="Success" id="submitBtn" form="paramForm">
+  	  View Forecast
+    </button>
   </form>
 
-  <input type="text" id="watershed_attributes_str" name="watershed_attributes_str" value='{{watershed_attributes_str}}' hidden >
-  <input type="text" id="watershed_geojson_str" name="watershed_geojson_str" value='{{watershed_geojson_str}}' hidden >
+  <!--<input type="text" id="watershed_attributes_str" name="watershed_attributes_str" value='{{watershed_attributes_str}}' hidden >-->
+  <!--<input type="text" id="watershed_geojson_str" name="watershed_geojson_str" value='{{watershed_geojson_str}}' hidden >-->
 
 
 {% endblock%}
