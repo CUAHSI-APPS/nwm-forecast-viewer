@@ -7,120 +7,64 @@
 {{ block.super }}
 <li ><a href="{% url 'nwm_forecasts:home' %}">Home</a></li>
 <li class="active"><a href="">Download</a></li>
+<br>
 
-<form id="paramForm" method="get" action="{% url 'nwm_forecasts:download' %}">
+{% if hs_ready|lower == "true" %}
+<button id="watershedBtn" type="button" class="btn btn-primary" data-toggle="modal" data-target="#popup-load-watershed">Add Watershed</button>
+<br>
+{% endif %}
 
-    {% if hs_ready|lower == "true" %}
-    <br />
-    <button id="watershedBtn" type="button" class="btn btn-primary" data-toggle="modal" data-target="#popup-load-watershed">Add Watershed</button>
-    <br />
-    {% endif %}
+{% gizmo select_input config_input %}
+{% gizmo select_input geom_input %}
+{% gizmo date_picker start_date %}
+{% gizmo select_input start_time %}
 
-    {% gizmo select_input config_input %}
-    {% gizmo select_input geom_input %}
-    <!--<div class="form-group hidden">-->
-      <!--<label class="control-label hidden" for="variable">Variable</label>-->
-      <!--<select id="variable" class="form-control hidden" name="variable">-->
-        <!--<option id="streamVar" value="streamflow" selected>Streamflow</option>-->
-        <!--<option id="velocVar" value="velocity">Velocity</option>-->
-        <!--<option id="infVar" value="inflow" class="hidden">Inflow</option>-->
-        <!--<option id="outfVar" value="outflow" class="hidden">Outflow</option>-->
-        <!--<option id="snowhVar" value="SNOWH" class="hidden">Snow Depth</option>-->
-        <!--<option id="sneqVar" value="SNEQV" class="hidden">Snow Water Equivalent</option>-->
-        <!--<option id="snowcVar" value="FSNO" class="hidden">Snow-cover</option>-->
-        <!--<option id="etVar" value="ACCET" class="hidden">Accumulated Total ET</option>-->
-        <!--<option id="ssVar" value="SOILSAT_TOP" class="hidden">Near Surface Soil Saturation</option>-->
-        <!--<option id="avsnowVar" value="SNOWT_AVG" class="hidden">Average Snow Temperature</option>-->
-        <!--<option id="subrunoffVar" value="UGDRNOFF" class="hidden">Accumulated Groundwater Runoff</option>-->
-        <!--<option id="runoffVar" value="SFCRNOFF" class="hidden">Accumulated Surface Runoff</option>-->
-        <!--<option id="evapVar" value="ACCECAN" class="hidden">Accumulated Canopy Evaporation</option>-->
-        <!--<option id="soiltVar" value="SOIL_T" class="hidden">Soil Temperature</option>-->
-        <!--<option id="soilmVar" value="SOIL_M" class="hidden">Volumetric Soil Moisture</option>-->
-        <!--<option id="canwVar" value="CANWAT" class="hidden">Total Canopy Water</option>-->
-        <!--<option id="ssiVar" value="SOILSAT" class="hidden">Soil Saturation (Column integrated)</option>-->
-        <!--<option id="rainrateVar" value="RAINRATE" class="hidden">Rain Rate</option>-->
-      <!--</select>-->
-    <!--</div>-->
-    <!--<div id="comidDiv" class="hidden">-->
-      <!--<label class="control-label hidden" for="comidInput">COMID</label>-->
-      <!--<input id="comidInput" name="COMID" type="text" class="form-control form-group hidden" data-toggle="tooltip"-->
-             <!--data-placement="top" title="Select stream reach from map or enter manually">-->
-    <!--</div>-->
-    <!--<div id="gridDiv" class="hidden">-->
-      <!--<label class="control-label" for="gridInputY">Grid Cell South-North Value</label>-->
-      <!--<input id="gridInputY" name="Y" type="text" class="form-control form-group" disabled>-->
-      <!--<label class="control-label" for="gridInputX">Grid Cell West-East Value</label>-->
-      <!--<input id="gridInputX" name="X" type="text" class="form-control form-group" disabled>-->
-    <!--</div>-->
-    <!--<input id="longInput" name="lon" type="text" value="-98" class="hidden">-->
-    <!--<input id="latInput" name="lat" type="text" value="38.5" class="hidden">-->
-
-    {% gizmo date_picker start_date %}
-    {% gizmo select_input start_time %}
-
-    <div id="timeLag" class="hidden">
-      <label>Time lag</label>
-      <div class="row">
-        <div class="col-md-1">
-          <p>00z</p>
-        </div>
-        <div class="col-md-4">
-          {% gizmo toggle_switch longRangeLag00 %}
-        </div>
-        <div class="col-md-1">
-          <p>06z</p>
-        </div>
-        <div class="col-md-4">
-          {% gizmo toggle_switch longRangeLag06 %}
-        </div>
-      </div>
-      <div class="row">
-        <div class="col-md-1">
-          <p>12z</p>
-        </div>
-        <div class="col-md-4">
-          {% gizmo toggle_switch longRangeLag12 %}
-        </div>
-        <div class="col-md-1">
-          <p>18z</p>
-        </div>
-        <div class="col-md-4">
-          {% gizmo toggle_switch longRangeLag18 %}
-        </div>
-      </div>
+<div id="timeLag" class="hidden">
+  <label>Time lag</label>
+  <div class="row">
+    <div class="col-md-1">
+      <p>00z</p>
     </div>
-    <label id="endDateLabel" class="control-label hidden" for="endDate">End Date</label>
-    {% gizmo date_picker end_date %}
+    <div class="col-md-4">
+      {% gizmo toggle_switch longRangeLag00 %}
+    </div>
+    <div class="col-md-1">
+      <p>06z</p>
+    </div>
+    <div class="col-md-4">
+      {% gizmo toggle_switch longRangeLag06 %}
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-1">
+      <p>12z</p>
+    </div>
+    <div class="col-md-4">
+      {% gizmo toggle_switch longRangeLag12 %}
+    </div>
+    <div class="col-md-1">
+      <p>18z</p>
+    </div>
+    <div class="col-md-4">
+      {% gizmo toggle_switch longRangeLag18 %}
+    </div>
+  </div>
+</div>
+<label id="endDateLabel" class="control-label hidden" for="endDate">End Date</label>
+{% gizmo date_picker end_date %}
 
-    {% if hs_ready|lower == "true" %}
-    <br />
-    <input type="checkbox" id="chkbox-subset-merge" name="chkbox-subset-merge">Merge results<br>
-    <input type="checkbox" id="chkbox-upload-subset-to-hs" name="chkbox-upload-subset-to-hs">Upload to HydroShare<br>
-    <button id="subsetBtn" type="button" class="btn btn-primary">Subset Watershed</button>
-    <div id="subset_watershed_loading" class="hidden" disabled><img src="/static/nwm_forecasts/images/loading-animation.gif"></div>
-    {%endif%}
-
-  </form>
-
-  <!--<input type="text" id="watershed_attributes_str" name="watershed_attributes_str" value='{{watershed_attributes_str}}' hidden >-->
-  <!--<input type="text" id="watershed_geojson_str" name="watershed_geojson_str" value='{{watershed_geojson_str}}' hidden >-->
-
-
+{% if hs_ready|lower == "true" %}
+<br>
+<input type="checkbox" id="chkbox-subset-merge" name="chkbox-subset-merge">Merge results<br>
+<input type="checkbox" id="chkbox-upload-subset-to-hs" name="chkbox-upload-subset-to-hs">Upload to HydroShare<br>
+<br>
+<button id="subsetBtn" type="button" class="btn btn-primary">Subset Watershed</button>
+<div id="subset_watershed_loading" class="hidden" disabled><img src="/static/nwm_forecasts/images/loading-animation.gif"></div>
+{%endif%}
 {% endblock%}
-
 
 {% block app_content %}
   <div id="map-view" class="noGraph full-map-view"></div>
-  <div id="mouse-position"></div>
-{% endblock %}
-
-
-
-{% block app_actions %}
-  <div id="actionBtns" class="hidden">
-    {% if waterml_url %}
-      <a id="WMLbtn" target="_blank" href="{% url 'nwm_forecasts:waterml' %}{{waterml_url}}" class="btn btn-default">Get WaterML</a>
-      <a id="HSbtn" class="btn btn-default hidden" data-toggle="modal" data-target="#hydroshare-modal" role="button">Add to HydroShare</a>
-    {% endif %}
-  </div>
+  <!--<div id="mouse-position"></div>-->
+  <div id="popup" class="noGraph"></div>
 {% endblock %}

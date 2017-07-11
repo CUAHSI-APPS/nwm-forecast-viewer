@@ -349,9 +349,16 @@ function _change_time_dropdown_content(config)
  **********************************/
 $(document).ready(function ()
 {
-    if (!window.location.search.includes('?'))
+    if (sessionStorage.welcome_popup_checkbox != "false")
     {
-        $("#welcome-popup").modal("show");
+        if (!window.location.search.includes('?') && !window.location.href.includes("/download"))
+        {
+             $("#welcome-popup").modal("show");
+        }
+    }
+    else
+    {
+         $("#help-page-checkbox").prop("checked", false);
     }
 
     // // force map to updateSize() once html structure changes
@@ -378,7 +385,7 @@ function _switch_on_long_range_lag_toggle(lag_switch_on_list)
         return;
     }
     // first turn off all lag switch
-    $('#00z, #06z, #12z, #18z').attr('checked', false);
+    $('#00z, #06z, #12z, #18z').prop('checked', false);
     $('#00z, #06z, #12z, #18z').parent().parent().removeClass('bootstrap-switch-on');
     $('#00z, #06z, #12z, #18z').parent().parent().addClass('bootstrap-switch-off');
     // turn on lag switch if it is in url
@@ -390,7 +397,7 @@ function _switch_on_long_range_lag_toggle(lag_switch_on_list)
             lag_sw_name = lag_sw_name.substring(1, 4);
         }
 
-        $('#' + lag_sw_name).attr('checked', true);
+        $('#' + lag_sw_name).prop('checked', true);
         $('#' + lag_sw_name).parent().parent().removeClass('bootstrap-switch-off');
         $('#' + lag_sw_name).parent().parent().addClass('bootstrap-switch-on');
     }
@@ -414,21 +421,21 @@ function init_restore_ui_map()
      **********************************/
 
     // show mouse position on map
-    var mousePositionControl = new ol.control.MousePosition({
-            coordinateFormat: ol.coordinate.createStringXY(2),
-            projection: 'EPSG:4326',
-            className: 'custom-mouse-position',
-            target: document.getElementById('mouse-position'),
-            undefinedHTML: '&nbsp;'
-        });
+    // var mousePositionControl = new ol.control.MousePosition({
+    //         coordinateFormat: ol.coordinate.createStringXY(2),
+    //         projection: 'EPSG:4326',
+    //         className: 'custom-mouse-position',
+    //         target: document.getElementById('mouse-position'),
+    //         undefinedHTML: '&nbsp;'
+    //     });
 
 
     map = new ol.Map({
-        controls: ol.control.defaults({
-            attributionOptions: ({
-                collapsible: false
-            })
-        }).extend([mousePositionControl]),
+        // controls: ol.control.defaults({
+        //     attributionOptions: ({
+        //         collapsible: false
+        //     })
+        // }).extend([mousePositionControl]),
         target: 'map-view',
         view: new ol.View({
             center: ol.proj.transform([-98, 38.5], 'EPSG:4326', 'EPSG:3857'),
@@ -663,8 +670,11 @@ function init_restore_ui_map()
 
     _switch_on_long_range_lag_toggle(qLag);
 
-    initChart(qConfig, startDate, seriesData);
-    get_netcdf_chart_data(qConfig, qGeom, qVar, qCOMID, qDate, qTime, qLag, qDateEnd);
+    if (window.location.search.includes('?'))
+    {
+        initChart(qConfig, startDate, seriesData);
+        get_netcdf_chart_data(qConfig, qGeom, qVar, qCOMID, qDate, qTime, qLag, qDateEnd);
+    }
 
     // if (window.location.search.includes('?'))
     // {
@@ -1654,7 +1664,7 @@ function getHSWatershedList()
 
 function _build_hs_resource_html_table(resource_list_json_obj)
 {
-    var resTableHtml = '<table id="tbl-watersheds"><thead><th></th><th>Title</th><th>File</th><th>Owner</th></thead><tbody>';
+    var resTableHtml = '<table id="tbl-watersheds" style="width: 100%"><thead><th></th><th>Title</th><th>File</th><th>Owner</th></thead><tbody>';
     var resources = resource_list_json_obj;
 
     popupLoadWatershed.find('.modal-body').html('');
