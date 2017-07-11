@@ -14,6 +14,7 @@
 <br>
 {% endif %}
 
+<form id="paramForm" method="get">
 {% gizmo select_input config_input %}
 {% gizmo select_input geom_input %}
 {% gizmo date_picker start_date %}
@@ -52,6 +53,7 @@
 </div>
 <label id="endDateLabel" class="control-label hidden" for="endDate">End Date</label>
 {% gizmo date_picker end_date %}
+</form>
 
 {% if hs_ready|lower == "true" %}
 <br>

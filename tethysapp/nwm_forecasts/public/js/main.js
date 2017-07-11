@@ -676,66 +676,6 @@ function init_restore_ui_map()
         get_netcdf_chart_data(qConfig, qGeom, qVar, qCOMID, qDate, qTime, qLag, qDateEnd);
     }
 
-    // if (window.location.search.includes('?'))
-    // {
-    //     var qConfig = getUrlParameter('config', null);
-    //     $('#config').val(qConfig);
-    //     // change options in 'time' dropdown according to config value
-    //     _change_time_dropdown_content(qConfig);
-    //     var qGeom = getUrlParameter('geom', null);
-    //     $('#geom').val(qGeom);
-    //
-    //     var qVar = getUrlParameter('variable', null);
-    //     $('#variable').val(qVar);
-    //
-    //     qLat = Number(getUrlParameter('lat', null));
-    //     $('#latInput').val(qLat);
-    //
-    //     qLong = Number(getUrlParameter('lon', null));
-    //     $('#longInput').val(qLong);
-    //
-    //     var qDate = getUrlParameter("startDate", null);
-    //     $('#startDate').val(qDate);
-    //
-    //     var qTime = getUrlParameter("time", null);
-    //     $('#time').val(qTime);
-    //
-    //     if (qGeom === 'channel_rt' || qGeom === 'reservoir') {
-    //         var qCOMID = getUrlParameter('COMID', null);
-    //         $('#comidInput').val(qCOMID);
-    //     }
-    //     else {
-    //         var qCOMID = getUrlParameter("Y", null) + ',' + getUrlParameter("X", null);
-    //         $('#gridInputY').val(qCOMID.split(',')[0]);
-    //         $('#gridInputX').val(qCOMID.split(',')[1]);
-    //     }
-    //     var qDateEnd = getUrlParameter("endDate", null);
-    //     $('#endDate').val(qDateEnd);
-    //
-    //     var qLag = [];
-    //
-    //     // turn on lag switch if it is in url
-    //     var lag_switch_list = ["00z", "06z", "12z", "18z"];
-    //     for (var i = 0; i < lag_switch_list.length; i++)
-    //     {
-    //         var lag_sw_name = lag_switch_list[i];
-    //         if ("on" == getUrlParameter(lag_sw_name, null))
-    //         {
-    //             qLag.push('t' + lag_sw_name);
-    //         }
-    //     }
-    //     _switch_on_long_range_lag_toggle(qLag);
-    //
-    //     if (!_check_datetime_range($("#startDate").val(), $("#endDate").val(), null))
-    //     {
-    //         alert("Invalid start/end date");
-    //     }
-    //
-    //     // Retrieve timeseries data from backend
-    //     initChart(qConfig, startDate, seriesData);
-    //     get_netcdf_chart_data(qConfig, qGeom, qVar, qCOMID, qDate, qTime, qLag, qDateEnd);
-    // } //if (window.location.search.includes('?'))
-
     /**********************************
      ********INITIALIZE LAYERS*********
      **********************************/
@@ -876,7 +816,7 @@ function init_restore_ui_map()
     }
 
     var center_map_at_pnt_3857 = null;
-    if (qLong && qLat)
+    if (qLong && qLat && !window.location.href.includes("/download"))
     {
         if (parseFloat(qLong) != -98 && parseFloat(qLat) != 38.5 && qCOMID != "")
         {
@@ -884,7 +824,7 @@ function init_restore_ui_map()
         }
     }
     // highlight selected stream
-    if (qCOMID && qGeom === 'channel_rt')
+    if (qCOMID && qGeom === 'channel_rt' && !window.location.href.includes("/download"))
     {
         var stream_info = run_point_indexing_service_byu(qCOMID, null, null, 3857);
         if (stream_info != null && stream_info.feature != null && stream_info.mid_point != null)
