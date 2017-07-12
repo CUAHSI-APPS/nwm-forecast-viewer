@@ -14,7 +14,7 @@
 
 {% block exit_button_override %}
   <div class="exit-button" style="display: flex; display: -webkit-flex;">
-      <a href="javascript:void(0);" onclick="$('#welcome-popup').modal('show');" style="margin-right: 20px;">Help</a>
+      <a href="javascript:void(0);" onclick="if(!window.location.href.includes('/subset/')) {$('#welcome-popup').modal('show');}else{$('#welcome-popup-subset').modal('show');}" style="margin-right: 20px;">Help</a>
       <a href="javascript:void(0);" onclick="TETHYS_APP_BASE.exit_app('https://apps.hydroshare.org/apps/nwm-data-explorer/api/');" style="margin-right: 20px;">API</a>
       <a href="javascript:void(0);" onclick="TETHYS_APP_BASE.exit_app('{% url 'app_library' %}');">Exit</a>
   </div>
@@ -52,10 +52,10 @@
 
 {% block app_content_wrapper_override %}
 
-<!-- Modal3 -->
+<!-- Home help popup -->
 <div class="modal fade" id="welcome-popup" role="dialog">
   <div class="modal-dialog">
-    <div class="modal-content" style="width: 780px;">
+    <div class="modal-content" style="width: 150%;">
       <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal">&times;</button>
         <center><h4 class="modal-title">National Water Model Forecast Viewer Guide</h4></center>
@@ -68,39 +68,78 @@
             associated National Hydrography Datasets (e.g., channel, rivers, land surface grids, reservoir).</span></p>
 
             <b>How to Use the App</b>
-          <li class="modalList">Under <b>Enter Configuration</b> - Select a forecast range: Short, Medium, Long, or Analyis & Assimilation</li>
-          <li class="modalList">Under <b>Enter Geometry</b> - Select a geometry: Channel, Land, or Reservoir</li>
-          <li class="modalList">Under <b>Enter Variable</b> - Select a variable: This list will change depending on the type of geometry</li>
-          <li class="modalList">Under <b>Enter COMID</b> - Click a feature on the map: Clicking on a feature will populate this
-            field (you may need to zoom in to be able to see some features)</li>
-          <li class="modalList">Select <b>Date and Time</b> - Select a date: The date and time options will vary depending on the forecast type</li>
-          <li class="modalList">Click <b>Submit</b> - Click submit to view the forecast</li>
+          <li class="modalList"><b>Configuration</b> - Select a forecast range: Short, Medium, Long, or Analyis & Assimilation</li>
+          <li class="modalList"><b>Geometry</b> - Select a geometry: Channel, Land, or Reservoir</li>
+          <li class="modalList"><b>Variable</b> - Select a variable: This list will change depending on the type of geometry</li>
+          <li class="modalList"><b>COMID</b> - Click a feature on the map: Clicking on a feature will populate this
+            field (you may need to zoom in to be able to see some features). If you know the ID you can enter it directly</li>
+          <li class="modalList"><b>Date and Time</b> - Select a date: The date and time options will vary depending on the forecast type</li>
+          <li class="modalList"><b>View Forecast</b> - Click submit to view the forecast</li>
           </ol>
         </div>
       </div>
       <div class="modal-footer">
-        <div id="byu-logo-container">
+        <div class="byu-logo-container">
           <span><i>Developed at the BYU Hydroinformatics Lab</i></span>
           <img src="{% static 'nwm_forecasts/images/byu-logo.png' %}"/>
         </div>
         <!--<button type="button" class="btn btn-default" id="close-popup" data-dismiss="modal">Close</button>-->
-        <input type="checkbox" name="help-page-checkbox" id="help-page-checkbox" onclick="sessionStorage.welcome_popup_checkbox=this.checked;" checked>Display Help page at startup<br>
+        <!--<input type="checkbox" name="help-page-checkbox" id="help-page-checkbox" onclick="sessionStorage.welcome_popup_checkbox=this.checked;" >Display Help page at startup<br>-->
       </div>
     </div>
   </div>
 </div>
 <!-- End Modal -->
 
+<!-- Subset Help popup-->
+<div class="modal fade" id="welcome-popup-subset" role="dialog">
+  <div class="modal-dialog">
+    <div class="modal-content" style="width: 150%;">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <center><h4 class="modal-title">National Water Model Forecast Viewer Guide</h4></center>
+      </div>
+      <div class="modal-body">
+        <div >
+          <ol>
+            <b>About Subsetting</b>
+          <p><span class="sub">123456</span></p>
+
+              <b>How to Subset a Watershed</b>
+          <li class="modalList"><b>Configuration</b> - Select a forecast range: Short, Medium, Long, or Analyis & Assimilation</li>
+          <li class="modalList"><b>Geometry</b> - Select a geometry: Channel, Land, or Reservoir</li>
+          <li class="modalList"><b>Date and Time</b> - Select a date: The date and time options will vary depending on the forecast type</li>
+          <li class="modalList"><b>View Forecast</b> - Click download</li>
+          </ol>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <div class="byu-logo-container">
+          <span><i>Developed at the BYU Hydroinformatics Lab</i></span>
+          <img src="{% static 'nwm_forecasts/images/byu-logo.png' %}"/>
+        </div>
+        <!--<button type="button" class="btn btn-default" id="close-popup" data-dismiss="modal">Close</button>-->
+        <!--<input type="checkbox" name="help-page-checkbox" id="help-page-checkbox" onclick="sessionStorage.welcome_popup_checkbox=this.checked;" >Display Help page at startup<br>-->
+      </div>
+    </div>
+  </div>
+</div>
+<!-- End Modal -->
+
+
   <!-- Modal1  -->
   <div class="modal fade" id="popup-load-watershed" role="dialog">
     <div class="modal-dialog">
-      <div class="modal-content" style="width: 780px;">
+      <div class="modal-content" style="width: 150%;">
         <div class="modal-header">
           <button type="button" class="close" data-dismiss="modal">&times;</button>
           <h4 class="modal-title">Add a watershed from HydroShare</h4>
           <h8> Loading resources owned by you: </h8>
+            <br>
           <h9> 1) Geographic Feature resource has a Polygon with valid projection</h9>
+             <br>
           <h9> 2) Generic resource has a *.geojson file in WGS84/EPSG:4326 projection, and has "watershed" as its resource keyword</h9>
+            <br>
         </div>
         <div class="modal-body">
           <b>Searching for available watersheds on HydroShare...</b>
@@ -108,8 +147,8 @@
           <img src="/static/nwm_forecasts/images/loading-animation.gif">
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-default" id="close-popup" data-dismiss="modal">Close</button>
-          <button type="button" id="btn-load-watershed" class="btn btn-default hidden" disabled>Add</button>
+          <!--<button type="button" class="btn btn-default" id="close-popup" data-dismiss="modal">Close</button>-->
+          <button type="button" id="btn-load-watershed" class="btn btn-default" disabled>Add</button>
         </div>
       </div>
     </div>

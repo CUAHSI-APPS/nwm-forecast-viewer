@@ -6,7 +6,7 @@
 {% block app_navigation_items %}
 {{ block.super }}
 <li class="active"><a href="">Home</a></li>
-<li><a href="{% url 'nwm_forecasts:download' %}">Download</a></li>
+<li><a href="{% url 'nwm_forecasts:subset' %}">Subset</a></li>
 
 {% if hs_ready|lower == "true" %}
     <br />

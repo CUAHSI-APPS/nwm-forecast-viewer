@@ -236,7 +236,7 @@ def home(request):
         return render(request, 'nwm_forecasts/home.html', context)
 
 
-def download(request):
+def subset(request):
     """
     Controller for the app home page.
     """

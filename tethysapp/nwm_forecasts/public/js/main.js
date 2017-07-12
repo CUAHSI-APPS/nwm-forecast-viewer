@@ -349,17 +349,27 @@ function _change_time_dropdown_content(config)
  **********************************/
 $(document).ready(function ()
 {
-    if (sessionStorage.welcome_popup_checkbox != "false")
-    {
-        if (!window.location.search.includes('?') && !window.location.href.includes("/download"))
-        {
-             $("#welcome-popup").modal("show");
-        }
-    }
-    else
-    {
-         $("#help-page-checkbox").prop("checked", false);
-    }
+
+    // if (sessionStorage.welcome_popup_checkbox != "false") // can be true or null
+    // {
+    //     if (!window.location.search.includes('?') && !window.location.href.includes("/subset"))
+    //     {
+    //          $("#welcome-popup").modal("show");
+    //     }
+    //
+    //     if (sessionStorage.welcome_popup_checkbox == null)
+    //     {
+    //         sessionStorage.welcome_popup_checkbox = false;
+    //     }
+    //     else if (sessionStorage.welcome_popup_checkbox == true)
+    //     {
+    //          $("#help-page-checkbox").prop("checked", true);
+    //     }
+    // }
+    // else // false
+    // {
+    //      $("#help-page-checkbox").prop("checked", false);
+    // }
 
     // // force map to updateSize() once html structure changes
     // // select the target node
@@ -816,7 +826,7 @@ function init_restore_ui_map()
     }
 
     var center_map_at_pnt_3857 = null;
-    if (qLong && qLat && !window.location.href.includes("/download"))
+    if (qLong && qLat && !window.location.href.includes("/subset"))
     {
         if (parseFloat(qLong) != -98 && parseFloat(qLat) != 38.5 && qCOMID != "")
         {
@@ -824,7 +834,7 @@ function init_restore_ui_map()
         }
     }
     // highlight selected stream
-    if (qCOMID && qGeom === 'channel_rt' && !window.location.href.includes("/download"))
+    if (qCOMID && qGeom === 'channel_rt' && !window.location.href.includes("/subset"))
     {
         var stream_info = run_point_indexing_service_byu(qCOMID, null, null, 3857);
         if (stream_info != null && stream_info.feature != null && stream_info.mid_point != null)
@@ -1586,6 +1596,7 @@ function getHSWatershedList()
                                     sessionStorage.hs_resource_list = response.resources;
                                     var resource_list_json_obj = JSON.parse(response.resources);
                                     _build_hs_resource_html_table(resource_list_json_obj);
+                                    btnLoadWatershed.prop('disabled', false);
                                 }
                             }
                             else if (response.hasOwnProperty('error'))
@@ -1599,7 +1610,7 @@ function getHSWatershedList()
                 }
             });
     }
-    btnLoadWatershed.removeClass('hidden').prop('disabled', false);
+    btnLoadWatershed.prop('disabled', true);
 }
 
 function _build_hs_resource_html_table(resource_list_json_obj)

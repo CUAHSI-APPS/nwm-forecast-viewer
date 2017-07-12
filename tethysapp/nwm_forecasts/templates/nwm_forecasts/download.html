@@ -6,7 +6,7 @@
 {% block app_navigation_items %}
 {{ block.super }}
 <li ><a href="{% url 'nwm_forecasts:home' %}">Home</a></li>
-<li class="active"><a href="">Download</a></li>
+<li class="active"><a href="">Subset</a></li>
 <br>
 
 {% if hs_ready|lower == "true" %}
@@ -60,7 +60,7 @@
 <input type="checkbox" id="chkbox-subset-merge" name="chkbox-subset-merge">Merge results<br>
 <input type="checkbox" id="chkbox-upload-subset-to-hs" name="chkbox-upload-subset-to-hs">Upload to HydroShare<br>
 <br>
-<button id="subsetBtn" type="button" class="btn btn-primary">Subset Watershed</button>
+<button id="subsetBtn" type="button" class="btn btn-primary">Download</button>
 <div id="subset_watershed_loading" class="hidden" disabled><img src="/static/nwm_forecasts/images/loading-animation.gif"></div>
 {%endif%}
 {% endblock%}
