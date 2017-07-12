@@ -208,6 +208,7 @@ def home(request):
             'submit_button': submit_button,
             'waterml_url': waterml_url,
             'hs_ready': hydroshare_ready,
+            'hs_username': hs.getUserInfo()['username'] if hydroshare_ready else ""
             # 'watershed_geojson_str': watershed_obj_session['geojson_str'] if watershed_obj_session is not None else "",
             # 'watershed_attributes_str': json.dumps(watershed_obj_session['attributes']) if watershed_obj_session is not None else ""
         }
@@ -231,6 +232,7 @@ def home(request):
             'longRangeLag18': longRangeLag18,
             'submit_button': submit_button,
             'hs_ready': hydroshare_ready,
+            'hs_username': hs.getUserInfo()['username'] if hydroshare_ready else ""
             # 'watershed_geojson_str': ""
         }
         return render(request, 'nwm_forecasts/home.html', context)
@@ -321,6 +323,7 @@ def subset(request):
             'submit_button': submit_button,
             'waterml_url': waterml_url,
             'hs_ready': hydroshare_ready,
+            'hs_username': hs.getUserInfo()['username'] if hydroshare_ready else ""
             # 'watershed_geojson_str': watershed_obj_session['geojson_str'] if watershed_obj_session is not None else "",
             # 'watershed_attributes_str': json.dumps(watershed_obj_session['attributes']) if watershed_obj_session is not None else ""
         }
@@ -344,7 +347,8 @@ def subset(request):
             'longRangeLag18': longRangeLag18,
             'submit_button': submit_button,
             'hs_ready': hydroshare_ready,
-            'watershed_geojson_str': ""
+            'watershed_geojson_str': "",
+            'hs_username': hs.getUserInfo()['username'] if hydroshare_ready else ""
         }
         return render(request, 'nwm_forecasts/download.html', context)
 
@@ -727,6 +731,7 @@ def loopThroughFiles(localFileDir, q_out, nc_files, var, comidIndex=None, comidI
 @login_required()
 def get_hs_watershed_list(request):
     response_obj = {}
+    hs_username = ""
     try:
         if not hydroshare_ready:
             raise Exception("not logged in via hydroshare")
@@ -740,6 +745,7 @@ def get_hs_watershed_list(request):
                 owner = None
                 try:
                     owner = hs.getUserInfo()['username']
+                    hs_username = owner
                 except Exception:
                     pass
 
@@ -798,7 +804,7 @@ def get_hs_watershed_list(request):
 
                 response_obj['success'] = 'Resources obtained successfully.'
                 response_obj['resources'] = resources_json
-                response_obj['username'] = request.user.username
+                response_obj['hs_username'] = hs_username
         else:
             raise Exception("not a ajax GET request")
 
@@ -815,14 +821,27 @@ def load_watershed(request):
     if not hydroshare_ready:
         raise Exception("not logged in via hydroshare")
 
-    if request.is_ajax() and request.method == 'GET':
-        res_id = str(request.GET['res_id'])
-        filename = str(request.GET['filename'])
-        response_obj = _get_geojson_from_hs_resource(res_id, filename, request)
+    if request.is_ajax() and request.method == 'POST':
+        print request.FILES.getlist('files')
+        print len(request.FILES.getlist('files'))
+        local_files = request.FILES.getlist('files')
+        res_id = str(request.POST['res_id'])
+        filename = str(request.POST['filename'])
+        response_obj = _get_geojson_from_hs_resource(res_id, filename, request, local_files)
+
+        # for f in file_list:
+        #     f_name = f.name
+        #     f_path = os.path.join(hs_tempdir, f_name)
+        #
+        #     with open(f_path, 'wb') as f_local:
+        #         f_local.write(f.read())
+        #
+        #     if not flag_create_resources:
+        #         add_file_to_res(hs, proj_id, f_path)
         return JsonResponse(response_obj)
 
 
-def _get_geojson_from_hs_resource(res_id, filename, request):
+def _get_geojson_from_hs_resource(res_id, filename, request, local_files):
 
     response_obj = {}
     try:

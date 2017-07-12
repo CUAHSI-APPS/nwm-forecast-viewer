@@ -814,7 +814,7 @@ function init_restore_ui_map()
     // var watershed_attributes_str = $("#watershed_attributes_str").val();
     var watershed_geojson_str = null;
     var watershed_attributes_str = null;
-    if(sessionStorage.watershed_geojson_str && sessionStorage.watershed_attributes_str)
+    if(sessionStorage.watershed_geojson_str && sessionStorage.watershed_attributes_str && $("#hs_username").html() == sessionStorage.hs_username)
     {
         watershed_geojson_str = sessionStorage.watershed_geojson_str;
         watershed_attributes_str = sessionStorage.watershed_attributes_str;
@@ -1574,7 +1574,8 @@ function calibrateModel(config, geom, date)
 
 function getHSWatershedList()
 {
-    if (sessionStorage.hs_resource_list)
+    btnLoadWatershed.prop('disabled', true);
+    if (sessionStorage.hs_resource_list && $("#hs_username").html() == sessionStorage.hs_username)
     {
         // re-use front-end saved hs resource list str
         var resource_list_json_obj = JSON.parse(sessionStorage.hs_resource_list);
@@ -1594,9 +1595,9 @@ function getHSWatershedList()
                                 {
                                     // save json string to client session storage
                                     sessionStorage.hs_resource_list = response.resources;
+                                    sessionStorage.hs_username = response.hs_username;
                                     var resource_list_json_obj = JSON.parse(response.resources);
                                     _build_hs_resource_html_table(resource_list_json_obj);
-                                    btnLoadWatershed.prop('disabled', false);
                                 }
                             }
                             else if (response.hasOwnProperty('error'))
@@ -1610,7 +1611,6 @@ function getHSWatershedList()
                 }
             });
     }
-    btnLoadWatershed.prop('disabled', true);
 }
 
 function _build_hs_resource_html_table(resource_list_json_obj)
@@ -1618,6 +1618,7 @@ function _build_hs_resource_html_table(resource_list_json_obj)
     var resTableHtml = '<table id="tbl-watersheds" style="width: 100%"><thead><th></th><th>Title</th><th>File</th><th>Owner</th></thead><tbody>';
     var resources = resource_list_json_obj;
 
+    btnLoadWatershed.prop('disabled', true);
     popupLoadWatershed.find('.modal-body').html('');
     if (resources.length === 0)
     {
@@ -1636,36 +1637,64 @@ function _build_hs_resource_html_table(resource_list_json_obj)
         resTableHtml += '</tbody></table>';
         resTableHtml += '<div id="add_watershed_loading" class="hidden" disabled><img src="/static/nwm_forecasts/images/loading-animation.gif"></div>';
         popupLoadWatershed.find('.modal-body').html(resTableHtml);
+        popupLoadWatershed.find('.rdo-res').first().prop("checked", true); // check the first watershed
+        btnLoadWatershed.prop('disabled', false);
     }
+}
+
+function prepareFilesForAjax(files)
+{
+        var data = new FormData();
+
+        Object.keys(files).forEach(function (file) {
+            data.append('files', files[file]);
+        });
+
+        return data;
 }
 
 function onClickLoadWatershed()
 {
     btnLoadWatershed.prop('disabled', true);
-    var $rdoRes = $('.rdo-res:checked');
+    var data = new FormData();
+
+    var files = $('#input-local-watershed')[0].files;
+    if(files.length>0)
+    {
+        Object.keys(files).forEach(function (file) {
+            data.append('files', files[file]);
+        });
+    }
+    var $rdoRes = popupLoadWatershed.find('.rdo-res:checked');
     var resId = $rdoRes.val();
+    data.append('res_id', resId);
     var filename = $rdoRes.attr('data-filename');
+    data.append('filename', filename);
     $('#add_watershed_loading').prop('disabled', false).removeClass('hidden');
-    loadWatershed(resId, filename);
+    loadWatershed(data);
 }
 
-function loadWatershed(resId, filename)
+function loadWatershed(data_payload)
 {
+    var csrf_token = getCookie('csrftoken');
     $.ajax({
-        type: 'GET',
+        type: 'POST',
         //url: 'load-watershed',
         url: '/apps/nwm-forecasts/load-watershed/',
         dataType: 'json',
-        data: {
-            res_id: resId,
-            filename: filename
-        },
-        error: function () {
+        data: data_payload,
+        headers: {'X-CSRFToken': csrf_token},
+        processData: false, // NEEDED, DON'T OMIT THIS (requires jQuery 1.6+)
+        contentType: false, // NEEDED, DON'T OMIT THIS (requires jQuery 1.6+)
+        error: function ()
+        {
             alert('Failed to load watershed!');
             $('#add_watershed_loading').prop('disabled', true).addClass('hidden');
             btnLoadWatershed.prop('disabled', false);
+            $('#input-local-watershed').val(''); // clear local file selection list
         },
-        success: function (ajax_resp) {
+        success: function (ajax_resp)
+        {
             $('#add_watershed_loading').prop('disabled', true).addClass('hidden');
             if (ajax_resp.hasOwnProperty('success'))
             {
@@ -1680,6 +1709,7 @@ function loadWatershed(resId, filename)
                 alert(ajax_resp.error);
             }
             btnLoadWatershed.prop('disabled', false);
+            $('#input-local-watershed').val(''); //clear local file selection list
         }
     });
 }

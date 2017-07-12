@@ -52,6 +52,8 @@
 
 {% block app_content_wrapper_override %}
 
+<div id="hs_username" class="hidden">{{hs_username}}</div>
+
 <!-- Home help popup -->
 <div class="modal fade" id="welcome-popup" role="dialog">
   <div class="modal-dialog">
@@ -83,7 +85,7 @@
           <span><i>Developed at the BYU Hydroinformatics Lab</i></span>
           <img src="{% static 'nwm_forecasts/images/byu-logo.png' %}"/>
         </div>
-        <!--<button type="button" class="btn btn-default" id="close-popup" data-dismiss="modal">Close</button>-->
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
         <!--<input type="checkbox" name="help-page-checkbox" id="help-page-checkbox" onclick="sessionStorage.welcome_popup_checkbox=this.checked;" >Display Help page at startup<br>-->
       </div>
     </div>
@@ -118,7 +120,7 @@
           <span><i>Developed at the BYU Hydroinformatics Lab</i></span>
           <img src="{% static 'nwm_forecasts/images/byu-logo.png' %}"/>
         </div>
-        <!--<button type="button" class="btn btn-default" id="close-popup" data-dismiss="modal">Close</button>-->
+        <button type="button" class="btn btn-default"  data-dismiss="modal">Close</button>
         <!--<input type="checkbox" name="help-page-checkbox" id="help-page-checkbox" onclick="sessionStorage.welcome_popup_checkbox=this.checked;" >Display Help page at startup<br>-->
       </div>
     </div>
@@ -126,6 +128,63 @@
 </div>
 <!-- End Modal -->
 
+<div id="popup-add-local-watershed" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">Add Local File</h4>
+                </div>
+                <div class="modal-body">
+                    <h5>1. Choose where to store files:</h5>
+                    <div id="projNotSavedInfo" class="alert-danger" hidden>
+                        Your project is not currently saved. Please save the project or choose to store files in a
+                        unique resource.
+                    </div>
+                    <label for="storeFiles-Proj">In project resource (project must be saved)</label>
+                    <input type="radio" name="store-local-files" id="storeFiles-Proj" value="project">
+                    <label for="storeFiles-Res">In unique resource (create new resource)</label>
+                    <input type="radio" name="store-local-files" id="storeFiles-Res" value="resource" checked>
+                    <fieldset id="fields-newRes">
+                        <div class="form-group">
+                            <label for="resType" class="control-label">Resource Type:</label>
+                            <select id="resType">
+                                <option value="GenericResource">Generic</option>
+                                <option value="RasterResource">Raster</option>
+                                <option value="GeographicFeatureResource">Geographic Feature</option>
+                                <option value="ScriptResource">Script</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="resTitle" class="control-label">Resource Title:</label>
+                            <input type="text" class="form-control resField" id="resTitle">
+                        </div>
+                        <div class="form-group">
+                            <label for="resAbstract" class="control-label">Resource Abstract:</label>
+                            <textarea rows="6" cols="50" id="resAbstract" class="form-control resField"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="resKeywords" class="control-label">Resource Keywords:</label>
+                            <input type="text" class="form-control resField" id="resKeywords">
+                        </div>
+                    </fieldset>
+                    <h5>2. Choose files:</h5>
+                    <input id="input-files" type="file">
+                    <br>
+                    <div id="msg-file" class="hidden"></div>
+                </div>
+                <div class="modal-footer">
+                    <div class="button-group flex1-0">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        <button type="button" id="btn-upload-file" class="btn btn-default btn-upload" disabled>Add</button>
+                    </div>
+                </div>
+            </div>
+            <!--End modal content-->
+        </div>
+</div>
+    <!--End modal-->
 
   <!-- Modal1  -->
   <div class="modal fade" id="popup-load-watershed" role="dialog">
@@ -148,7 +207,14 @@
         </div>
         <div class="modal-footer">
           <!--<button type="button" class="btn btn-default" id="close-popup" data-dismiss="modal">Close</button>-->
-          <button type="button" id="btn-load-watershed" class="btn btn-default" disabled>Add</button>
+            <input id="input-local-watershed" class="btn" type="file" multiple="true">
+            <input type="checkbox" id="add-local-shp-hs-checkbox" onclick="if($('#input-local-watershed')[0].files.length>0){if(this.checked){$('#hs-shp-resource-title-div').removeClass('hidden')}else{$('#hs-shp-resource-title-div').addClass('hidden')}}" >Add to HydroShare<br>
+
+            <div id="hs-shp-resource-title-div" class="form-group hidden">
+                <label for="hs-shp-resource-title" class="control-label">*Resource Title:</label>
+                <input type="text" class="form-control" id="hs-shp-resource-title">
+            </div>
+            <button type="button" id="btn-load-watershed" class="btn btn-default" disabled>Add</button>
         </div>
       </div>
     </div>
