@@ -1642,17 +1642,6 @@ function _build_hs_resource_html_table(resource_list_json_obj)
     }
 }
 
-function prepareFilesForAjax(files)
-{
-        var data = new FormData();
-
-        Object.keys(files).forEach(function (file) {
-            data.append('files', files[file]);
-        });
-
-        return data;
-}
-
 function onClickLoadWatershed()
 {
     btnLoadWatershed.prop('disabled', true);
@@ -1665,6 +1654,8 @@ function onClickLoadWatershed()
             data.append('files', files[file]);
         });
     }
+    data.append("add_to_hs", $("#add-local-shp-hs-checkbox").prop("checked"));
+    data.append("res_title", $("#hs-shp-resource-title").val());
     var $rdoRes = popupLoadWatershed.find('.rdo-res:checked');
     var resId = $rdoRes.val();
     data.append('res_id', resId);
@@ -1692,6 +1683,9 @@ function loadWatershed(data_payload)
             $('#add_watershed_loading').prop('disabled', true).addClass('hidden');
             btnLoadWatershed.prop('disabled', false);
             $('#input-local-watershed').val(''); // clear local file selection list
+            $('#hs-shp-resource-title-div').addClass('hidden');
+            $('#add-local-shp-hs-checkbox').prop('checked', false);
+
         },
         success: function (ajax_resp)
         {
@@ -1699,8 +1693,24 @@ function loadWatershed(data_payload)
             if (ajax_resp.hasOwnProperty('success'))
             {
                 var watershed_attr_str = JSON.stringify(ajax_resp.watershed.attributes);
-                sessionStorage.watershed_geojson_str = ajax_resp.watershed.geojson_str;
-                sessionStorage.watershed_attributes_str = watershed_attr_str;
+                try
+                {
+                    sessionStorage.watershed_geojson_str = ajax_resp.watershed.geojson_str;
+                    sessionStorage.watershed_attributes_str = watershed_attr_str;
+                }
+                catch(e)
+                {
+                    if (sessionStorage.watershed_geojson_str)
+                    {
+                        sessionStorage.removeItem('watershed_geojson_str')
+                    }
+                    if (sessionStorage.watershed_attributes_str)
+                    {
+                        sessionStorage.removeItem('watershed_attributes_str')
+                    }
+                    console.log("watershed is too big, cannot share between different page views")
+                }
+
                 addGeojsonLayerToMap(ajax_resp.watershed.geojson_str, watershed_attr_str, true);
                 popupLoadWatershed.modal('hide');
             }
@@ -1710,6 +1720,8 @@ function loadWatershed(data_payload)
             }
             btnLoadWatershed.prop('disabled', false);
             $('#input-local-watershed').val(''); //clear local file selection list
+            $('#hs-shp-resource-title-div').addClass('hidden');
+            $('#add-local-shp-hs-checkbox').prop('checked', false);
         }
     });
 }
