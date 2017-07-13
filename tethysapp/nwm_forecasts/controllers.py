@@ -846,7 +846,7 @@ def load_watershed(request):
         print shp_geojson_local_path
 
         if add_to_hs == "true" and len(uploaded_files) > 0 and shp_geojson_local_path:  # upload to hydroshare
-            _add_shp_to_hs(request, shp_geojson_local_path, f_path_list, res_title)
+            res_id = _add_shp__geojson_to_hs(request, shp_geojson_local_path, res_title)
 
         response_obj = _get_geojson_from_hs_resource(request, res_id, filename, shp_geojson_local_path)
 
@@ -855,10 +855,31 @@ def load_watershed(request):
         return JsonResponse(response_obj)
 
 
-def _add_shp_to_hs(request, shp_geojson_local_path, f_path_list, res_title):
+def _add_shp__geojson_to_hs(request, shp_geojson_local_path, res_title):
 
+    hs = get_oauth_hs(request)
 
-    pass
+    r_type = None
+    r_file = None
+    if shp_geojson_local_path.lower().endswith('.geojson'):
+        r_type = "GenericResource"
+        r_file = shp_geojson_local_path
+    elif shp_geojson_local_path.lower().endswith('.shp'):
+        r_type = "GeographicFeatureResource"
+        dir_path = os.path.dirname(shp_geojson_local_path)
+        zip_file_path = os.path.join(dir_path, "hs_shp.zip")
+        _zip_folder_contents(zip_file_path, dir_path)
+        r_file = zip_file_path
+    else:
+        raise Exception("not shp or geojson")
+    logger.error(r_file)
+    logger.error(type(r_file))
+    res_id = hs.createResource(r_type,
+                               res_title,
+                               keywords=["watershed"],
+                               resource_file=str(r_file)
+                               )
+    return res_id
 
 
 def _get_geojson_from_hs_resource(request, res_id, filename, shp_geojson_local_path):
@@ -867,9 +888,9 @@ def _get_geojson_from_hs_resource(request, res_id, filename, shp_geojson_local_p
     try:
         hs = get_oauth_hs(request)
 
-        if filename.endswith('.geojson') or (shp_geojson_local_path is not None and shp_geojson_local_path.endswith(".geojson")):
+        if filename.endswith('.geojson') or (shp_geojson_local_path is not None and shp_geojson_local_path.lower().endswith(".geojson")):
             # geojson file
-            if (shp_geojson_local_path is not None) and shp_geojson_local_path.endswith(".geojson"):
+            if (shp_geojson_local_path is not None) and shp_geojson_local_path.lower().endswith(".geojson"):
                 with open(shp_geojson_local_path) as geojson_data:
                     geojson_obj = geojson.load(geojson_data)
             else:
@@ -884,10 +905,10 @@ def _get_geojson_from_hs_resource(request, res_id, filename, shp_geojson_local_p
             in_proj_type = "epsg"
             in_proj_value = 4326
 
-        elif filename.endswith('.shp') or (shp_geojson_local_path is not None and shp_geojson_local_path.endswith(".shp")):
+        elif filename.endswith('.shp') or (shp_geojson_local_path is not None and shp_geojson_local_path.lower().endswith(".shp")):
             # shapefile
             tmp_dir = tempfile.mkdtemp()
-            if (shp_geojson_local_path is not None) and shp_geojson_local_path.endswith(".shp"):
+            if (shp_geojson_local_path is not None) and shp_geojson_local_path.lower().endswith(".shp"):
                 with open(shp_geojson_local_path.replace('.shp', '.prj'), 'r') as content_file:
                     proj_str_raw = content_file.read()
                     proj_str = proj_str_raw.replace('\n', '')
@@ -906,13 +927,9 @@ def _get_geojson_from_hs_resource(request, res_id, filename, shp_geojson_local_p
             response_obj['type'] = 'shp'
             in_proj_type = "esri"
             in_proj_value = proj_str
-
-            print "11111111111111111111111111111111"
             shp_obj = fiona.open(shp_path)
-            print "22222222222222222222222222222"
             first_feature_obj = next(shp_obj)
             shape_obj = shapely.geometry.shape(first_feature_obj["geometry"])
-            print "33333333333333333333333333333333"
             shutil.rmtree(tmp_dir)
         else:
             raise Exception("Failed to read geometry ")
@@ -921,7 +938,6 @@ def _get_geojson_from_hs_resource(request, res_id, filename, shp_geojson_local_p
         if shape_obj.has_z:
             wkt2D = shape_obj.wkt
             shape_obj = wkt.loads(wkt2D)
-        print "444444444444444444444444444444444444"
         if shape_obj.geom_type.lower() == "multipolygon":
             polygon_exterior_linearring = shape_obj[0].exterior
         elif shape_obj.geom_type.lower() == "polygon":
@@ -937,7 +953,6 @@ def _get_geojson_from_hs_resource(request, res_id, filename, shp_geojson_local_p
                                       out_proj_type="epsg",
                                       out_proj_value=3857,
                                       in_geom_wkt=polygon_exterior_linearring_shape_obj.wkt)
-        print "55555555555555555555555555555555555555555555555"
         geojson_str = ogr.CreateGeometryFromWkt(wkt_3857).ExportToJson()
         print geojson_str
         resource_md = None

@@ -207,13 +207,14 @@
         </div>
         <div class="modal-footer">
           <!--<button type="button" class="btn btn-default" id="close-popup" data-dismiss="modal">Close</button>-->
-            <input id="input-local-watershed" class="btn" type="file" multiple="true">
+            <input id="input-local-watershed" accept=".shp,.shx,.prj,.dbf,.geojson" class="btn" type="file" onchange="if(this.files.length>0){$('#btn-load-watershed').removeAttr('disabled');var fn =this.files[0].name;$('#hs-shp-resource-title').val(fn.substring(0, fn.indexOf('.')));}" multiple="true">
             <input type="checkbox" id="add-local-shp-hs-checkbox" onclick="if($('#input-local-watershed')[0].files.length>0){if(this.checked){$('#hs-shp-resource-title-div').removeClass('hidden')}else{$('#hs-shp-resource-title-div').addClass('hidden')}}" >Add to HydroShare<br>
 
             <div id="hs-shp-resource-title-div" class="form-group hidden">
                 <label for="hs-shp-resource-title" class="control-label">*Resource Title:</label>
                 <input type="text" class="form-control" id="hs-shp-resource-title">
             </div>
+            <button type="button" id="btn-load-watershed-refresh" class="btn btn-default" onclick="getHSWatershedList(true);">Refresh</button>
             <button type="button" id="btn-load-watershed" class="btn btn-default" disabled>Add</button>
         </div>
       </div>

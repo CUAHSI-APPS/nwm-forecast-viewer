@@ -422,7 +422,7 @@ function init_restore_ui_map()
     btnLoadWatershed.on('click', onClickLoadWatershed);
     // load watershed resource list from HS
     popupLoadWatershed = $('#popup-load-watershed');
-    getHSWatershedList();
+    getHSWatershedList(false);
 
     $('[data-toggle="tooltip"]').tooltip();
 
@@ -1572,17 +1572,13 @@ function calibrateModel(config, geom, date)
  *******Watershed Functionality********
  ****************************************/
 
-function getHSWatershedList()
+function getHSWatershedList(force_to_refresh)
 {
     btnLoadWatershed.prop('disabled', true);
-    if (sessionStorage.hs_resource_list && $("#hs_username").html() == sessionStorage.hs_username)
+    if (!sessionStorage.hs_resource_list || $("#hs_username").html() != sessionStorage.hs_username || force_to_refresh)
     {
-        // re-use front-end saved hs resource list str
-        var resource_list_json_obj = JSON.parse(sessionStorage.hs_resource_list);
-        _build_hs_resource_html_table(resource_list_json_obj);
-    }
-    else
-    {   //retrieve list from backend
+        $('#add_watershed_loading').removeClass("hidden");
+        //retrieve list from backend
         $.ajax({
                 type: 'GET',
                 url: '/apps/nwm-forecasts/get-hs-watershed-list/',
@@ -1608,8 +1604,15 @@ function getHSWatershedList()
                 error: function(response)
                 {
                    popupLoadWatershed.find('.modal-body').html('<h6>Failed to load your HydroShare resources</h6>');
+                   $('#add_watershed_loading').addClass("hidden");
                 }
             });
+    }
+    else
+    {
+        // re-use front-end saved hs resource list str
+        var resource_list_json_obj = JSON.parse(sessionStorage.hs_resource_list);
+        _build_hs_resource_html_table(resource_list_json_obj);
     }
 }
 
@@ -1622,7 +1625,7 @@ function _build_hs_resource_html_table(resource_list_json_obj)
     popupLoadWatershed.find('.modal-body').html('');
     if (resources.length === 0)
     {
-        popupLoadWatershed.find('.modal-body').html('<b>It appears that you do not own any HydroShare resource that can be imported as watershed.</b>');
+        popupLoadWatershed.find('.modal-body').html('<b>It appears that you do not own any HydroShare resource that can be imported as watershed.</b><div id="add_watershed_loading" class="hidden" disabled=""><img src="/static/nwm_forecasts/images/loading-animation.gif"></div>');
     }
     else
     {
