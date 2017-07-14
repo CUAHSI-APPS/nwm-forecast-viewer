@@ -55,6 +55,15 @@ except Exception:
     hydroshare_ready = False
 
 
+def _get_current_utc_date():
+
+    date_string_today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
+    date_string_minus_oldest = (datetime.datetime.utcnow() + datetime.timedelta(days=-30)).strftime("%Y-%m-%d")
+    date_string_minus_2 = (datetime.datetime.utcnow() + datetime.timedelta(days=-2)).strftime("%Y-%m-%d")
+    date_string_minus_3 = (datetime.datetime.utcnow() + datetime.timedelta(days=-3)).strftime("%Y-%m-%d")
+
+    return date_string_today, date_string_minus_oldest, date_string_minus_2, date_string_minus_3
+
 def _init_left_panel_ui():
 
     config_input = SelectInput(display_text='Configuration',
@@ -127,6 +136,8 @@ def home(request):
     """
     Controller for the app home page.
     """
+
+    date_string_today, date_string_minus_oldest, _, _ = _get_current_utc_date()
 
     config_input, geom_input, start_date, end_date, start_time, \
     longRangeLag00, longRangeLag06, longRangeLag12, longRangeLag18 = _init_left_panel_ui()
@@ -208,9 +219,11 @@ def home(request):
             'submit_button': submit_button,
             'waterml_url': waterml_url,
             'hs_ready': hydroshare_ready,
-            'hs_username': hs.getUserInfo()['username'] if hydroshare_ready else ""
+            'hs_username': hs.getUserInfo()['username'] if hydroshare_ready else "",
             # 'watershed_geojson_str': watershed_obj_session['geojson_str'] if watershed_obj_session is not None else "",
-            # 'watershed_attributes_str': json.dumps(watershed_obj_session['attributes']) if watershed_obj_session is not None else ""
+            # 'watershed_attributes_str': json.dumps(watershed_obj_session['attributes']) if watershed_obj_session is not None else "",
+            "date_string_today": date_string_today,
+            "date_string_minus_oldest": date_string_minus_oldest,
         }
 
         return render(request, 'nwm_forecasts/home.html', context)
@@ -232,8 +245,10 @@ def home(request):
             'longRangeLag18': longRangeLag18,
             'submit_button': submit_button,
             'hs_ready': hydroshare_ready,
-            'hs_username': hs.getUserInfo()['username'] if hydroshare_ready else ""
-            # 'watershed_geojson_str': ""
+            'hs_username': hs.getUserInfo()['username'] if hydroshare_ready else "",
+            # 'watershed_geojson_str': "",
+            "date_string_today": date_string_today,
+            "date_string_minus_oldest": date_string_minus_oldest,
         }
         return render(request, 'nwm_forecasts/home.html', context)
 
@@ -243,6 +258,7 @@ def subset(request):
     Controller for the app home page.
     """
 
+    date_string_today, date_string_minus_oldest, _, _ = _get_current_utc_date()
     config_input, geom_input, start_date, end_date, start_time, \
     longRangeLag00, longRangeLag06, longRangeLag12, longRangeLag18 = _init_left_panel_ui()
 
@@ -323,9 +339,11 @@ def subset(request):
             'submit_button': submit_button,
             'waterml_url': waterml_url,
             'hs_ready': hydroshare_ready,
-            'hs_username': hs.getUserInfo()['username'] if hydroshare_ready else ""
+            'hs_username': hs.getUserInfo()['username'] if hydroshare_ready else "",
             # 'watershed_geojson_str': watershed_obj_session['geojson_str'] if watershed_obj_session is not None else "",
-            # 'watershed_attributes_str': json.dumps(watershed_obj_session['attributes']) if watershed_obj_session is not None else ""
+            # 'watershed_attributes_str': json.dumps(watershed_obj_session['attributes']) if watershed_obj_session is not None else "",
+            "date_string_today": date_string_today,
+            "date_string_minus_oldest": date_string_minus_oldest,
         }
 
         return render(request, 'nwm_forecasts/home.html', context)
@@ -348,7 +366,9 @@ def subset(request):
             'submit_button': submit_button,
             'hs_ready': hydroshare_ready,
             'watershed_geojson_str': "",
-            'hs_username': hs.getUserInfo()['username'] if hydroshare_ready else ""
+            'hs_username': hs.getUserInfo()['username'] if hydroshare_ready else "",
+            "date_string_today": date_string_today,
+            "date_string_minus_oldest": date_string_minus_oldest,
         }
         return render(request, 'nwm_forecasts/download.html', context)
 
@@ -1596,3 +1616,16 @@ def get_data_waterml(request):
         except Exception as e:
             print str(e)
             raise Http404('An error occurred. Please verify parameters.')
+
+
+def api_page(request):
+
+    date_string_today, date_string_minus_oldest, date_string_minus_2, date_string_minus_3 = _get_current_utc_date()
+
+    context = {
+        "date_string_today": date_string_today,
+        "date_string_minus_2": date_string_minus_2,
+        "date_string_minus_3": date_string_minus_3,
+        "date_string_minus_oldest": date_string_minus_oldest
+    }
+    return render(request, 'nwm_forecasts/api_page.html', context)

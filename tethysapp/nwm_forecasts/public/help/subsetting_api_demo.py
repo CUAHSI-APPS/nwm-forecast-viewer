@@ -29,8 +29,9 @@ if __name__ == "__main__":
         'watershed_geometry': geojson_polygon_str_4326  # the polygon geojson string extracted from shapefile
     }
 
-    # Note: this URL api endpoint must end with a slash '/'
-    resp = requests.post('https://appsdev.hydroshare.org/apps/nwm-forecasts/subset-watershed-api/',
+    # Note: URL API endpoint must end with a slash '/'
+    # As of this writing,  subsetting API endpoint is at 'https://appsdev.hydroshare.org/apps/nwm-forecasts/subset-watershed-api/'
+    resp = requests.post('https://apps.hydroshare.org/apps/nwm-forecasts/subset-watershed-api/',
                             data=json.dumps(data),
                             verify=False)
 

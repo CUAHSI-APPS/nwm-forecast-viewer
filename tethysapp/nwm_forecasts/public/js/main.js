@@ -1632,7 +1632,7 @@ function _build_hs_resource_html_table(resource_list_json_obj)
         resources.forEach(function (resource) {
             resTableHtml += '<tr>' +
                 '<td><input type="radio" name="resource" class="rdo-res" data-filename="' + resource.filename + '" value="' + resource.id + '"></td>' +
-                '<td class="res_title">' + resource.title + '</td>' +
+                '<td class="res_title"><a href="https://www.hydroshare.org/resource/' + resource.id+ '/" target="_blank">' + resource.title + '</a></td>' +
                 '<td class="res_title">' + resource.filename + '</td>' +
                 '<td class="res_title">' + resource.owner + '</td>' +
                 '</tr>';
@@ -1711,7 +1711,7 @@ function loadWatershed(data_payload)
                     {
                         sessionStorage.removeItem('watershed_attributes_str')
                     }
-                    console.log("watershed is too big, cannot share between different page views")
+                    console.log("This watershed polygon is too big/complex. You may have to reload it on new pages.")
                 }
 
                 addGeojsonLayerToMap(ajax_resp.watershed.geojson_str, watershed_attr_str, true);

@@ -15,7 +15,7 @@
 {% block exit_button_override %}
   <div class="exit-button" style="display: flex; display: -webkit-flex;">
       <a href="javascript:void(0);" onclick="if(!window.location.href.includes('/subset/')) {$('#welcome-popup').modal('show');}else{$('#welcome-popup-subset').modal('show');}" style="margin-right: 20px;">Help</a>
-      <a href="javascript:void(0);" onclick="TETHYS_APP_BASE.exit_app('https://apps.hydroshare.org/apps/nwm-data-explorer/api/');" style="margin-right: 20px;">API</a>
+      <a href="javascript:void(0);" onclick="TETHYS_APP_BASE.exit_app('{% url 'nwm_forecasts:api_page' %}');" style="margin-right: 20px;">API</a>
       <a href="javascript:void(0);" onclick="TETHYS_APP_BASE.exit_app('{% url 'app_library' %}');">Exit</a>
   </div>
 {% endblock %}
@@ -69,14 +69,24 @@
           <p><span class="sub">Users can obtain forecasts of different hydrologic variables available from any of the
             associated National Hydrography Datasets (e.g., channel, rivers, land surface grids, reservoir).</span></p>
 
-            <b>How to Use the App</b>
-          <li class="modalList"><b>Configuration</b> - Select a forecast range: Short, Medium, Long, or Analyis & Assimilation</li>
-          <li class="modalList"><b>Geometry</b> - Select a geometry: Channel, Land, or Reservoir</li>
-          <li class="modalList"><b>Variable</b> - Select a variable: This list will change depending on the type of geometry</li>
-          <li class="modalList"><b>COMID</b> - Click a feature on the map: Clicking on a feature will populate this
-            field (you may need to zoom in to be able to see some features). If you know the ID you can enter it directly</li>
-          <li class="modalList"><b>Date and Time</b> - Select a date: The date and time options will vary depending on the forecast type</li>
-          <li class="modalList"><b>View Forecast</b> - Click submit to view the forecast</li>
+              <b>Current UTC Date:</b> {{date_string_today}} <br>
+            <b>Available Data:</b><br>
+              <ol>
+                Analysis & Assimilation: 2016-06-09 to {{date_string_today}}<br>
+                Short Range: {{date_string_minus_oldest}} to {{date_string_today}}<br>
+                Medium Range: {{date_string_minus_oldest}} to {{date_string_today}}<br>
+                Long Range: {{date_string_minus_oldest}} to {{date_string_today}}<br>
+              </ol>
+              <br>
+              <b>How to View Forecast</b>
+              <li class="modalList"><b>Add Watershed (optional)</b> - Add a watershed polygon from HydroShare or local files</li>
+              <li class="modalList"><b>Configuration</b> - Select a forecast range: Short, Medium, Long, or Analyis & Assimilation</li>
+              <li class="modalList"><b>Geometry</b> - Select a geometry: Channel, Land, Reservoir or Forcing</li>
+              <li class="modalList"><b>Variable</b> - Select a variable: This list will change depending on the type of geometry</li>
+              <li class="modalList"><b>COMID</b> - Click a feature on the map: Clicking on a feature( stream/reservoir/cell) will populate this
+                field (you may need to zoom in to be able to see some features). If you know the ID you can enter it directly</li>
+              <li class="modalList"><b>Date and Time</b> - Select a date: The date and time options will vary depending on the forecast type</li>
+              <li class="modalList"><b>View Forecast</b> - Click 'View Forecast' button</li>
           </ol>
         </div>
       </div>
@@ -105,13 +115,27 @@
         <div >
           <ol>
             <b>About Subsetting</b>
-          <p><span class="sub">123456</span></p>
-
+          <p>
+              <span class="sub">Users can subset NWM outputs (NetCDF files) by a watershed polygon to get 'shrunken' NetCDFs that only contain data for this specific area.</span>
+          </p>
+              <b>Current UTC Date:</b> {{date_string_today}} <br>
+            <b>Available Data for Subsetting:</b>
+              <br>
+              <ol>
+                Analysis & Assimilation: {{date_string_minus_oldest}} to {{date_string_today}}<br>
+                Short Range: {{date_string_minus_oldest}} to {{date_string_today}}<br>
+                Medium Range: {{date_string_minus_oldest}} to {{date_string_today}}<br>
+                Long Range: {{date_string_minus_oldest}} to {{date_string_today}}<br>
+              </ol>
+              <br>
               <b>How to Subset a Watershed</b>
-          <li class="modalList"><b>Configuration</b> - Select a forecast range: Short, Medium, Long, or Analyis & Assimilation</li>
-          <li class="modalList"><b>Geometry</b> - Select a geometry: Channel, Land, or Reservoir</li>
-          <li class="modalList"><b>Date and Time</b> - Select a date: The date and time options will vary depending on the forecast type</li>
-          <li class="modalList"><b>View Forecast</b> - Click download</li>
+              <li class="modalList"><b>Add Watershed</b> - Add a watershed polygon from HydroShare or local files</li>
+              <li class="modalList"><b>Configuration</b> - Select a forecast range: Short, Medium, Long, or Analyis & Assimilation</li>
+              <li class="modalList"><b>Geometry</b> - Select a geometry: Channel, Land, Reservoir or Forcing</li>
+              <li class="modalList"><b>Date and Time</b> - Select a date: The date and time options will vary depending on the forecast type</li>
+              <li class="modalList"><b>Merge results (optional)</b> - Check 'Merge results' to aggregate subsetting results</li>
+              <li class="modalList"><b>Upload to HydroShare (optional)</b> - Check 'Upload to HydroShare' to create a HydroShare resource for subsetting results </li>
+              <li class="modalList"><b>View Forecast</b> - Click 'Download' button</li>
           </ol>
         </div>
       </div>
