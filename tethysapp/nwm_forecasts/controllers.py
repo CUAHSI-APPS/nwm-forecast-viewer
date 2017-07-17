@@ -7,6 +7,7 @@ import logging
 import uuid
 import datetime
 import zipfile
+import glob
 
 logger = logging.getLogger(__name__)
 
@@ -1117,10 +1118,39 @@ def upload_to_hydroshare(request):
         return JsonResponse(return_json)
 
 
+def _find_all_files_in_folder(directory, searching_text, match_pattern="endswith", full_path=True):
+
+    files_list = []
+    for root, dirs, files in os.walk(directory):
+        for file in files:
+            found_f = None
+            if match_pattern == "endswith":
+                if file.endswith(searching_text):
+                    found_f = file
+            elif match_pattern == "startswith":
+                if file.startswith(searching_text):
+                    found_f = file
+            elif match_pattern == "in":
+                if searching_text in os.path.basename(file):
+                    found_f = file
+            elif match_pattern == "equals":
+                if searching_text == os.path.basename(file):
+                    found_f = file
+            else:
+                continue
+            if full_path:
+                files_list.append(os.path.join(root, found_f))
+            else:
+                files_list.append(found_f)
+    return files_list
+
+
 @login_required()
 def subset_watershed(request):
 
-    bag_save_to_path = None
+    job_folder_path = None
+    binary_file_name = None
+    binary_file_path = None
     upload_to_hydroshare = False
 
     try:
@@ -1132,36 +1162,68 @@ def subset_watershed(request):
             if "hydroshare" in request_dict:
                 upload_to_hydroshare = True
 
-            job_id, bag_save_to_path = _perform_subset(request_dict['watershed_geometry'],
+            job_id, job_folder_path = _perform_subset(request_dict['watershed_geometry'],
                                                        int(request_dict['watershed_epsg']),
                                                        request_dict['subset_parameter'])
+
+            nc_file_list = _find_all_files_in_folder(job_folder_path, ".nc")
+            nc_file_list_count = len(nc_file_list)
+            hs_res_type = None
+            if nc_file_list_count == 1:
+                # only one nc file --> netcdf resource type
+                hs_res_type = "NetcdfResource"
+                binary_file_path = nc_file_list[0]
+                binary_file_name = os.path.basename(binary_file_path)
+                pass
+            elif nc_file_list_count == 0:
+                # 0 --> error
+                raise Exception("No netcdf file")
+            else:
+                # more than one nc file --> composite resource type
+                hs_res_type = "CompositeResource"
+                # zip it up first
+                zip_file_path = job_folder_path + '.zip'
+                _zip_folder_contents(zip_file_path, job_folder_path)
+                binary_file_path = zip_file_path
+                binary_file_name = job_id + ".zip"
+                pass
 
             # upload to hydroshare
             if upload_to_hydroshare:
                 hs = get_oauth_hs(request)
                 hydroshare_dict = request_dict["hydroshare"]
-                resource_id = hs.createResource(hydroshare_dict["res_type"],
-                                                hydroshare_dict["title"],
-                                                #resource_file=bag_save_to_path,
-                                                keywords=hydroshare_dict["keywords"].split(','),
-                                                abstract=hydroshare_dict["abstract"])
+                if hs_res_type == "CompositeResource":
+                    resource_id = hs.createResource("CompositeResource",
+                                                    hydroshare_dict["title"],
+                                                    keywords=hydroshare_dict["keywords"].split(','),
+                                                    abstract=hydroshare_dict["abstract"])
 
-                resource_id = hs.addResourceFile(resource_id, bag_save_to_path)
+                    resource_id = hs.addResourceFile(resource_id, binary_file_path)
 
-                options = {
-                            "zip_with_rel_path": os.path.basename(bag_save_to_path),
-                            "remove_original_zip": True
-                          }
+                    options = {
+                                "zip_with_rel_path": os.path.basename(binary_file_path),
+                                "remove_original_zip": True
+                              }
 
-                unzipping_resp = hs.resource(resource_id).functions.unzip(options)
+                    unzipping_resp = hs.resource(resource_id).functions.unzip(options)
+
+                elif hs_res_type == "NetcdfResource":
+                    resource_id = hs.createResource("NetcdfResource",
+                                                    hydroshare_dict["title"],
+                                                    resource_file=binary_file_path,
+                                                    keywords=hydroshare_dict["keywords"].split(','),
+                                                    abstract=hydroshare_dict["abstract"])
+                else:
+                    raise Exception("wrong resource type")
 
                 return JsonResponse({"status": "success", "res_id": resource_id})
 
             else:  # return file binary stream
 
-                response = FileResponse(open(bag_save_to_path, 'rb'), content_type='application/zip')
-                response['Content-Disposition'] = 'attachment; filename="' + '{0}.zip"'.format(job_id)
-                response['Content-Length'] = os.path.getsize(bag_save_to_path)
+                response = FileResponse(open(binary_file_path, 'rb'), content_type='application/zip' if binary_file_name
+                                        .endswith(".zip") else "application/x-cdf")
+                response['Content-Disposition'] = 'attachment; filename="' + '{0}"'.format(binary_file_name)
+                response['Content-Length'] = os.path.getsize(binary_file_path)
                 return response
         else:
             if upload_to_hydroshare:
@@ -1175,11 +1237,11 @@ def subset_watershed(request):
         else:
             return HttpResponse(status=500, content=ex.message)
     finally:
-        if bag_save_to_path is not None:
-            if os.path.exists(bag_save_to_path):
-                os.remove(bag_save_to_path)
-            if os.path.exists(bag_save_to_path.replace(".zip", "")):
-                shutil.rmtree(bag_save_to_path.replace(".zip", ""))
+        if job_folder_path is not None:
+            if os.path.exists(job_folder_path + ".zip"):
+                os.remove(job_folder_path + ".zip")
+            if os.path.exists(job_folder_path):
+                shutil.rmtree(job_folder_path)
 
 
 @csrf_exempt
@@ -1196,7 +1258,8 @@ def subset_watershed_api(request):
             logger.error("------START: subset_watershed_api--------")
             job_id, bag_save_to_path = _perform_subset(watershed_geometry,
                                                        watershed_epsg,
-                                                       subset_parameter_dict)
+                                                       subset_parameter_dict,
+                                                       zip_results=True)
 
             response = FileResponse(open(bag_save_to_path, 'rb'), content_type='application/zip')
             response['Content-Disposition'] = 'attachment; filename="' + '{0}.zip"'.format(job_id)
@@ -1219,7 +1282,7 @@ def subset_watershed_api(request):
                 shutil.rmtree(bag_save_to_path.replace(".zip", ""))
 
 
-def _perform_subset(geom_str, in_epsg, subset_parameter_dict):
+def _perform_subset(geom_str, in_epsg, subset_parameter_dict, zip_results=False):
 
     db_file_path = "/nwm.sqlite"
     job_id = str(uuid.uuid4())
@@ -1256,7 +1319,8 @@ def _perform_subset(geom_str, in_epsg, subset_parameter_dict):
     resize_dimension_grid = True
     resize_dimension_feature = True
     # merge resulting netcdfs
-    merge_netcdfs = subset_parameter_dict['merge']
+    #merge_netcdfs = subset_parameter_dict['merge']
+    merge_netcdfs = True
     # remove intermediate files
     cleanup = True
 
@@ -1351,11 +1415,13 @@ def _perform_subset(geom_str, in_epsg, subset_parameter_dict):
     # zip_path = os.path.join(output_folder_path, job_id)
     # shutil.make_archive(zip_path, 'zip', output_folder_path, job_id)
 
-    job_folder_path = os.path.join(output_folder_path, job_id)
-    zip_file_path = job_folder_path + '.zip'
-    _zip_folder_contents(zip_file_path, job_folder_path)
+    bag_save_to_path = os.path.join(output_folder_path, job_id)
+    if zip_results:
+        job_folder_path = bag_save_to_path
+        zip_file_path = job_folder_path + '.zip'
+        _zip_folder_contents(zip_file_path, job_folder_path)
 
-    bag_save_to_path = zip_file_path
+        bag_save_to_path = zip_file_path
 
     return job_id, bag_save_to_path
 

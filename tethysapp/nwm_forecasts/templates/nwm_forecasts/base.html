@@ -133,8 +133,7 @@
               <li class="modalList"><b>Configuration</b> - Select a forecast range: Short, Medium, Long, or Analyis & Assimilation</li>
               <li class="modalList"><b>Geometry</b> - Select a geometry: Channel, Land, Reservoir or Forcing</li>
               <li class="modalList"><b>Date and Time</b> - Select a date: The date and time options will vary depending on the forecast type</li>
-              <li class="modalList"><b>Merge results (optional)</b> - Check 'Merge results' to aggregate subsetting results</li>
-              <li class="modalList"><b>Upload to HydroShare (optional)</b> - Check 'Upload to HydroShare' to create a HydroShare resource for subsetting results </li>
+              <li class="modalList"><b>Upload to HydroShare (optional)</b> - Check 'Upload to HydroShare' to create a HydroShare resource for subsetted netcdfs </li>
               <li class="modalList"><b>View Forecast</b> - Click 'Download' button</li>
           </ol>
         </div>
@@ -231,15 +230,18 @@
         </div>
         <div class="modal-footer">
           <!--<button type="button" class="btn btn-default" id="close-popup" data-dismiss="modal">Close</button>-->
-            <input id="input-local-watershed" accept=".shp,.shx,.prj,.dbf,.geojson" class="btn" type="file" onchange="if(this.files.length>0){$('#btn-load-watershed').removeAttr('disabled');var fn =this.files[0].name;$('#hs-shp-resource-title').val(fn.substring(0, fn.indexOf('.')));}" multiple="true">
-            <input type="checkbox" id="add-local-shp-hs-checkbox" onclick="if($('#input-local-watershed')[0].files.length>0){if(this.checked){$('#hs-shp-resource-title-div').removeClass('hidden')}else{$('#hs-shp-resource-title-div').addClass('hidden')}}" >Add to HydroShare<br>
-
-            <div id="hs-shp-resource-title-div" class="form-group hidden">
-                <label for="hs-shp-resource-title" class="control-label">*Resource Title:</label>
-                <input type="text" class="form-control" id="hs-shp-resource-title">
+            <div style="text-align: left;">
+            <input id="input-local-watershed" style="display: inline-block" accept=".shp,.shx,.prj,.dbf,.geojson" type="file" onchange="if(this.files.length>0){$('#btn-load-watershed').removeAttr('disabled');var fn =this.files[0].name;$('#hs-shp-resource-title').val(fn.substring(0, fn.indexOf('.')));}" multiple="true">
+            <input type="checkbox" id="add-local-shp-hs-checkbox" onclick="if($('#input-local-watershed')[0].files.length>0){if(this.checked){$('#hs-shp-resource-title-div').removeClass('hidden')}else{$('#hs-shp-resource-title-div').addClass('hidden')}}" >Add to HydroShare
+                <div id="hs-shp-resource-title-div" class="hidden">
+                    <label for="hs-shp-resource-title" class="control-label">*Resource Title:</label>
+                    <input type="text" class="form-control" style="width: 50%; display: inline-block" id="hs-shp-resource-title">
+                </div>
             </div>
+
             <button type="button" id="btn-load-watershed-refresh" class="btn btn-default" onclick="getHSWatershedList(true);">Refresh</button>
             <button type="button" id="btn-load-watershed" class="btn btn-default" disabled>Add</button>
+
         </div>
       </div>
     </div>
@@ -319,14 +321,14 @@
                     <label for="resource-title-subset" class="control-label">*Resource Title:</label>
                     <input type="text" class="form-control" id="resource-title-subset">
                 </div>
-                <div class="form-group">
-                    <label for="resource-type-subset" class="control-label">*Resource Type:</label>
-                    <select class="form-control" id="resource-type-subset">
-                        <option>CompositeResource</option>
-                        <option>GenericResource</option>
-                        <!--<option>NetcdfResource</option>-->
-                    </select>
-                </div>
+                <!--<div class="form-group">-->
+                    <!--<label for="resource-type-subset" class="control-label">*Resource Type:</label>-->
+                    <!--<select class="form-control" id="resource-type-subset">-->
+                        <!--<option>CompositeResource</option>-->
+                        <!--<option>GenericResource</option>-->
+                        <!--&lt;!&ndash;<option>NetcdfResource</option>&ndash;&gt;-->
+                    <!--</select>-->
+                <!--</div>-->
                 <div class="form-group">
                     <label for="resource-abstract-subset" class="control-label">*Resource Abstract:</label>
                     <textarea rows="6" cols="50" id="resource-abstract-subset" class="form-control"></textarea>

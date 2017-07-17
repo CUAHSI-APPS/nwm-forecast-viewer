@@ -1974,7 +1974,7 @@ function subset_watershed_download()
             a = document.createElement('a');
             a.href = window.URL.createObjectURL(xhttp.response);
             // Give filename you wish to download
-            a.download = "NWM_subset.zip";
+            a.download = xhttp.getResponseHeader('Content-Disposition').split(";")[1].split("=")[1].replace(/"/g, '');
             a.style.display = 'none';
             document.body.appendChild(a);
             a.click();
