@@ -739,13 +739,16 @@ def loopThroughFiles(localFileDir, q_out, nc_files, var, comidIndex=None, comidI
         elif var in ['ACCET', 'UGDRNOFF', 'SFCRNOFF', 'ACCECAN', 'CANWAT']:
             q_outT = prediction_dataTemp.variables[var][0, comidIndexY, comidIndexX].tolist()
             q_out.append(round(q_outT * 0.0393701, 4))
-        elif var in ['RAINRATE']:
+        elif var in ['RAINRATE', 'LWDOWN', 'PSFC', 'Q2D', 'SWDOWN', 'T2D', 'U2D', 'V2D']:
             if prediction_dataTemp.variables[var].dimensions[0] != "time":
                 # v1.0 forcing data
                 q_outT = prediction_dataTemp.variables[var][comidIndexY, comidIndexX].tolist()
             else:
                 q_outT = prediction_dataTemp.variables[var][0, comidIndexY, comidIndexX].tolist()
-            q_out.append(round(q_outT * 141.73, 4))  # mm/sec -> in/hr
+            if var == "RAINRATE":
+                q_out.append(round(q_outT * 141.73, 4))  # mm/sec -> in/hr
+            else:
+                q_out.append(round(q_outT, 4))
     return q_out
 
 
@@ -818,8 +821,8 @@ def get_hs_watershed_list(request):
                                     })
 
                     except Exception as ex:
-                        print ex.message
-                        print "Failed res in get_hs_watershed_list: " + str(resource)
+                        logger.exception(ex)
+                        logger.error("Failed res in get_hs_watershed_list: " + str(resource))
 
                 resources_json = json.dumps(resources_list)
 
@@ -830,7 +833,7 @@ def get_hs_watershed_list(request):
             raise Exception("not a ajax GET request")
 
     except Exception as ex:
-        print ex
+        logger.exception(ex)
         response_obj = {"error": "Failed to load resources from HydroShare. Did you sign in with your HydroShare account?"}
     finally:
         return JsonResponse(response_obj)
@@ -842,42 +845,51 @@ def load_watershed(request):
     if not hydroshare_ready:
         raise Exception("not logged in via hydroshare")
 
-    if request.is_ajax() and request.method == 'POST':
+    tmp_dir = None
+    try:
+        if request.is_ajax() and request.method == 'POST':
 
-        res_id = str(request.POST['res_id'])
-        filename = str(request.POST['filename'])
-        res_title = request.POST.get('res_title')
-        add_to_hs = request.POST.get('add_to_hs')
-        uploaded_files = request.FILES.getlist('files')
-        tmp_dir = tempfile.mkdtemp()
+            res_id = str(request.POST['res_id'])
+            filename = str(request.POST['filename'])
+            res_title = request.POST.get('res_title')
+            add_to_hs = request.POST.get('add_to_hs')
+            uploaded_files = request.FILES.getlist('files')
+            tmp_dir = tempfile.mkdtemp()
 
-        #save local files
-        shp_geojson_local_path = None
-        f_path_list = []
-        for f in uploaded_files:
-            f_name = f.name
-            f_path = os.path.join(tmp_dir, f_name)
-            if f_path.lower().endswith(".shp"):
-                shp_geojson_local_path = f_path
-            elif f_path.lower().endswith(".geojson"):
-                shp_geojson_local_path = f_path
-            with open(f_path, 'wb') as f_local:
-                f_local.write(f.read())
-                f_path_list.append(f_path)
-        print shp_geojson_local_path
+            #save local files
+            shp_geojson_local_path = None
+            f_path_list = []
+            for f in uploaded_files:
+                f_name = f.name
+                f_path = os.path.join(tmp_dir, f_name)
+                if f_path.lower().endswith(".shp"):
+                    shp_geojson_local_path = f_path
+                elif f_path.lower().endswith(".geojson"):
+                    shp_geojson_local_path = f_path
+                with open(f_path, 'wb') as f_local:
+                    f_local.write(f.read())
+                    f_path_list.append(f_path)
 
-        if add_to_hs == "true" and len(uploaded_files) > 0 and shp_geojson_local_path:  # upload to hydroshare
-            res_id = _add_shp__geojson_to_hs(request, shp_geojson_local_path, res_title)
+            if add_to_hs == "true" and len(uploaded_files) > 0 and shp_geojson_local_path:  # upload to hydroshare
+                res_id = _add_shp_geojson_to_hs(request, shp_geojson_local_path, res_title)
 
-        response_obj = _get_geojson_from_hs_resource(request, res_id, filename, shp_geojson_local_path)
+            response_obj = _get_geojson_from_hs_resource(request, res_id, filename, shp_geojson_local_path)
 
-        shutil.rmtree(tmp_dir)
+            shutil.rmtree(tmp_dir)
 
-        return JsonResponse(response_obj)
+            return JsonResponse(response_obj)
+
+    except Exception as ex:
+        logger.exception(ex)
+        return JsonResponse({'error': "Failed to load watershed"})
+    finally:
+        if tmp_dir is not None and os.path.exists(tmp_dir):
+            shutil.rmtree(tmp_dir)
 
 
-def _add_shp__geojson_to_hs(request, shp_geojson_local_path, res_title):
+def _add_shp_geojson_to_hs(request, shp_geojson_local_path, res_title):
 
+    logger.debug("pushing to hs")
     hs = get_oauth_hs(request)
 
     r_type = None
@@ -900,6 +912,7 @@ def _add_shp__geojson_to_hs(request, shp_geojson_local_path, res_title):
                                keywords=["watershed"],
                                resource_file=str(r_file)
                                )
+    logger.debug("Created on hs @" + str(res_id))
     return res_id
 
 
@@ -933,7 +946,6 @@ def _get_geojson_from_hs_resource(request, res_id, filename, shp_geojson_local_p
                 with open(shp_geojson_local_path.replace('.shp', '.prj'), 'r') as content_file:
                     proj_str_raw = content_file.read()
                     proj_str = proj_str_raw.replace('\n', '')
-                    print proj_str
                 shp_path = shp_geojson_local_path
             else:
                 proj_str_raw = str(hs.getResourceFile(pid=res_id, filename=filename.replace('.shp', '.prj')).next())
@@ -975,7 +987,6 @@ def _get_geojson_from_hs_resource(request, res_id, filename, shp_geojson_local_p
                                       out_proj_value=3857,
                                       in_geom_wkt=polygon_exterior_linearring_shape_obj.wkt)
         geojson_str = ogr.CreateGeometryFromWkt(wkt_3857).ExportToJson()
-        print geojson_str
         resource_md = None
         if not shp_geojson_local_path:
             resource_md = hs.getSystemMetadata(res_id)
@@ -999,7 +1010,7 @@ def _get_geojson_from_hs_resource(request, res_id, filename, shp_geojson_local_p
         response_obj['watershed'] = watershed
 
     except Exception as e:
-        print e
+        logger.exception(e)
         response_obj['error'] = 'Failed to load watershed.'
 
     return response_obj
@@ -1435,7 +1446,7 @@ def _zip_folder_contents(zip_file_path, source_folder_path):
     :return:
     '''
 
-    zip_handle = zipfile.ZipFile(zip_file_path, 'w', zipfile.ZIP_DEFLATED)
+    zip_handle = zipfile.ZipFile(zip_file_path, 'w', zipfile.ZIP_DEFLATED, allowZip64=True)
     os.chdir(source_folder_path)
     for root, dirs, files in os.walk('.'):
         for f in files:
@@ -1627,6 +1638,20 @@ def get_data_waterml(request):
             units = {'name': 'Temperature', 'short': 'K', 'long': 'Kelvin'}
         elif var in ['RAINRATE']:
             units = {'name': 'Rain Rate', 'short': 'in/hr', 'long': 'Millimeter per Second'}
+        elif var in ['LWDOWN']:
+            units = {'name': 'Surface downward long-wave radiation flux', 'short': 'W m-2', 'long': 'W m-2'}
+        elif var in ['PSFC']:
+            units = {'name': 'Surface Pressure', 'short': 'Pa', 'long': 'Pa'}
+        elif var in ['Q2D']:
+            units = {'name': '2-m Specific humidity', 'short': 'kg kg-1', 'long': 'kg kg-1'}
+        elif var in ['SWDOWN']:
+            units = {'name': 'Surface downward short-wave radiation flux', 'short': 'W m-2', 'long': 'W m-2'}
+        elif var in ['T2D']:
+            units = {'name': '2-m Air Temperature', 'short': 'K', 'long': 'K'}
+        elif var in ['U2D']:
+            units = {'name': '10-m U-component of wind', 'short': 'm s-1', 'long': 'm s-1'}
+        elif var in ['V2D']:
+            units = {'name': '10-m V-component of wind', 'short': 'm s-1', 'long': 'm s-1'}
 
         nodata_value = -9999
 

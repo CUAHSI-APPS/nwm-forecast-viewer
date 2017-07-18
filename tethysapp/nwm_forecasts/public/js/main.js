@@ -202,7 +202,7 @@ $('#geom').on('change', function ()
         {
             $('#variable').val('RAINRATE');
         }
-        $('#rainrateVar').removeClass('hidden');
+        $('#rainrateVar, #lwdownVar, #psfcVar, #q2dVar, #swdownVar, #t2dVar, #u2dVar, #v2dVar').removeClass('hidden');
     }
 
     sessionStorage.geom = $('#geom').val();
@@ -1401,6 +1401,48 @@ var plotData = function(config, geom, variable, data, start, colorIndex, seriesD
     else if (variable === 'RAINRATE')
     {
         var units = 'Surface Precipitation Rate (in/hr)';
+        nc_chart.yAxis[0].setTitle({text: units});
+        $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
+    }
+    else if (variable === 'LWDOWN')
+    {
+        var units = 'Surface downward long-wave radiation flux (W m-2)';
+        nc_chart.yAxis[0].setTitle({text: units});
+        $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
+    }
+    else if (variable === 'PSFC')
+    {
+        var units = 'Surface Pressure (Pa)';
+        nc_chart.yAxis[0].setTitle({text: units});
+        $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
+    }
+    else if (variable === 'Q2D')
+    {
+        var units = '2-m Specific humidity (kg kg-1)';
+        nc_chart.yAxis[0].setTitle({text: units});
+        $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
+    }
+    else if (variable === 'SWDOWN')
+    {
+        var units = 'Surface downward short-wave radiation flux (W m-2)';
+        nc_chart.yAxis[0].setTitle({text: units});
+        $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
+    }
+    else if (variable === 'T2D')
+    {
+        var units = '2-m Air Temperature (K)';
+        nc_chart.yAxis[0].setTitle({text: units});
+        $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
+    }
+    else if (variable === 'U2D')
+    {
+        var units = '10-m U-component of wind (m s-1)';
+        nc_chart.yAxis[0].setTitle({text: units});
+        $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
+    }
+    else if (variable === 'V2D')
+    {
+        var units = '10-m V-component of wind (m s-1)';
         nc_chart.yAxis[0].setTitle({text: units});
         $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
     }

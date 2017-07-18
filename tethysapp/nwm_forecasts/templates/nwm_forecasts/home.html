@@ -5,20 +5,40 @@
 
 {% block app_navigation_items %}
 {{ block.super }}
-<li class="active"><a href="">Home</a></li>
-<li><a href="{% url 'nwm_forecasts:subset' %}">Subset</a></li>
+<li class="active" title="retrieve/view time series data for a single reach/reservoir/cell"><a href="">Home</a></li>
+<li title="subset NWM outputs by watershed polygon"><a href="{% url 'nwm_forecasts:subset' %}">Subset</a></li>
 
 {% if hs_ready|lower == "true" %}
     <br />
-    <button id="watershedBtn" type="button" class="btn btn-primary" data-toggle="modal" data-target="#popup-load-watershed">Add Watershed</button>
+    <button id="watershedBtn" title="add a watershed polygon to map" type="button" class="btn btn-primary" data-toggle="modal" data-target="#popup-load-watershed">Add Watershed</button>
     <br />
 {%endif%}
 
 <form id="paramForm" method="get" action="{% url 'nwm_forecasts:home' %}">
-    {% gizmo select_input config_input %}
-    {% gizmo select_input geom_input %}
+    <!--{% gizmo select_input config_input %}-->
     <div class="form-group ">
-      <label class="control-label" for="variable">Variable</label>
+        <label class="control-label" for="config" title="Select a model configuration">Configuration</label>
+        <select id="config" class="form-control" name="config">
+            <option value="analysis_assim" title="0-3 hrs forecast (per hr)">Analysis and Assimilation</option>
+            <option value="short_range" selected="selected" title="0-18 hrs forecast duration (per hr)">Short Range</option>
+            <option value="medium_range" title="0-10 days forecast duration (4 cyl/day)">Medium Range</option>
+            <option value="long_range" title="0-30 days forecast duration (4 cyl/day)">Long Range</option>
+        </select>
+    </div>
+    <!--{% gizmo select_input geom_input %}-->
+
+    <div class="form-group ">
+      <label class="control-label" for="geom" title="NWM outputs are stored in 4 files">Geometry</label>
+      <select id="geom" class="form-control" name="geom">
+            <option value="channel_rt" selected="selected" title="stream routing point-type file">Channel</option>
+            <option value="land" title="land surface 1km gridded file">Land</option>
+            <option value="reservoir" title="reservoir point-type file">Reservoir</option>
+            <option value="forcing" title="1km gridded forcing file">Forcing</option>
+      </select>
+    </div>
+
+    <div class="form-group ">
+      <label class="control-label" for="variable" title="available variables">Variable</label>
       <select id="variable" class="form-control" name="variable">
         <option id="streamVar" value="streamflow" selected>Streamflow</option>
         <option id="velocVar" value="velocity">Velocity</option>
@@ -38,27 +58,45 @@
         <option id="canwVar" value="CANWAT" class="hidden">Total Canopy Water</option>
         <option id="ssiVar" value="SOILSAT" class="hidden">Soil Saturation (Column integrated)</option>
         <option id="rainrateVar" value="RAINRATE" class="hidden">Rain Rate</option>
+          <option id="lwdownVar" value="LWDOWN" class="hidden">Surface Downward Long-wave Radiation Flux</option>
+          <option id="swdownVar" value="SWDOWN" class="hidden">Surface Downward Short-wave Radiation Flux</option>
+          <option id="pfscVar" value="PSFC" class="hidden">Surface Pressure</option>
+           <option id="q2dVar" value="Q2D" class="hidden">2-m Specific Humidity</option>
+          <option id="t2dVar" value="T2D" class="hidden">2-m Air Temperature</option>
+          <option id="u2dVar" value="U2D" class="hidden">10-m U-component of Wind</option>
+          <option id="v2dVar" value="V2D" class="hidden">10-m V-component of Wind</option>
+
       </select>
     </div>
     <div id="comidDiv">
-      <label class="control-label" for="comidInput">COMID</label>
+      <label class="control-label" for="comidInput" title="Stream reach COMID">COMID</label>
       <input id="comidInput" name="COMID" type="text" class="form-control form-group" data-toggle="tooltip"
              data-placement="top" title="Select stream reach from map or enter manually">
     </div>
     <div id="gridDiv" class="hidden">
-      <label class="control-label" for="gridInputY">Grid Cell South-North Value</label>
-      <input id="gridInputY" name="Y" type="text" class="form-control form-group" disabled>
-      <label class="control-label" for="gridInputX">Grid Cell West-East Value</label>
-      <input id="gridInputX" name="X" type="text" class="form-control form-group" disabled>
+      <label class="control-label" for="gridInputY" title="South-North value of this cell">Grid Cell South-North Value</label>
+      <input id="gridInputY" name="Y" type="text" class="form-control form-group" title="Select a grid cell from map or enter manually" disabled>
+      <label class="control-label" for="gridInputX" title="West-East value of this cell">Grid Cell West-East Value</label>
+      <input id="gridInputX" name="X" type="text" class="form-control form-group" title="Select a grid cell from map or enter manually" disabled>
     </div>
     <input id="longInput" name="lon" type="text" value="-98" class="hidden">
     <input id="latInput" name="lat" type="text" value="38.5" class="hidden">
 
-    {% gizmo date_picker start_date %}
-    {% gizmo select_input start_time %}
+    <div class="form-group ">
+	    <label class="control-label" for="startDate" title="Model initialization date (UTC)">Begin Date</label>
+		<input class="form-control" id="startDate" name="startDate" type="text" data-provide="datepicker" value="2017-07-18" data-date-autoclose="true" data-date-end-date="0d" data-date-format="yyyy-mm-dd" data-date-min-view-mode="days" data-date-multidate="1" data-date-start-date="2016-05-01" data-date-start-view="month" data-date-today-btn="true">
+    </div>
+
+    <div class="form-group">
+        <label class="control-label" for="time" title="Model initialization time (UTC)">Initialization Time (UTC)</label>
+        <select id="time" class="form-control" name="time"><option value="00">00:00</option><option value="01">01:00</option><option value="02">02:00</option><option value="03">03:00</option><option value="04">04:00</option><option value="05">05:00</option><option value="06">06:00</option><option value="07">07:00</option><option value="08">08:00</option><option value="09">09:00</option><option value="10">10:00</option><option value="11">11:00</option><option value="12">12:00</option><option value="13">13:00</option><option value="14">14:00</option><option value="15">15:00</option><option value="16">16:00</option><option value="17">17:00</option><option value="18">18:00</option><option value="19">19:00</option><option value="20">20:00</option><option value="21">21:00</option><option value="22">22:00</option><option value="23">23:00</option></select>
+    </div>
+
+    <!--{% gizmo date_picker start_date %}-->
+    <!--{% gizmo select_input start_time %}-->
 
     <div id="timeLag" class="hidden">
-      <label>Time lag</label>
+      <label title="Time lag for Long Range configuration">Time lag</label>
       <div class="row">
         <div class="col-md-1">
           <p>00z</p>
@@ -88,10 +126,15 @@
         </div>
       </div>
     </div>
-    <label id="endDateLabel" class="control-label hidden" for="endDate">End Date</label>
-    {% gizmo date_picker end_date %}
+
+    <!--{% gizmo date_picker end_date %}-->
+
+    <div class="form-group ">
+        <label id="endDateLabel" class="control-label hidden" for="endDate">End Date</label>
+		<input class="form-control hidden" id="endDate" name="endDate" type="text" data-provide="datepicker" value="2017-07-18" data-date-autoclose="true" data-date-end-date="0d" data-date-format="yyyy-mm-dd" data-date-min-view-mode="days" data-date-multidate="1" data-date-start-date="2016-05-01" data-date-start-view="month" data-date-today-btn="true">
+    </div>
     <!--{% gizmo button submit_button %}-->
-    <button name="submit" type="submit" class="btn btn-primary" type="submit" value="Success" id="submitBtn" form="paramForm">
+    <button name="submit" type="submit" title="retrieve time series data for this reach/reservoir/cell" class="btn btn-primary" type="submit" value="Success" id="submitBtn" form="paramForm">
   	  View Forecast
     </button>
   </form>
