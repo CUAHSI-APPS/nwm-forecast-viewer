@@ -799,7 +799,6 @@ function init_restore_ui_map()
 
     watershed_layer.getSource().on('removefeature', function(evt)
     {
-    alert("watershed addes");
         $("#subsetBtn").prop('disabled', true);
     });
 
