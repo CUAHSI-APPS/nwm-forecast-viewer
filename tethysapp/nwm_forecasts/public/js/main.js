@@ -103,8 +103,11 @@ $('#geom').on('change', function ()
 
     // hide and disable coordinate input
     $('#gridDiv').addClass('hidden');
+    $('#gridInputY').attr('disabled', true);
+    $('#gridInputX').attr('disabled', true);
     // hide and disable comid input
     $('#comidDiv').addClass('hidden');
+    $('#comidInput').attr('disabled', true);
 
     if ($('#geom').val() === 'channel_rt')
     {
@@ -788,6 +791,17 @@ function init_restore_ui_map()
             })
         }
     );
+
+    watershed_layer.getSource().on('addfeature', function(evt)
+    {
+        $("#subsetBtn").prop('disabled', false);
+    });
+
+    watershed_layer.getSource().on('removefeature', function(evt)
+    {
+    alert("watershed addes");
+        $("#subsetBtn").prop('disabled', true);
+    });
 
     map.addLayer(base_layer);
     map.addLayer(watershed_layer);

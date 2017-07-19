@@ -61,20 +61,20 @@
             <td>variable</td>
             <td>The variable of the forecast.</td>
             <td>One and only one of the following strings, depending on the specified configuration and geometry.
-                <br>analysis_assim + channel_rt: "streamflow", or "velocity".
-                <br>analysis_assim + reservoir: "inflow", or "outflow".
-                <br>analysis_assim + land: "RAINRATE".
-                <br>analysis_assim + forcing: "SNOWH", "SNEQV", "FSNO", "ACCET", "SOILSAT_TOP", or "SNOWT_AVG".
-                <br>short_range + channel_rt: "streamflow", or "velocity".
-                <br>short_range + reservoir: "inflow", or "outflow".
+                <br>analysis_assim + channel_rt: "streamflow" or "velocity".
+                <br>analysis_assim + reservoir: "inflow" or "outflow".
+                <br>analysis_assim + land: "SNOWH", "SNEQV", "FSNO", "ACCET", "SOILSAT_TOP", or "SNOWT_AVG".
+                <br>analysis_assim + forcing: "RAINRATE", "LWDOWN", "PSFC", "Q2D", "SWDOWN", "T2D", "U2D", "V2D".
+                <br>short_range + channel_rt: "streamflow" or "velocity".
+                <br>short_range + reservoir: "inflow" or "outflow".
                 <br>short_range + land: "SNOWH", "SNEQV", "FSNO", "ACCET", "SOILSAT_TOP", or "SNOWT_AVG".
-                <br>short_range + forcing: "RAINRATE".
-                <br>medium_range + channel_rt: "streamflow", or "velocity".
-                <br>medium_range + reservoir: "inflow", or "outflow".
+                <br>short_range + forcing: "RAINRATE", "LWDOWN", "PSFC", "Q2D", "SWDOWN", "T2D", "U2D", "V2D".
+                <br>medium_range + channel_rt: "streamflow" or "velocity".
+                <br>medium_range + reservoir: "inflow" or "outflow".
                 <br>medium_range + land: "SNOWH", "SNEQV", "FSNO", "ACCET", "SOILSAT_TOP", "SNOWT_AVG", "UGDRNOFF", "ACCECAN", "SOIL_T", "SOIL_M", or "CANWAT".
-                <br>medium_range + forcing: "RAINRATE".
+                <br>medium_range + forcing: "RAINRATE", "LWDOWN", "PSFC", "Q2D", "SWDOWN", "T2D", "U2D", "V2D".
                 <br>long_range + channel_rt: "streamflow".
-                <br>long_range + reservoir: "inflow", or "outflow".
+                <br>long_range + reservoir: "inflow" or "outflow".
                 <br>long_range + land: "SNEQV", "ACCET", "SOILSAT", "UGDRNOFF", "SFCRNOFF", "CANWAT".
                 <br>long_range + forcing: N/A (long_range has no forcing files.)
             </td>
@@ -150,7 +150,7 @@ Start Date:{{date_string_minus_2}}<br>
 End Date: {{date_string_minus_3}}<br>
 Cell Index/Location (south_north, west_east): 1635,2030<br>
  <a href="https://apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=analysis_assim&geom=land&variable=SNOWH&COMID=1635,2030&startDate={{date_string_minus_3}}&endDate={{date_string_minus_2}}" target="_blank">
-        <code>https://apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=analysis_assim&geom=land&variable=SNOWH&COMID=1635,2030&startDate={{date_string_minus_3}}&endDate={{date_string_minus_2}}</code>
+     <code>https://apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=analysis_assim&geom=land&variable=SNOWH&COMID=1635,2030&startDate={{date_string_minus_3}}&endDate={{date_string_minus_2}}</code>
  </a>
 <br>
 <h5>Example 2:</h5>

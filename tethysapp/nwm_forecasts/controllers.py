@@ -7,7 +7,6 @@ import logging
 import uuid
 import datetime
 import zipfile
-import glob
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +18,6 @@ from django.views.decorators.csrf import csrf_exempt
 # from django.conf import settings
 
 from tethys_sdk.gizmos import SelectInput, ToggleSwitch, Button, DatePicker
-
 
 import netCDF4 as nc
 import numpy as np
@@ -65,27 +63,9 @@ def _get_current_utc_date():
 
     return date_string_today, date_string_minus_oldest, date_string_minus_2, date_string_minus_3
 
-def _init_left_panel_ui():
 
-    config_input = SelectInput(display_text='Configuration',
-                               name='config',
-                               multiple=False,
-                               options=[('Analysis and Assimilation', 'analysis_assim'),
-                                        ('Short Range', 'short_range'),
-                                        ('Medium Range', 'medium_range'),
-                                        ('Long Range', 'long_range')],
-                               initial=['Short Range'],
-                               original=True)
-
-    geom_input = SelectInput(display_text='Geometry',
-                             name='geom',
-                             multiple=False,
-                             options=[('Channel', 'channel_rt'),
-                                      ('Land', 'land'),
-                                      ('Reservoir', 'reservoir'),
-                                      ('Forcing', 'forcing')],
-                             initial=['Channel'],
-                             original=True)
+def _init_page(request):
+    date_string_today, date_string_minus_oldest, _, _ = _get_current_utc_date()
 
     start_date = DatePicker(name='startDate',
                             display_text='Begin Date',
@@ -105,31 +85,79 @@ def _init_left_panel_ui():
                           initial=datetime.datetime.utcnow().strftime("%Y-%m-%d"),
                           classes="hidden")
 
-    start_time = SelectInput(display_text='Initialization Time (UTC)',
-                             name='time',
-                             multiple=False,
-                             options=[('00:00', '00'), ('01:00', '01'),
-                                      ('02:00', '02'), ('03:00', '03'),
-                                      ('04:00', '04'), ('05:00', '05'),
-                                      ('06:00', '06'), ('07:00', '07'),
-                                      ('08:00', '08'), ('09:00', '09'),
-                                      ('10:00', '10'), ('11:00', '11'),
-                                      ('12:00', '12'), ('13:00', '13'),
-                                      ('14:00', '14'), ('15:00', '15'),
-                                      ('16:00', '16'), ('17:00', '17'),
-                                      ('18:00', '18'), ('19:00', '19'),
-                                      ('20:00', '20'), ('21:00', '21'),
-                                      ('22:00', '22'), ('23:00', '23')],
-                             initial=['00:00'],
-                             original=True)
-
     longRangeLag00 = ToggleSwitch(display_text='', name='00z', size='mini', initial=True)
     longRangeLag06 = ToggleSwitch(display_text='', name='06z', size='mini')
     longRangeLag12 = ToggleSwitch(display_text='', name='12z', size='mini')
     longRangeLag18 = ToggleSwitch(display_text='', name='18z', size='mini')
 
-    return config_input, geom_input, start_date, end_date, start_time, \
-           longRangeLag00, longRangeLag06, longRangeLag12, longRangeLag18
+    global hydroshare_ready
+    hs_username = ""
+    if hydroshare_ready:
+        try:
+            hs = get_oauth_hs(request)
+            hs_username = hs.getUserInfo()['username']
+        except Exception:
+            hydroshare_ready = False
+
+    waterml_url = ""
+
+    if request.GET:
+        # Make the waterml url query string
+        config = request.GET['config']
+        geom = request.GET['geom']
+        variable = request.GET['variable']
+        if geom != 'land' and geom != 'forcing':
+            comid = request.GET['COMID']
+        else:
+            comid = ','.join([request.GET['Y'], request.GET['X']])
+        lon = ''
+        if 'lon' in request.GET:
+            lon = request.GET['lon']
+        lat = ''
+        if 'lat' in request.GET:
+            lat = request.GET['lat']
+        startDate = request.GET['startDate']
+
+        endDate = ''
+        if 'endDate' in request.GET:
+            endDate = request.GET['endDate']
+
+        time = ''
+        if 'time' in request.GET:
+            time = request.GET['time']
+
+        lagList = []
+        if '00z' in request.GET:
+            lagList.append('t00z')
+        if '06z' in request.GET:
+            lagList.append('t06z')
+        if '12z' in request.GET:
+            lagList.append('t12z')
+        if '18z' in request.GET:
+            lagList.append('t18z')
+
+        lag = ','.join(lagList)
+        waterml_url = '?config=%s&geom=%s&variable=%s&COMID=%s&lon=%s&lat=%s&startDate=%s&endDate=%s&time=%s&lag=%s' % \
+                      (config, geom, variable, comid, lon, lat, startDate, endDate, time, lag)
+
+        # watershed_obj_session = request.session.get("watershed", None)
+
+    context = {
+        'start_date': start_date,
+        'end_date': end_date,
+        'longRangeLag00': longRangeLag00,
+        'longRangeLag06': longRangeLag06,
+        'longRangeLag12': longRangeLag12,
+        'longRangeLag18': longRangeLag18,
+        'waterml_url': waterml_url,
+        'hs_ready': hydroshare_ready,
+        'hs_username': hs_username,
+        # 'watershed_geojson_str': watershed_obj_session['geojson_str'] if watershed_obj_session is not None else "",
+        # 'watershed_attributes_str': json.dumps(watershed_obj_session['attributes']) if watershed_obj_session is not None else "",
+        "date_string_today": date_string_today,
+        "date_string_minus_oldest": date_string_minus_oldest,
+    }
+    return context
 
 
 @login_required()
@@ -138,120 +166,8 @@ def home(request):
     Controller for the app home page.
     """
 
-    date_string_today, date_string_minus_oldest, _, _ = _get_current_utc_date()
-
-    config_input, geom_input, start_date, end_date, start_time, \
-    longRangeLag00, longRangeLag06, longRangeLag12, longRangeLag18 = _init_left_panel_ui()
-
-    submit_button = Button(display_text='View Forecast',
-                           name='submit',
-                           attributes='id="submitBtn" form=paramForm value="Success" class="btn btn-primary"',
-                           submit=True)
-
-    global hydroshare_ready
-    if hydroshare_ready:
-        try:
-            hs = get_oauth_hs(request)
-        except Exception:
-            hydroshare_ready = False
-
-    if request.GET:
-        # Make the waterml url query string
-        config = request.GET['config']
-        if config == "medium_range":
-            start_time = SelectInput(display_text='Enter Initialization Time (UTC)',
-                                     name='time',
-                                     multiple=False,
-                                     options=[('00:00', '00'),
-                                              ('06:00', '06'),
-                                              ('12:00', '12'),
-                                              ('18:00', '18')],
-                                     initial=['00:00'],
-                                     original=True)
-
-        geom = request.GET['geom']
-        variable = request.GET['variable']
-        if geom != 'land' and geom != 'forcing':
-            comid = request.GET['COMID']
-        else:
-            comid = ','.join([request.GET['Y'], request.GET['X']])
-        lon = ''
-        if 'lon' in request.GET:
-            lon = request.GET['lon']
-        lat = ''
-        if 'lat' in request.GET:
-            lat = request.GET['lat']
-        startDate = request.GET['startDate']
-
-        endDate = ''
-        if 'endDate' in request.GET:
-            endDate = request.GET['endDate']
-
-        time = ''
-        if 'time' in request.GET:
-            time = request.GET['time']
-
-        lagList = []
-        if '00z' in request.GET:
-            lagList.append('t00z')
-        if '06z' in request.GET:
-            lagList.append('t06z')
-        if '12z' in request.GET:
-            lagList.append('t12z')
-        if '18z' in request.GET:
-            lagList.append('t18z')
-
-        lag = ','.join(lagList)
-        waterml_url = '?config=%s&geom=%s&variable=%s&COMID=%s&lon=%s&lat=%s&startDate=%s&endDate=%s&time=%s&lag=%s' % \
-                      (config, geom, variable, comid, lon, lat, startDate, endDate, time, lag)
-
-        # watershed_obj_session = request.session.get("watershed", None)
-
-        context = {
-            'config_input': config_input,
-            'geom_input': geom_input,
-            'start_date': start_date,
-            'end_date': end_date,
-            'start_time': start_time,
-            'longRangeLag00': longRangeLag00,
-            'longRangeLag06': longRangeLag06,
-            'longRangeLag12': longRangeLag12,
-            'longRangeLag18': longRangeLag18,
-            'submit_button': submit_button,
-            'waterml_url': waterml_url,
-            'hs_ready': hydroshare_ready,
-            'hs_username': hs.getUserInfo()['username'] if hydroshare_ready else "",
-            # 'watershed_geojson_str': watershed_obj_session['geojson_str'] if watershed_obj_session is not None else "",
-            # 'watershed_attributes_str': json.dumps(watershed_obj_session['attributes']) if watershed_obj_session is not None else "",
-            "date_string_today": date_string_today,
-            "date_string_minus_oldest": date_string_minus_oldest,
-        }
-
-        return render(request, 'nwm_forecasts/home.html', context)
-
-    else:
-        # if 'watershed_geojson_str' in request.session:
-        #     del request.session['watershed_geojson_str']
-        #     request.session.modified = True
-
-        context = {
-            'config_input': config_input,
-            'geom_input': geom_input,
-            'start_date': start_date,
-            'start_time': start_time,
-            'end_date': end_date,
-            'longRangeLag00': longRangeLag00,
-            'longRangeLag06': longRangeLag06,
-            'longRangeLag12': longRangeLag12,
-            'longRangeLag18': longRangeLag18,
-            'submit_button': submit_button,
-            'hs_ready': hydroshare_ready,
-            'hs_username': hs.getUserInfo()['username'] if hydroshare_ready else "",
-            # 'watershed_geojson_str': "",
-            "date_string_today": date_string_today,
-            "date_string_minus_oldest": date_string_minus_oldest,
-        }
-        return render(request, 'nwm_forecasts/home.html', context)
+    context = _init_page(request)
+    return render(request, 'nwm_forecasts/home.html', context)
 
 
 def subset(request):
@@ -259,119 +175,8 @@ def subset(request):
     Controller for the app home page.
     """
 
-    date_string_today, date_string_minus_oldest, _, _ = _get_current_utc_date()
-    config_input, geom_input, start_date, end_date, start_time, \
-    longRangeLag00, longRangeLag06, longRangeLag12, longRangeLag18 = _init_left_panel_ui()
-
-    submit_button = Button(display_text='Subset',
-                           name='submit',
-                           attributes='id="submitBtn" form=paramForm value="Success"',
-                           submit=False)
-
-    global hydroshare_ready
-    if hydroshare_ready:
-        try:
-            hs = get_oauth_hs(request)
-        except Exception:
-            hydroshare_ready = False
-
-    if request.GET:
-        # Make the waterml url query string
-        config = request.GET['config']
-        if config == "medium_range":
-            start_time = SelectInput(display_text='Enter Initialization Time (UTC)',
-                                     name='time',
-                                     multiple=False,
-                                     options=[('00:00', '00'),
-                                              ('06:00', '06'),
-                                              ('12:00', '12'),
-                                              ('18:00', '18')],
-                                     initial=['00:00'],
-                                     original=True)
-
-        geom = request.GET['geom']
-        variable = request.GET['variable']
-        if geom != 'land' and geom != 'forcing':
-            comid = request.GET['COMID']
-        else:
-            comid = ','.join([request.GET['Y'], request.GET['X']])
-        lon = ''
-        if 'lon' in request.GET:
-            lon = request.GET['lon']
-        lat = ''
-        if 'lat' in request.GET:
-            lat = request.GET['lat']
-        startDate = request.GET['startDate']
-
-        endDate = ''
-        if 'endDate' in request.GET:
-            endDate = request.GET['endDate']
-
-        time = ''
-        if 'time' in request.GET:
-            time = request.GET['time']
-
-        lagList = []
-        if '00z' in request.GET:
-            lagList.append('t00z')
-        if '06z' in request.GET:
-            lagList.append('t06z')
-        if '12z' in request.GET:
-            lagList.append('t12z')
-        if '18z' in request.GET:
-            lagList.append('t18z')
-
-        lag = ','.join(lagList)
-        waterml_url = '?config=%s&geom=%s&variable=%s&COMID=%s&lon=%s&lat=%s&startDate=%s&endDate=%s&time=%s&lag=%s' % \
-                      (config, geom, variable, comid, lon, lat, startDate, endDate, time, lag)
-
-        # watershed_obj_session = request.session.get("watershed", None)
-
-        context = {
-            'config_input': config_input,
-            'geom_input': geom_input,
-            'start_date': start_date,
-            'end_date': end_date,
-            'start_time': start_time,
-            'longRangeLag00': longRangeLag00,
-            'longRangeLag06': longRangeLag06,
-            'longRangeLag12': longRangeLag12,
-            'longRangeLag18': longRangeLag18,
-            'submit_button': submit_button,
-            'waterml_url': waterml_url,
-            'hs_ready': hydroshare_ready,
-            'hs_username': hs.getUserInfo()['username'] if hydroshare_ready else "",
-            # 'watershed_geojson_str': watershed_obj_session['geojson_str'] if watershed_obj_session is not None else "",
-            # 'watershed_attributes_str': json.dumps(watershed_obj_session['attributes']) if watershed_obj_session is not None else "",
-            "date_string_today": date_string_today,
-            "date_string_minus_oldest": date_string_minus_oldest,
-        }
-
-        return render(request, 'nwm_forecasts/home.html', context)
-
-    else:
-        # if 'watershed_geojson_str' in request.session:
-        #     del request.session['watershed_geojson_str']
-        #     request.session.modified = True
-
-        context = {
-            'config_input': config_input,
-            'geom_input': geom_input,
-            'start_date': start_date,
-            'start_time': start_time,
-            'end_date': end_date,
-            'longRangeLag00': longRangeLag00,
-            'longRangeLag06': longRangeLag06,
-            'longRangeLag12': longRangeLag12,
-            'longRangeLag18': longRangeLag18,
-            'submit_button': submit_button,
-            'hs_ready': hydroshare_ready,
-            'watershed_geojson_str': "",
-            'hs_username': hs.getUserInfo()['username'] if hydroshare_ready else "",
-            "date_string_today": date_string_today,
-            "date_string_minus_oldest": date_string_minus_oldest,
-        }
-        return render(request, 'nwm_forecasts/download.html', context)
+    context = _init_page(request)
+    return render(request, 'nwm_forecasts/download.html', context)
 
 
 def timestamp_early_than_transition_v11(fn, transition_timestamp):
