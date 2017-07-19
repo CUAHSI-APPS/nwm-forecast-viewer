@@ -53,36 +53,37 @@ except Exception:
     logger.error("could not load: tethys_services.backends.hs_restclient_helper import get_oauth_hs")
     hydroshare_ready = False
 
+date_string_AA_oldest = "2016-06-09"
 
 def _get_current_utc_date():
 
     date_string_today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
-    date_string_minus_oldest = (datetime.datetime.utcnow() + datetime.timedelta(days=-30)).strftime("%Y-%m-%d")
+    date_string_oldest = (datetime.datetime.utcnow() + datetime.timedelta(days=-30)).strftime("%Y-%m-%d")
     date_string_minus_2 = (datetime.datetime.utcnow() + datetime.timedelta(days=-2)).strftime("%Y-%m-%d")
     date_string_minus_3 = (datetime.datetime.utcnow() + datetime.timedelta(days=-3)).strftime("%Y-%m-%d")
 
-    return date_string_today, date_string_minus_oldest, date_string_minus_2, date_string_minus_3
+    return date_string_today, date_string_oldest, date_string_minus_2, date_string_minus_3
 
 
 def _init_page(request):
-    date_string_today, date_string_minus_oldest, _, _ = _get_current_utc_date()
+    date_string_today, date_string_oldest, _, _ = _get_current_utc_date()
 
     start_date = DatePicker(name='startDate',
                             display_text='Begin Date',
                             end_date='0d',
                             autoclose=True,
                             format='yyyy-mm-dd',
-                            start_date='2016-05-01',
+                            start_date=date_string_AA_oldest,
                             today_button=True,
-                            initial=datetime.datetime.utcnow().strftime("%Y-%m-%d"))
+                            initial=date_string_today)
 
     end_date = DatePicker(name='endDate',
                           end_date='0d',
                           autoclose=True,
                           format='yyyy-mm-dd',
-                          start_date='2016-05-01',
+                          start_date=date_string_AA_oldest,
                           today_button=True,
-                          initial=datetime.datetime.utcnow().strftime("%Y-%m-%d"),
+                          initial=date_string_today,
                           classes="hidden")
 
     longRangeLag00 = ToggleSwitch(display_text='', name='00z', size='mini', initial=True)
@@ -155,7 +156,8 @@ def _init_page(request):
         # 'watershed_geojson_str': watershed_obj_session['geojson_str'] if watershed_obj_session is not None else "",
         # 'watershed_attributes_str': json.dumps(watershed_obj_session['attributes']) if watershed_obj_session is not None else "",
         "date_string_today": date_string_today,
-        "date_string_minus_oldest": date_string_minus_oldest,
+        "date_string_oldest": date_string_oldest,
+        "date_string_AA_oldest": date_string_AA_oldest,
     }
     return context
 

@@ -42,21 +42,31 @@ $('#config').on('change', function ()
         {
             $('#velocVar').removeClass('hidden');
         }
+
+        // set earliest date user can select
+        $('#startDate').datepicker("setStartDate", $("#date_string_oldest").html())
     }
     else if ($('#config').val() === 'long_range')
     {
         $('#endDate,#endDateLabel,#velocVar').addClass('hidden');
         $('#time').parent().addClass('hidden');
         $('#timeLag').removeClass('hidden');
+
+        // set earliest date user can select
+        $('#startDate').datepicker("setStartDate", $("#date_string_oldest").html())
     }
     else if ($('#config').val() === 'short_range')
     {
         $('#endDate,#endDateLabel,#timeLag').addClass('hidden');
         _change_time_dropdown_content($('#config').val());
         $('#time').parent().removeClass('hidden');
-        if ($('#geom').val() === 'channel_rt' && $('#config').val() !== 'long_range') {
+        if ($('#geom').val() === 'channel_rt' && $('#config').val() !== 'long_range')
+        {
             $('#velocVar').removeClass('hidden');
-        };
+        }
+
+        // set earliest date user can select
+        $('#startDate').datepicker("setStartDate", $("#date_string_oldest").html())
     }
     else if ($('#config').val() === 'analysis_assim')
     {
@@ -67,6 +77,17 @@ $('#config').on('change', function ()
         {
             $('#velocVar').removeClass('hidden');
         }
+
+        // set earliest date user can select
+        if (window.location.href.includes("/subset"))
+        {
+            $('#startDate').datepicker("setStartDate", $("#date_string_oldest").html());
+        }
+        else
+        {
+            $('#startDate').datepicker("setStartDate", $("#date_string_AA_oldest").html());
+        }
+
     }
 
     // set client sessionStorage

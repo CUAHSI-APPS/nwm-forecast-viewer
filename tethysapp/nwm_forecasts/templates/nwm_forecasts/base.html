@@ -53,6 +53,9 @@
 {% block app_content_wrapper_override %}
 
 <div id="hs_username" class="hidden">{{hs_username}}</div>
+<div id="date_string_today" class="hidden">{{date_string_today}}</div>
+<div id="date_string_oldest" class="hidden">{{date_string_oldest}}</div>
+<div id="date_string_AA_oldest" class="hidden">{{date_string_AA_oldest}}</div>
 
 <!-- Home help popup -->
 <div class="modal fade" id="welcome-popup" role="dialog">
@@ -72,10 +75,10 @@
               <b>Current UTC Date:</b> {{date_string_today}} <br>
             <b>Available Data:</b><br>
               <ol>
-                Analysis & Assimilation: 2016-06-09 to {{date_string_today}}<br>
-                Short Range: {{date_string_minus_oldest}} to {{date_string_today}}<br>
-                Medium Range: {{date_string_minus_oldest}} to {{date_string_today}}<br>
-                Long Range: {{date_string_minus_oldest}} to {{date_string_today}}<br>
+                Analysis & Assimilation: {{date_string_AA_oldest}} to {{date_string_today}}<br>
+                Short Range: {{date_string_oldest}} to {{date_string_today}}<br>
+                Medium Range: {{date_string_oldest}} to {{date_string_today}}<br>
+                Long Range: {{date_string_oldest}} to {{date_string_today}}<br>
               </ol>
               <br>
               <b>How to View Forecast</b>
@@ -123,10 +126,10 @@
             <b>Available Data for Subsetting:</b>
               <br>
               <ol>
-                Analysis & Assimilation: {{date_string_minus_oldest}} to {{date_string_today}}<br>
-                Short Range: {{date_string_minus_oldest}} to {{date_string_today}}<br>
-                Medium Range: {{date_string_minus_oldest}} to {{date_string_today}}<br>
-                Long Range: {{date_string_minus_oldest}} to {{date_string_today}}<br>
+                Analysis & Assimilation: {{date_string_oldest}} to {{date_string_today}}<br>
+                Short Range: {{date_string_oldest}} to {{date_string_today}}<br>
+                Medium Range: {{date_string_oldest}} to {{date_string_today}}<br>
+                Long Range: {{date_string_oldest}} to {{date_string_today}}<br>
               </ol>
               <br>
               <b>How to Subset a Watershed</b>
