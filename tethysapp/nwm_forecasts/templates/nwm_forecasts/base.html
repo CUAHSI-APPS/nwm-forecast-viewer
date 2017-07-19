@@ -13,7 +13,7 @@
 {% block app_title %}{{ tethys_app.name }}{% endblock %}
 
 {% block exit_button_override %}
-  <div class="exit-button" style="display: flex; display: -webkit-flex;">
+  <div class="exit-button" style="display: flex">
       <a href="javascript:void(0);" onclick="if(!window.location.href.includes('/subset/')) {$('#welcome-popup').modal('show');}else{$('#welcome-popup-subset').modal('show');}" style="margin-right: 20px;">Help</a>
       <a href="javascript:void(0);" onclick="TETHYS_APP_BASE.exit_app('{% url 'nwm_forecasts:api_page' %}');" style="margin-right: 20px;">API</a>
       <a href="javascript:void(0);" onclick="TETHYS_APP_BASE.exit_app('{% url 'app_library' %}');">Exit</a>
