@@ -204,7 +204,9 @@ Send a <b>HTTP POST Request</b> with the following JSON payload to <b>https://ap
 {% endblock %}
 
 {% block content_dependent_styles %}
+  <link href="{% static 'nwm_forecasts/css/main.css' %}" rel="stylesheet"/>
   <link href="{% static 'nwm_forecasts/css/api_page.css' %}" rel="stylesheet"/>
+
 {% endblock %}
 
 {% block app_actions %}
