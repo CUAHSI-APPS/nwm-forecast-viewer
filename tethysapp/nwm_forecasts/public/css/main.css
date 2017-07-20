@@ -81,3 +81,22 @@ p {
     text-align: center;
     border-radius: 4%;
 }
+
+.my-exit-button {
+  display: flex;
+  margin-right: 50px;
+  margin-top: 26px;
+}
+
+.my-exit-button a {
+  display: block;
+  padding: 10px 20px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+    margin-right: 20px;
+}
