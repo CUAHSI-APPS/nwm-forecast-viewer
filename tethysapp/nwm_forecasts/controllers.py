@@ -678,7 +678,10 @@ def load_watershed(request):
                     f_path_list.append(f_path)
 
             if add_to_hs == "true" and len(uploaded_files) > 0 and shp_geojson_local_path:  # upload to hydroshare
+                logger.debug("pushing to hs")
+                logger.debug(shp_geojson_local_path)
                 res_id = _add_shp_geojson_to_hs(request, shp_geojson_local_path, res_title)
+                logger.debug("done pushing to hs")
 
             response_obj = _get_geojson_from_hs_resource(request, res_id, filename, shp_geojson_local_path)
 
@@ -707,13 +710,14 @@ def _add_shp_geojson_to_hs(request, shp_geojson_local_path, res_title):
     elif shp_geojson_local_path.lower().endswith('.shp'):
         r_type = "GeographicFeatureResource"
         dir_path = os.path.dirname(shp_geojson_local_path)
+        logger.debug(dir_path)
         zip_file_path = os.path.join(dir_path, "hs_shp.zip")
-        _zip_folder_contents(zip_file_path, dir_path)
+        _zip_folder_contents(zip_file_path, dir_path, skip_list=["hs_shp.zip"])
         r_file = zip_file_path
     else:
         raise Exception("not shp or geojson")
-    logger.error(r_file)
-    logger.error(type(r_file))
+    logger.debug(r_file)
+    logger.debug(type(r_file))
     res_id = hs.createResource(r_type,
                                res_title,
                                keywords=["watershed"],
@@ -1244,7 +1248,7 @@ def _perform_subset(geom_str, in_epsg, subset_parameter_dict, zip_results=False)
     return job_id, bag_save_to_path
 
 
-def _zip_folder_contents(zip_file_path, source_folder_path):
+def _zip_folder_contents(zip_file_path, source_folder_path, skip_list=[]):
 
     '''
     zip up all contents (files, subfolders) under source_folder_path to zip_file_path
@@ -1254,10 +1258,12 @@ def _zip_folder_contents(zip_file_path, source_folder_path):
     '''
 
     zip_handle = zipfile.ZipFile(zip_file_path, 'w', zipfile.ZIP_DEFLATED, allowZip64=True)
+    #zip_handle = zipfile.ZipFile(zip_file_path, 'w', zipfile.ZIP_DEFLATED)
     os.chdir(source_folder_path)
     for root, dirs, files in os.walk('.'):
         for f in files:
-            zip_handle.write(os.path.join(root, f))
+            if f not in skip_list:
+                zip_handle.write(os.path.join(root, f))
 
 # ***----------------------------------------------------------------------------------------*** #
 # ***                                                                                        *** #
