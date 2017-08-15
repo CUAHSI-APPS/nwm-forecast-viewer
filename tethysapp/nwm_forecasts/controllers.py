@@ -6,6 +6,7 @@ import tempfile
 import logging
 import uuid
 import datetime
+import pytz
 import zipfile
 
 logger = logging.getLogger(__name__)
@@ -32,13 +33,23 @@ from subset_nwm_netcdf.query import query_comids_and_grid_indices
 from subset_nwm_netcdf.subset import start_subset_nwm_netcdf_job
 from subset_nwm_netcdf.merge import start_merge_nwm_netcdf_job
 
+from celery import shared_task
+from celery.task import periodic_task
+from celery.schedules import crontab
+from django_celery_results.models import TaskResult
+from django.db.models import Q
+
+from .app import nwmForecasts as app
+
+app_workspace = app.get_app_workspace()
+# comid = 18228725
 
 local_vm_test = True
 
 hs_hostname = 'www.hydroshare.org'
 app_dir = '/projects/water/nwm/data/'
 if local_vm_test:
-    transition_date_v11 = "20170418"  # local vm
+    transition_date_v11 = "20170419"  # local vm
 else:
     transition_date_v11 = "20170508"
 transition_timestamp_v11_AA = "12"
@@ -56,6 +67,9 @@ except Exception:
 date_string_AA_oldest = "2016-06-09"
 
 def _get_current_utc_date():
+
+    if local_vm_test:
+        return "2017-04-19", "2017-04-19", "2017-04-19", "2017-04-19"
 
     date_string_today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
     date_string_oldest = (datetime.datetime.utcnow() + datetime.timedelta(days=-30)).strftime("%Y-%m-%d")
@@ -1067,6 +1081,36 @@ def subset_watershed(request):
 
 
 @csrf_exempt
+def check_subsetting_job_status(request, job_id=None):
+
+    if not job_id:
+        job_id = json.loads(request.body)['job_id']
+    result = _perform_subset.AsyncResult(job_id)
+
+    return HttpResponse(json.dumps({"status": result.state}),
+                        content_type="application/json")
+
+
+@csrf_exempt
+def download_subsetting_results(request, job_id=None):
+
+    if not job_id:
+        job_id = json.loads(request.body)['job_id']
+    result = _perform_subset.AsyncResult(job_id)
+    if result.ready():
+
+        rslt = result.get()
+
+        bag_save_to_path = rslt[1]
+        zip_file_path = bag_save_to_path
+        response = FileResponse(open(zip_file_path, 'rb'), content_type='application/zip')
+        response['Content-Disposition'] = 'attachment; filename="' + '{0}.zip"'.format(job_id)
+        response['Content-Length'] = os.path.getsize(bag_save_to_path)
+        return response
+    return Http404("Can not find results for job id: {0}".format(job_id))
+
+
+@csrf_exempt
 def subset_watershed_api(request):
 
     bag_save_to_path = None
@@ -1078,14 +1122,28 @@ def subset_watershed_api(request):
             watershed_epsg = int(request_dict['watershed_epsg'])
             subset_parameter_dict = request_dict['subset_parameter']
             logger.error("------START: subset_watershed_api--------")
-            job_id, bag_save_to_path = _perform_subset(watershed_geometry,
-                                                       watershed_epsg,
-                                                       subset_parameter_dict,
-                                                       zip_results=True)
 
-            response = FileResponse(open(bag_save_to_path, 'rb'), content_type='application/zip')
-            response['Content-Disposition'] = 'attachment; filename="' + '{0}.zip"'.format(job_id)
-            response['Content-Length'] = os.path.getsize(bag_save_to_path)
+            job_id = str(uuid.uuid4())
+            job_id = "subset-" + job_id
+
+            task = _perform_subset.apply_async((watershed_geometry,
+                                                       watershed_epsg,
+                                                       subset_parameter_dict),
+                                                        {"job_id":job_id,
+                                                       "zip_results":True},
+                                                       task_id=job_id,
+                                                       countdown=3,
+                                                        time_limit=1200,  # 20 minutes
+                                                        soft_time_limit=900,  # 15 minutes
+                                                        rate_limit="20/m")  # 10 request/min
+
+            #result = create_bag_by_irods.AsyncResult(task_id)
+            #if result.ready():
+
+            # response = FileResponse(open(bag_save_to_path, 'rb'), content_type='application/zip')
+            # response['Content-Disposition'] = 'attachment; filename="' + '{0}.zip"'.format(job_id)
+            # response['Content-Length'] = os.path.getsize(bag_save_to_path)
+            response = JsonResponse({"job_id": task.task_id, "status": task.state})
             logger.error("------END: subset_watershed_api--------")
             return response
         else:
@@ -1096,18 +1154,21 @@ def subset_watershed_api(request):
         logger.error("------ERROR: subset_watershed_api--------")
         return HttpResponse(status=500, content=ex.message)
 
-    finally:
-        if bag_save_to_path is not None:
-            if os.path.exists(bag_save_to_path):
-                os.remove(bag_save_to_path)
-            if os.path.exists(bag_save_to_path.replace(".zip", "")):
-                shutil.rmtree(bag_save_to_path.replace(".zip", ""))
+    # finally:
+    #     if bag_save_to_path is not None:
+    #         if os.path.exists(bag_save_to_path):
+    #             os.remove(bag_save_to_path)
+    #         if os.path.exists(bag_save_to_path.replace(".zip", "")):
+    #             shutil.rmtree(bag_save_to_path.replace(".zip", ""))
 
 
-def _perform_subset(geom_str, in_epsg, subset_parameter_dict, zip_results=False):
+@shared_task
+def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None, zip_results=False):
 
     db_file_path = "/nwm.sqlite"
-    job_id = str(uuid.uuid4())
+
+    if not job_id:
+        job_id = str(uuid.uuid4())
 
     all_start_dt = datetime.datetime.now()
     logger.info("-------------Process Started-------------------")
@@ -1135,7 +1196,10 @@ def _perform_subset(geom_str, in_epsg, subset_parameter_dict, zip_results=False)
     netcdf_folder_path = "/projects/water/nwm/data/nomads/"
 
     # Path of output folder
-    output_folder_path = "/tmp"
+    #output_folder_path = "/tmp"
+    output_folder_path = app_workspace.path
+    logger.error("****************************************")
+    logger.error(output_folder_path)
 
     # shrink dimension size to cover subsetting domain only
     resize_dimension_grid = True
@@ -1244,8 +1308,34 @@ def _perform_subset(geom_str, in_epsg, subset_parameter_dict, zip_results=False)
         _zip_folder_contents(zip_file_path, job_folder_path)
 
         bag_save_to_path = zip_file_path
+        shutil.rmtree(job_folder_path)
 
     return job_id, bag_save_to_path
+
+
+@periodic_task(run_every=crontab())
+def clean_up_subsetting_results():
+    try:
+        utc_current = pytz.utc.localize(datetime.datetime.utcnow())
+        d_time = datetime.timedelta(minutes=-3)
+        utc_expired = utc_current + d_time
+
+        for task_i in TaskResult.objects.filter(Q(date_done__lt=utc_expired,
+                                                  task_id__startswith = 'subset',
+                                                  status__iexact="SUCCESS", traceback=None)):
+            try:
+                rslt_list = json.loads(task_i.result)
+                file_path = rslt_list[1]
+                if os.path.exists(file_path):
+                    app_workspace.remove(file_path)
+                    task_i.traceback = "Deleted on " + pytz.utc.localize(datetime.datetime.utcnow()).strftime("%Y-%m-%d %H:%M:%S %Z")
+                    # Force to only update field 'traceback'
+                    task_i.save(update_fields=['traceback'])
+                    logger.error("Deleted celery result @ " + task_i.task_id)
+            except Exception as ex:
+                logger.exception("Failed to delete {0}: {1}".format(task_i.task_id, ex))
+    except Exception as ex:
+        logger.exception(ex)
 
 
 def _zip_folder_contents(zip_file_path, source_folder_path, skip_list=[]):

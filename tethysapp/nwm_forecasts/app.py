@@ -46,6 +46,12 @@ class nwmForecasts(TethysAppBase):
                     UrlMap(name='subset_watershed_api',
                            url='nwm-forecasts/subset-watershed-api',
                            controller='nwm_forecasts.controllers.subset_watershed_api'),
+                    UrlMap(name='check_subsetting_job_status',
+                           url='nwm-forecasts/check-subsetting-job-status',
+                           controller='nwm_forecasts.controllers.check_subsetting_job_status'),
+                    UrlMap(name='download_subsetting_results',
+                           url='nwm-forecasts/download-subsetting-results',
+                           controller='nwm_forecasts.controllers.download_subsetting_results'),
                     UrlMap(name='api_page',
                            url='nwm-forecasts/api-page',
                            controller='nwm_forecasts.controllers.api_page')
