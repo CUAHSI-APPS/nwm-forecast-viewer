@@ -70,8 +70,8 @@ date_string_AA_oldest = "2016-06-09"
 nwm_viewer_subsetting_soft_time_limit = getattr(settings, "NWM_VIEWER_SUBSETTING_SOFT_TIME_LIMIT", 1200)  # in seconds
 nwm_viewer_subsetting_time_limit = getattr(settings, "NWM_VIEWER_SUBSETTING_TIME_LIMIT", 1800)  # in seconds
 nwm_viewer_subsetting_rate_limit = getattr(settings, "NWM_VIEWER_SUBSETTING_RATE_LIMIT", "10/m")  # request pre min
-nwm_viewer_subsetting_clean_up_minute = getattr(settings, "NWM_VIEWER_SUBSETTING_CLEAN_UP_MINUTE", "*")
-nwm_viewer_subsetting_clean_up_hour = getattr(settings, "NWM_VIEWER_SUBSETTING_CLEAN_UP_HOUR", "*")
+nwm_viewer_subsetting_clean_up_minute = getattr(settings, "NWM_VIEWER_SUBSETTING_CLEAN_UP_MINUTE", "*/1")
+nwm_viewer_subsetting_clean_up_hour = getattr(settings, "NWM_VIEWER_SUBSETTING_CLEAN_UP_HOUR", "*/1")
 nwm_viewer_subsetting_result_life_minute = getattr(settings, "NWM_VIEWER_SUBSETTING_RESULT_LIFE_MINUTE", 3)  # in minutes
 
 def _get_current_utc_date():
