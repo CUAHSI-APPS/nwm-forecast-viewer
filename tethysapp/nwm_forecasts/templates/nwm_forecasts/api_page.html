@@ -195,9 +195,37 @@ Lag: t00z <br>
     Long Range: {{date_string_minus_oldest}} to {{date_string_today}}<br>
     </div>
     <br>
-Send a <b>HTTP POST Request</b> with the following JSON payload to <b>https://apps.hydroshare.org/apps/nwm-forecasts/subset-watershed-api/</b>:
+   <br>
+Subsetting API has been changed to work asynchronously, which contain 3 endpoints:
+<br>
+1) <b>Submit a subsetting job:</b>
+<br>
+Send a <b>HTTP POST Request</b> with the following JSON payload to <b>/apps/nwm-forecasts/submit-subsetting-job/</b>.
 <br>
 <img src="{% static 'nwm_forecasts/help/subsetting_json_payload.jpg' %}">
+<br>
+Expected response: <br>
+{"job_id": JOB_ID, "status": JOB_STATUS}
+<br>
+<br>
+
+2) <b>Check job status:</b> <br>
+Send a <b>HTTP POST Request</b> with following JSON payload to <b>/apps/nwm-forecasts/check-subsetting-job-status/</b>.<br>
+{"job_id": JOB_ID} <br>
+Or send a <b>HTTP GET Request</b> with parameter "job_id" to <b>/apps/nwm-forecasts/check-subsetting-job-status/?job_id=JOB_ID</b>. <br>
+Expected response: <br>
+{"status": JOB_STATUS} <br>
+If the value of 'status' is 'SUCCESS', it means the job is done.
+<br>
+<br>
+3) <b>Retrieve subetting results: </b><br>
+Send a <b>HTTP POST Request</b> with following JSON payload to <b>/apps/nwm-forecasts/download-subsetting-results/</b>.<br>
+{"job_id": JOB_ID} <br>
+Or send a <b>HTTP GET Request</b> with parameter "job_id" to <b>/apps/nwm-forecasts/download-subsetting-results/?job_id=JOB_ID</b>.<br>
+Expected response: <br>
+{"status": JOB_STATUS} <br>
+Expected response: subsetting results in one zip file
+<br>
 <br>
 <a href="{% static 'nwm_forecasts/help/subsetting_api_demo.py' %}" download>Download Demo Script</a>
 

@@ -1082,31 +1082,45 @@ def subset_watershed(request):
 
 @csrf_exempt
 def check_subsetting_job_status(request, job_id=None):
-
     if not job_id:
-        job_id = json.loads(request.body)['job_id']
-    result = _perform_subset.AsyncResult(job_id)
+        if request.method == 'GET':
+            job_id = request.get("job_id")
+        elif request.method == 'POST':
+            job_id = json.loads(request.body)['job_id']
+        else:
+            raise Exception("Accept GET or POST.")
+    if job_id:
+        result = _perform_subset.AsyncResult(job_id)
 
-    return HttpResponse(json.dumps({"status": result.state}),
-                        content_type="application/json")
+        return HttpResponse(json.dumps({"status": result.state}),
+                            content_type="application/json")
 
+    return HttpResponse(json.dumps({"error": "Can not find results for job id: {0}".format(job_id)}),
+                                    content_type="application/json")
 
 @csrf_exempt
 def download_subsetting_results(request, job_id=None):
 
     if not job_id:
-        job_id = json.loads(request.body)['job_id']
-    result = _perform_subset.AsyncResult(job_id)
-    if result.ready():
+        if request.method == 'GET':
+            job_id = request.get("job_id")
+        elif request.method == 'POST':
+            job_id = json.loads(request.body)['job_id']
+        else:
+            raise Exception("Accept GET or POST.")
 
-        rslt = result.get()
+    if job_id:
+        result = _perform_subset.AsyncResult(job_id)
+        if result.ready():
 
-        bag_save_to_path = rslt[1]
-        zip_file_path = bag_save_to_path
-        response = FileResponse(open(zip_file_path, 'rb'), content_type='application/zip')
-        response['Content-Disposition'] = 'attachment; filename="' + '{0}.zip"'.format(job_id)
-        response['Content-Length'] = os.path.getsize(bag_save_to_path)
-        return response
+            rslt = result.get()
+
+            bag_save_to_path = rslt[1]
+            zip_file_path = bag_save_to_path
+            response = FileResponse(open(zip_file_path, 'rb'), content_type='application/zip')
+            response['Content-Disposition'] = 'attachment; filename="' + '{0}.zip"'.format(job_id)
+            response['Content-Length'] = os.path.getsize(bag_save_to_path)
+            return response
     return Http404("Can not find results for job id: {0}".format(job_id))
 
 

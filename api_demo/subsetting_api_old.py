@@ -1,7 +1,6 @@
 import os
 import json
 import zipfile
-import time
 
 import requests
 from osgeo import osr
@@ -13,10 +12,8 @@ import fiona
 import netCDF4
 import matplotlib.pyplot as plt
 import numpy as np
-import tempfile
 
 from hs_restclient import HydroShare, HydroShareAuthBasic
-
 
 
 def extract_polygon_geojson_from_shapefile(shp_path):
@@ -161,7 +158,7 @@ def get_variable_values(netcdf_path, var_name, comid, datetime_format=None, pair
 if __name__ == "__main__":
 
     ########################## Subsetting API ################################
-    workspace_path = tempfile.mkdtemp()
+    workspace_path = "/tmp"
 
     # full path to a local shapefile (*.shp)
     shp_path = None
@@ -173,7 +170,7 @@ if __name__ == "__main__":
     # hydroshare geographic feature resource id
     # TwoMileCreek watershed at Tuscaloosa, Alabama
     # This is a public resource so anyone can access it.
-    res_id = "05416e134f71464ab00de80e4f9974ce"
+    res_id = "33a54c751e4f465397f3bbadfb220053"
 
     if use_hydroshare:
         auth = HydroShareAuthBasic(username=hs_username, password=hs_password)
@@ -200,8 +197,8 @@ if __name__ == "__main__":
     data = {
         'subset_parameter': {
             'config': "analysis_assim",  # analysis_assim, short_range, medium_range, long_range
-            'startDate': "2017-04-19",  # 2017-06-01
-            'endDate': "2017-04-19",  # 2017-06-02 (only for analysis_assim)
+            'startDate': "2017-06-20",  # 2017-06-01
+            'endDate': "2017-06-20",  # 2017-06-02 (only for analysis_assim)
             'geom': "forcing",  # channel_rt, reservoir, land, forcing
             'time': "01",  # 00, 01 ...23 (only for short_range and medium_range)
             'lag_00z': "on",  # "on" or ""  (only for long_range)
@@ -216,87 +213,62 @@ if __name__ == "__main__":
     }
 
     # Note: this URL api endpoint must end with a slash '/'
-    resp = requests.post('https://10.2.115.24/apps/nwm-forecasts/subset-watershed-api/',
+    resp = requests.post('https://appsdev.hydroshare.org/apps/nwm-forecasts/subset-watershed-api/',
                             data=json.dumps(data),
                             verify=False)
 
-    resp_json_obj = json.loads(resp.content)
-    job_id = resp_json_obj['job_id']
+    # save api response as a local zip file
+    netcdf_file_list = []
+    if resp.status_code == 200:
+        zip_filename = resp.headers['Content-Disposition'].split(";")[1].split("=")[1].replace('"', '')
+        job_id = zip_filename[:-4]
+        job_id_folder_path = os.path.join(workspace_path, job_id)
+        os.mkdir(job_id_folder_path)
+        zip_path = os.path.join(job_id_folder_path, zip_filename)
+        with open(zip_path, 'wb+') as f:
+            for chunk in resp.content:
+                f.write(chunk)
 
-    job_done = False
-    retry_counter = 0
-    retry_max = 10
-    while not job_done:
-        retry_counter += 1
-        resp_check_status = requests.post('https://10.2.115.24/apps/nwm-forecasts/check-subsetting-job-status/',
-                             data=json.dumps({"job_id": job_id}),
-                             verify=False)
-        if json.loads(resp_check_status.content)['status'].lower() == "success":
-            job_done = True
-            break
-        if retry_counter > retry_max:
-            break
-        time.sleep(2)
+        # unzip it
+        zip_ref = zipfile.ZipFile(zip_path, 'r')
+        zip_ref.extractall(job_id_folder_path)
+        zip_ref.close()
+
+        # loop through it and find all *.nc files
+        print "Subsetted NWM netcdf files are stored at:"
+        for root, dirs, files in os.walk(job_id_folder_path):
+            for f in files:
+                if f.endswith(".nc"):
+                    netcdf_file_list.append(os.path.join(root, f))
+        print netcdf_file_list
+    else:
+        print "Failed to subset watershed"
+        exit()
 
 
-    if job_done:
-        resp = requests.post('https://10.2.115.24/apps/nwm-forecasts/download-subsetting-results/',
-                                              data=json.dumps({"job_id": job_id}),
-                                              verify=False)
-        pass
+    ########################## Plotting ################################
+    # pick the first *.nc file in 'netcdf_file_list' for visualization demo
+    netcdf_path = netcdf_file_list[0]
 
-        # save api response as a local zip file
-        netcdf_file_list = []
-        if resp.status_code == 200:
-            zip_filename = resp.headers['Content-Disposition'].split(";")[1].split("=")[1].replace('"', '')
-            job_id = zip_filename[:-4]
-            job_id_folder_path = os.path.join(workspace_path, job_id)
-            os.mkdir(job_id_folder_path)
-            zip_path = os.path.join(job_id_folder_path, zip_filename)
-            with open(zip_path, 'wb+') as f:
-                for chunk in resp.content:
-                    f.write(chunk)
+    # list all variables in netcdf
+    print list_hydrologic_variables(netcdf_path)
 
-            # unzip it
-            zip_ref = zipfile.ZipFile(zip_path, 'r')
-            zip_ref.extractall(job_id_folder_path)
-            zip_ref.close()
+    # get timeseries for var "SOILSAT_TOP"
+    date_list, value_list = get_variable_values(netcdf_path, "RAINRATE", None)
 
-            # loop through it and find all *.nc files
-            print "Subsetted NWM netcdf files are stored at:"
-            for root, dirs, files in os.walk(job_id_folder_path):
-                for f in files:
-                    if f.endswith(".nc"):
-                        netcdf_file_list.append(os.path.join(root, f))
-            print netcdf_file_list
-        else:
-            print "Failed to subset watershed"
-            exit()
-
-    #
-    # ########################## Plotting ################################
-    # # pick the first *.nc file in 'netcdf_file_list' for visualization demo
-    # netcdf_path = netcdf_file_list[0]
-    #
-    # # list all variables in netcdf
-    # print list_hydrologic_variables(netcdf_path)
-    #
-    # # get timeseries for var "SOILSAT_TOP"
-    # date_list, value_list = get_variable_values(netcdf_path, "RAINRATE", None)
-    #
-    # for i in range(len(date_list)):
-    #     timestamp = date_list[i]
-    #     # Plot each timestamp
-    #     array_2d = value_list[i]
-    #     # The origin point of the array retrieved from netcdf file is in upper-left corner (North pointing downward)
-    #     # We need to make North face upward before plotting it in matplotlib.pyplot
-    #     # Flip array in the up/down direction
-    #     # see: https://docs.scipy.org/doc/numpy-dev/reference/generated/numpy.flipud.html#numpy.flipud
-    #     # [[1, 2],   -->  [[3, 4],
-    #     #  [3, 4]]         [1, 2]]
-    #     array_2d_flipped = np.flipud(array_2d)
-    #     title = timestamp.strftime("%Y-%m-%d, %H:%M:%S") + " ({0}/{1})".format(i + 1, len(date_list))
-    #     plt.title(title, fontsize=15)
-    #     plt.imshow(array_2d_flipped, interpolation="none")
-    #     plt.colorbar()
-    #     plt.show()
+    for i in range(len(date_list)):
+        timestamp = date_list[i]
+        # Plot each timestamp
+        array_2d = value_list[i]
+        # The origin point of the array retrieved from netcdf file is in upper-left corner (North pointing downward)
+        # We need to make North face upward before plotting it in matplotlib.pyplot
+        # Flip array in the up/down direction
+        # see: https://docs.scipy.org/doc/numpy-dev/reference/generated/numpy.flipud.html#numpy.flipud
+        # [[1, 2],   -->  [[3, 4],
+        #  [3, 4]]         [1, 2]]
+        array_2d_flipped = np.flipud(array_2d)
+        title = timestamp.strftime("%Y-%m-%d, %H:%M:%S") + " ({0}/{1})".format(i + 1, len(date_list))
+        plt.title(title, fontsize=15)
+        plt.imshow(array_2d_flipped, interpolation="none")
+        plt.colorbar()
+        plt.show()
