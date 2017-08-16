@@ -16,7 +16,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, Http404, FileResponse, HttpResponse
 from django.shortcuts import render_to_response
 from django.views.decorators.csrf import csrf_exempt
-# from django.conf import settings
+from django.conf import settings
 
 from tethys_sdk.gizmos import SelectInput, ToggleSwitch, Button, DatePicker
 
@@ -65,6 +65,14 @@ except Exception:
     hydroshare_ready = False
 
 date_string_AA_oldest = "2016-06-09"
+
+
+nwm_viewer_subsetting_soft_time_limit = getattr(settings, "NWM_VIEWER_SUBSETTING_SOFT_TIME_LIMIT", 1200)  # in seconds
+nwm_viewer_subsetting_time_limit = getattr(settings, "NWM_VIEWER_SUBSETTING_TIME_LIMIT", 1800)  # in seconds
+nwm_viewer_subsetting_rate_limit = getattr(settings, "NWM_VIEWER_SUBSETTING_RATE_LIMIT", "10/m")  # request pre min
+nwm_viewer_subsetting_clean_up_minute = getattr(settings, "NWM_VIEWER_SUBSETTING_CLEAN_UP_MINUTE", "*")
+nwm_viewer_subsetting_clean_up_hour = getattr(settings, "NWM_VIEWER_SUBSETTING_CLEAN_UP_HOUR", "*")
+nwm_viewer_subsetting_result_life_minute = getattr(settings, "NWM_VIEWER_SUBSETTING_RESULT_LIFE_MINUTE", 3)  # in minutes
 
 def _get_current_utc_date():
 
@@ -1079,12 +1087,11 @@ def subset_watershed(request):
             if os.path.exists(job_folder_path):
                 shutil.rmtree(job_folder_path)
 
-
 @csrf_exempt
 def check_subsetting_job_status(request, job_id=None):
     if not job_id:
         if request.method == 'GET':
-            job_id = request.get("job_id")
+            job_id = request.GET.get("job_id")
         elif request.method == 'POST':
             job_id = json.loads(request.body)['job_id']
         else:
@@ -1103,7 +1110,7 @@ def download_subsetting_results(request, job_id=None):
 
     if not job_id:
         if request.method == 'GET':
-            job_id = request.get("job_id")
+            job_id = request.GET.get("job_id")
         elif request.method == 'POST':
             job_id = json.loads(request.body)['job_id']
         else:
@@ -1147,9 +1154,9 @@ def subset_watershed_api(request):
                                                        "zip_results":True},
                                                        task_id=job_id,
                                                        countdown=3,
-                                                        time_limit=1200,  # 20 minutes
-                                                        soft_time_limit=900,  # 15 minutes
-                                                        rate_limit="20/m")  # 10 request/min
+                                                        time_limit=nwm_viewer_subsetting_time_limit,  # 30 minutes
+                                                        soft_time_limit=nwm_viewer_subsetting_soft_time_limit,  # 20 minutes
+                                                        rate_limit=nwm_viewer_subsetting_rate_limit)  # 10 request/min
 
             #result = create_bag_by_irods.AsyncResult(task_id)
             #if result.ready():
@@ -1327,11 +1334,11 @@ def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None, zip_r
     return job_id, bag_save_to_path
 
 
-@periodic_task(run_every=crontab())
+@periodic_task(run_every=crontab(minute=nwm_viewer_subsetting_clean_up_minute, hour=nwm_viewer_subsetting_clean_up_hour))
 def clean_up_subsetting_results():
     try:
         utc_current = pytz.utc.localize(datetime.datetime.utcnow())
-        d_time = datetime.timedelta(minutes=-3)
+        d_time = datetime.timedelta(minutes=-1*nwm_viewer_subsetting_result_life_minute)
         utc_expired = utc_current + d_time
 
         for task_i in TaskResult.objects.filter(Q(date_done__lt=utc_expired,
