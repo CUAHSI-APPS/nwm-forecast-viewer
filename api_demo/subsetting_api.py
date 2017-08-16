@@ -1,8 +1,11 @@
+# Author: Zhiyu (Drew) Li
+
 import os
 import json
 import zipfile
 import time
 from datetime import date
+from datetime import timedelta
 
 import requests
 from osgeo import osr
@@ -170,16 +173,18 @@ if __name__ == "__main__":
     # or use a hydroshare geographic feature resource
     use_hydroshare = True
     ########################## input HydroShare account info if above 'use_hydroshare' is True #################
-    hs_username = "HYDROSHARE_USERNAME"  # Your hydroshare username
-    hs_password = "HYDROSHARE_PASSWORD"  # Your hydroshare password
+    hs_username = ""  # Your hydroshare username
+    hs_password = ""  # Your hydroshare password
     # hydroshare geographic feature resource id
     # TwoMileCreek watershed at Tuscaloosa, Alabama
     # This is a public resource so anyone can access it.
-    res_id = "05416e134f71464ab00de80e4f9974ce"
+    res_id = "9d0e4cab63d74c0b8e6b6d83254c30de"
 
     if use_hydroshare:
-        auth = HydroShareAuthBasic(username=hs_username, password=hs_password)
-        hs = HydroShare(auth=auth)
+        #auth = HydroShareAuthBasic(username=hs_username, password=hs_password)
+        #hs = HydroShare(auth=auth)
+
+        hs = HydroShare()
 
         hs.getResource(res_id, destination=workspace_path, unzip=True)
         content_folder_path = os.path.join(workspace_path, res_id)
@@ -198,15 +203,16 @@ if __name__ == "__main__":
     # and convert it to GeoJSON string
     geojson_str_4326 = extract_polygon_geojson_from_shapefile(shp_path)
 
-    today = date.today()
-    today_string = today.strftime("%Y-%m-%d")
-    # today_string = "2017-04-19"
+    yesterday = date.today() + timedelta(days=-1)
+    yesterday_string = yesterday.strftime("%Y-%m-%d")
+    # yesterday_string = "2017-04-19"
+
     # prepare the data sent to api endpoint
     data = {
         'subset_parameter': {
             'config': "analysis_assim",  # analysis_assim, short_range, medium_range, long_range
-            'startDate': today_string,  # 2017-06-01
-            'endDate': today_string,  # 2017-06-02 (only for analysis_assim)
+            'startDate': yesterday_string,  # 2017-06-01
+            'endDate': yesterday_string,  # 2017-06-02 (only for analysis_assim)
             'geom': "forcing",  # channel_rt, reservoir, land, forcing
             'time': "01",  # 00, 01 ...23 (only for short_range and medium_range)
             'lag_00z': "on",  # "on" or ""  (only for long_range)
