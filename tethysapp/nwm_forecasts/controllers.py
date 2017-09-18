@@ -67,12 +67,12 @@ except Exception:
 date_string_AA_oldest = "2016-06-09"
 
 
-nwm_viewer_subsetting_soft_time_limit = getattr(settings, "NWM_VIEWER_SUBSETTING_SOFT_TIME_LIMIT", 1200)  # in seconds
-nwm_viewer_subsetting_time_limit = getattr(settings, "NWM_VIEWER_SUBSETTING_TIME_LIMIT", 1800)  # in seconds
+nwm_viewer_subsetting_soft_time_limit = int(getattr(settings, "NWM_VIEWER_SUBSETTING_SOFT_TIME_LIMIT", 1200)) # in seconds
+nwm_viewer_subsetting_time_limit = int(getattr(settings, "NWM_VIEWER_SUBSETTING_TIME_LIMIT", 1800))  # in seconds
 nwm_viewer_subsetting_rate_limit = getattr(settings, "NWM_VIEWER_SUBSETTING_RATE_LIMIT", "10/m")  # request pre min
 nwm_viewer_subsetting_clean_up_minute = getattr(settings, "NWM_VIEWER_SUBSETTING_CLEAN_UP_MINUTE", "*/1")
 nwm_viewer_subsetting_clean_up_hour = getattr(settings, "NWM_VIEWER_SUBSETTING_CLEAN_UP_HOUR", "*/1")
-nwm_viewer_subsetting_result_life_minute = getattr(settings, "NWM_VIEWER_SUBSETTING_RESULT_LIFE_MINUTE", 3)  # in minutes
+nwm_viewer_subsetting_result_life_minute = int(getattr(settings, "NWM_VIEWER_SUBSETTING_RESULT_LIFE_MINUTE", 3))  # in minutes
 
 def _get_current_utc_date():
 
@@ -1229,7 +1229,7 @@ def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None, zip_r
     #merge_netcdfs = subset_parameter_dict['merge']
     merge_netcdfs = True
     # remove intermediate files
-    cleanup = True
+    cleanup = False
 
     # list of simulation dates
     if len(subset_parameter_dict["endDate"]) > 0 and subset_parameter_dict["config"] == "analysis_assim":
@@ -1334,7 +1334,7 @@ def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None, zip_r
     return job_id, bag_save_to_path
 
 
-@periodic_task(run_every=crontab(minute=nwm_viewer_subsetting_clean_up_minute, hour=nwm_viewer_subsetting_clean_up_hour))
+@periodic_task(run_every=crontab(minute=nwm_viewer_subsetting_clean_up_minute, hour=nwm_viewer_subsetting_clean_up_hour), ignore_result=False)
 def clean_up_subsetting_results():
     try:
         utc_current = pytz.utc.localize(datetime.datetime.utcnow())
@@ -1342,7 +1342,7 @@ def clean_up_subsetting_results():
         utc_expired = utc_current + d_time
 
         for task_i in TaskResult.objects.filter(Q(date_done__lt=utc_expired,
-                                                  task_id__startswith = 'subset',
+                                                  task_id__startswith='subset',
                                                   status__iexact="SUCCESS", traceback=None)):
             try:
                 rslt_list = json.loads(task_i.result)
@@ -1355,8 +1355,11 @@ def clean_up_subsetting_results():
                     logger.error("Deleted celery result @ " + task_i.task_id)
             except Exception as ex:
                 logger.exception("Failed to delete {0}: {1}".format(task_i.task_id, ex))
+        return "Clean up subset results done"
+
     except Exception as ex:
         logger.exception(ex)
+        return str(ex)
 
 
 def _zip_folder_contents(zip_file_path, source_folder_path, skip_list=[]):
