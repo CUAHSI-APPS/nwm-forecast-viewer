@@ -52,6 +52,9 @@ class nwmForecasts(TethysAppBase):
                     UrlMap(name='download_subsetting_results',
                            url='nwm-forecasts/download-subsetting-results',
                            controller='nwm_forecasts.controllers.download_subsetting_results'),
+                    UrlMap(name='spatial_query',
+                           url='nwm-forecasts/spatial-query',
+                           controller='nwm_forecasts.controllers.spatial_query'),
                     UrlMap(name='api_page',
                            url='nwm-forecasts/api-page',
                            controller='nwm_forecasts.controllers.api_page')

@@ -6,6 +6,7 @@ import tempfile
 import logging
 import uuid
 import datetime
+import time
 import pytz
 import zipfile
 
@@ -44,7 +45,7 @@ from .app import nwmForecasts as app
 app_workspace = app.get_app_workspace()
 # comid = 18228725
 
-local_vm_test = False
+local_vm_test = True
 
 hs_hostname = 'www.hydroshare.org'
 app_dir = '/projects/water/nwm/data/'
@@ -65,6 +66,11 @@ except Exception:
     hydroshare_ready = False
 
 date_string_AA_oldest = "2016-06-09"
+
+# path to sqlite spatial db file
+db_file_path = "/nwm.sqlite"
+# full path to original NWM output folder (for subsetting)
+netcdf_folder_path = "/projects/water/nwm/data/nomads/"
 
 
 nwm_viewer_subsetting_soft_time_limit = int(getattr(settings, "NWM_VIEWER_SUBSETTING_SOFT_TIME_LIMIT", 1200)) # in seconds
@@ -1087,6 +1093,7 @@ def subset_watershed(request):
             if os.path.exists(job_folder_path):
                 shutil.rmtree(job_folder_path)
 
+
 @csrf_exempt
 def check_subsetting_job_status(request, job_id=None):
     if not job_id:
@@ -1105,6 +1112,7 @@ def check_subsetting_job_status(request, job_id=None):
     return HttpResponse(json.dumps({"error": "Can not find results for job id: {0}".format(job_id)}),
                                     content_type="application/json")
 
+
 @csrf_exempt
 def download_subsetting_results(request, job_id=None):
 
@@ -1119,15 +1127,19 @@ def download_subsetting_results(request, job_id=None):
     if job_id:
         result = _perform_subset.AsyncResult(job_id)
         if result.ready():
-
             rslt = result.get()
+            if job_id.startswith("subset"):
+                bag_save_to_path = rslt[1]
+                zip_file_path = bag_save_to_path
+                response = FileResponse(open(zip_file_path, 'rb'), content_type='application/zip')
+                response['Content-Disposition'] = 'attachment; filename="' + '{0}.zip"'.format(job_id)
+                response['Content-Length'] = os.path.getsize(bag_save_to_path)
+                return response
+            elif job_id.startswith("query"):
+                return JsonResponse(rslt)
+        else:
+            return
 
-            bag_save_to_path = rslt[1]
-            zip_file_path = bag_save_to_path
-            response = FileResponse(open(zip_file_path, 'rb'), content_type='application/zip')
-            response['Content-Disposition'] = 'attachment; filename="' + '{0}.zip"'.format(job_id)
-            response['Content-Length'] = os.path.getsize(bag_save_to_path)
-            return response
     return Http404("Can not find results for job id: {0}".format(job_id))
 
 
@@ -1137,21 +1149,31 @@ def subset_watershed_api(request):
     bag_save_to_path = None
     try:
         if request.method == 'POST':
-            logger.error(request)
+
             request_dict = json.loads(request.body)
             watershed_geometry = request_dict['watershed_geometry']
             watershed_epsg = int(request_dict['watershed_epsg'])
-            subset_parameter_dict = request_dict['subset_parameter']
+            spatial_query_only = request_dict.get('query_only', 'False')
+            if str(spatial_query_only).lower() == "true":
+                spatial_query_only = True
+            else:
+                spatial_query_only = False
+            subset_parameter_dict = request_dict.get('subset_parameter', None)
+
             logger.error("------START: subset_watershed_api--------")
 
             job_id = str(uuid.uuid4())
-            job_id = "subset-" + job_id
+            if spatial_query_only:
+                job_id = "query-" + job_id
+            else:
+                job_id = "subset-" + job_id
 
             task = _perform_subset.apply_async((watershed_geometry,
                                                        watershed_epsg,
                                                        subset_parameter_dict),
                                                         {"job_id":job_id,
-                                                       "zip_results":True},
+                                                         "zip_results":True,
+                                                         "query_only": spatial_query_only,},
                                                        task_id=job_id,
                                                        countdown=3,
                                                         time_limit=nwm_viewer_subsetting_time_limit,  # 30 minutes
@@ -1183,10 +1205,48 @@ def subset_watershed_api(request):
     #             shutil.rmtree(bag_save_to_path.replace(".zip", ""))
 
 
-@shared_task
-def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None, zip_results=False):
+def _do_spatial_query(geom_str, in_epsg, job_id=None):
 
-    db_file_path = "/nwm.sqlite"
+    query_type = "geojson"
+    shp_path = None
+    huc_id = None
+    query_result_dict = query_comids_and_grid_indices(job_id=job_id,
+                                                      db_file_path=db_file_path,
+                                                      query_type=query_type,
+                                                      shp_path=shp_path,
+                                                      geom_str=geom_str,
+                                                      in_epsg=in_epsg,
+                                                      huc_id=huc_id)
+    return query_result_dict
+
+
+@csrf_exempt
+def spatial_query(request):
+    try:
+        if request.method == 'POST':
+
+            request_dict = json.loads(request.body)
+            watershed_geometry = request_dict['watershed_geometry']
+            watershed_epsg = int(request_dict['watershed_epsg'])
+            start = time.time()
+            query_result_dict = _do_spatial_query(watershed_geometry, watershed_epsg)
+            end = time.time()
+            result_dict = {"time_elapsed": end-start}
+            if query_result_dict:
+                result_dict.update(query_result_dict)
+            response = JsonResponse(result_dict)
+            return response
+        else:
+            raise Exception("Not a POST request, Note: this api endpoint must end with a slash '/'")
+
+    except Exception as ex:
+        logger.exception(ex.message)
+        logger.error("------ERROR: subset_watershed_api--------")
+        return HttpResponse(status=500, content=ex.message)
+
+
+@shared_task
+def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None, zip_results=False, query_only=False):
 
     if not job_id:
         job_id = str(uuid.uuid4())
@@ -1195,29 +1255,15 @@ def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None, zip_r
     logger.info("-------------Process Started-------------------")
     logger.info(all_start_dt)
 
-    # geojson example
-    query_type = "geojson"
-    shp_path = None
-    # geom_str = request_dict['watershed_geometry']
-    # in_epsg = 3857  # epsg is required
-    huc_id = None
+    query_result_dict = _do_spatial_query(geom_str, in_epsg, job_id=job_id)
+    if query_only:
+        return query_result_dict
 
-    query_result_dict = query_comids_and_grid_indices(job_id=job_id,
-                                                      db_file_path=db_file_path,
-                                                      query_type=query_type,
-                                                      shp_path=shp_path,
-                                                      geom_str=geom_str,
-                                                      in_epsg=in_epsg,
-                                                      huc_id=huc_id)
     if query_result_dict is None:
         raise Exception("Failed to retrieve spatial query result")
 
-    # subset_parameter_dict = request_dict['subset_parameter']
-
-    netcdf_folder_path = "/projects/water/nwm/data/nomads/"
-
     # Path of output folder
-    #output_folder_path = "/tmp"
+    # output_folder_path = "/tmp"
     output_folder_path = app_workspace.path
     logger.error("****************************************")
     logger.error(output_folder_path)
@@ -1243,7 +1289,6 @@ def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None, zip_r
         simulation_date_list = [x.strftime("%Y%m%d") for x in dateRange_obj_list]
     else:
         simulation_date_list = [subset_parameter_dict["startDate"].replace("-", "")]
-    print simulation_date_list
 
     # list of model configurations
     # model_configuration_list = ['analysis_assim', 'short_range', 'medium_range', 'long_range']
