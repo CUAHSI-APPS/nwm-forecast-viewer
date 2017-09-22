@@ -46,11 +46,12 @@ app_workspace = app.get_app_workspace()
 # comid = 18228725
 
 local_vm_test = True
+local_vm_test_data_date = "20170419"
 
 hs_hostname = 'www.hydroshare.org'
 app_dir = '/projects/water/nwm/data/'
 if local_vm_test:
-    transition_date_v11 = "20170419"  # local vm
+    transition_date_v11 = local_vm_test_data_date  # local vm
 else:
     transition_date_v11 = "20170508"
 transition_timestamp_v11_AA = "12"
@@ -1271,24 +1272,53 @@ def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None, zip_r
     # shrink dimension size to cover subsetting domain only
     resize_dimension_grid = True
     resize_dimension_feature = True
-    # merge resulting netcdfs
-    #merge_netcdfs = subset_parameter_dict['merge']
     merge_netcdfs = True
     # remove intermediate files
     cleanup = False
 
     # list of simulation dates
-    if len(subset_parameter_dict["endDate"]) > 0 and subset_parameter_dict["config"] == "analysis_assim":
-        if int(subset_parameter_dict["endDate"].replace("-", "")) < \
-                int(subset_parameter_dict["startDate"].replace("-", "")):
+    simulation_date_list = []
+    startDate_str = subset_parameter_dict.get("startDate", "")
+    endDate_str = subset_parameter_dict.get("endDate", "")
+
+    if subset_parameter_dict["config"] == "analysis_assim":
+        if endDate_str.lower() == "today":
+            if local_vm_test:
+                endDate_obj = datetime.datetime.strptime(local_vm_test_data_date, "%Y%m%d")
+            else:
+                endDate_obj = datetime.datetime.utcnow()
+
+            if startDate_str.isdigit(): # num of days before today
+                days_before = datetime.timedelta(days=-1 * abs(int(startDate_str)))
+                startDate_obj = endDate_obj + days_before
+            elif startDate_str == "":
+                startDate_obj = endDate_obj
+            else:
+                startDate_obj = datetime.datetime.strptime(startDate_str, "%Y-%m-%d")
+
+        elif endDate_str: # not ""
+            endDate_obj = datetime.datetime.strptime(endDate_str, "%Y-%m-%d")
+
+            if startDate_str:
+                startDate_obj = datetime.datetime.strptime(startDate_str, "%Y-%m-%d")
+            else:
+                raise Exception("startDate is not set")
+        else:
+            raise Exception("endDate is not set")
+
+        if endDate_obj < startDate_obj:
             raise Exception("endDate is earlier than startDate.")
-        startDate_obj = datetime.datetime.strptime(subset_parameter_dict["startDate"], "%Y-%m-%d")
-        endDate_obj = datetime.datetime.strptime(subset_parameter_dict["endDate"], "%Y-%m-%d")
+
         dateDelta_obj = endDate_obj - startDate_obj
-        dateRange_obj_list = [startDate_obj + datetime.timedelta(days=x) for x in range(0, dateDelta_obj.days + 1)]
+        dateRange_obj_list = [startDate_obj + datetime.timedelta(days=x) for x in
+                              range(0, dateDelta_obj.days + 1)]
         simulation_date_list = [x.strftime("%Y%m%d") for x in dateRange_obj_list]
-    else:
-        simulation_date_list = [subset_parameter_dict["startDate"].replace("-", "")]
+
+    else:  # non-"analysis_assim"
+        if startDate_str:
+            simulation_date_list = [startDate_str.replace("-", "")]
+        else:
+            raise Exception("startDate is not set")
 
     # list of model configurations
     # model_configuration_list = ['analysis_assim', 'short_range', 'medium_range', 'long_range']
