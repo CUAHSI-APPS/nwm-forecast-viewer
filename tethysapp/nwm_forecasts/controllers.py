@@ -1255,9 +1255,9 @@ def _build_latest_dict_info(rslt_list, filename_list, date_string, config, geom,
 
     if key_name not in rslt_list:
         if mem_i:
-            r = re.compile("nwm\.t\d\dz\.{0}\.{1}_{2}*".format(config, geom, mem_i))
+            r = re.compile("nwm.t\\d\\dz.{0}.{1}_{2}.*".format(config, geom, mem_i))
         else:
-            r = re.compile("nwm\.t\d\dz\.{0}\.{1}*".format(config, geom))
+            r = re.compile("nwm.t\\d\\dz.{0}.{1}.*".format(config, geom))
         newlist = filter(r.match, filename_list)
         if len(newlist) > 0:
             newlist.sort(key=lambda x: int(x.split('.')[1][1:3]), reverse=True)
