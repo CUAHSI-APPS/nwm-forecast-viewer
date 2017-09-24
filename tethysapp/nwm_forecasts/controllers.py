@@ -1359,7 +1359,7 @@ def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None, zip_r
             if startDate_str.isdigit():  # num of days before today
                 days_before = datetime.timedelta(days=-1 * abs(int(startDate_str)))
                 startDate_obj = endDate_obj + days_before
-            elif startDate_str == "":
+            elif startDate_str == "" or startDate_str == "latest":
                 startDate_obj = endDate_obj
             else:
                 startDate_obj = datetime.datetime.strptime(startDate_str, "%Y-%m-%d")
