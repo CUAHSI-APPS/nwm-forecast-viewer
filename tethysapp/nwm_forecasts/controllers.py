@@ -1246,6 +1246,48 @@ def spatial_query(request):
         return HttpResponse(status=500, content=ex.message)
 
 
+def _check_latest_data():
+    nomads_root = "/media/sf_nwm_new_data"
+
+    nomads_root = netcdf_folder_path
+    # get latest date:
+    r = re.compile(r"nwm.\d\d\d\d\d\d\d\d")
+    dir_name_list = filter(lambda x: os.path.isdir(os.path.join(nomads_root, x)) and r.match(x),
+                           os.listdir(nomads_root))
+    dir_name_list.sort(key=lambda x: int(x.split('.')[1]), reverse=True)
+    print dir_name_list
+    config_list = ["analysis_assim", "short_range", "medium_range", "long_range"]
+    model_list = ["forcing", "channel_rt", "reservoir", "land", "terrain_rt"]
+
+    rslt_list = {}
+    for date_dir in dir_name_list:
+        date_path = os.path.join(nomads_root, date_dir)
+        date_string = date_dir.split(".")[1]
+        filename_list = []
+        for (dirpath, dirnames, filenames) in os.walk(date_path):
+            filename_list = filename_list + filenames
+        print filename_list
+        for config in config_list:
+            for model in model_list:
+                if config == "long_range" and (model == "forcing" or model == "terrain_rt"):
+                    continue
+                key_name = config + "." + model
+                if key_name not in rslt_list:
+                    r = re.compile("nwm\.t\d\dz\.{0}\.{1}*".format(config, model))
+                    newlist = filter(r.match, filename_list)
+                    if len(newlist) > 0:
+                        newlist.sort(key=lambda x: int(x.split('.')[1][1:3]), reverse=True)
+                        max_item = newlist[0]
+                        rslt_list[key_name] = {"date": date_string, "time": max_item.split('.')[1][1:3]}
+
+        if len(rslt_list) == 18:
+            break
+    print len(rslt_list)
+    print rslt_list
+    return rslt_list
+    pass
+
+
 @shared_task
 def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None, zip_results=False, query_only=False):
 
@@ -1274,7 +1316,7 @@ def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None, zip_r
     resize_dimension_feature = True
     merge_netcdfs = True
     # remove intermediate files
-    cleanup = False
+    cleanup = True
 
     # list of simulation dates
     simulation_date_list = []
@@ -1282,13 +1324,22 @@ def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None, zip_r
     endDate_str = subset_parameter_dict.get("endDate", "")
 
     if subset_parameter_dict["config"] == "analysis_assim":
-        if endDate_str.lower() == "today":
+        if endDate_str.lower() == "latest":
+            latest_data_info_dict = _check_latest_data()
             if local_vm_test:
                 endDate_obj = datetime.datetime.strptime(local_vm_test_data_date, "%Y%m%d")
             else:
-                endDate_obj = datetime.datetime.utcnow()
+                #endDate_obj = datetime.datetime.utcnow()
+                config_geometry_string = subset_parameter_dict["config"] + "." + subset_parameter_dict["geom"]
+                analysis_assim_geometry = latest_data_info_dict.get(config_geometry_string, None)
 
-            if startDate_str.isdigit(): # num of days before today
+                if analysis_assim_geometry:
+                    endDate_str = analysis_assim_geometry["date"]
+                    endDate_obj = datetime.datetime.strptime(endDate_str, "%Y%m%d")
+                else:
+                    raise Exception("Failed to check latest analysis_assim")
+
+            if startDate_str.isdigit():  # num of days before today
                 days_before = datetime.timedelta(days=-1 * abs(int(startDate_str)))
                 startDate_obj = endDate_obj + days_before
             elif startDate_str == "":
@@ -1315,10 +1366,17 @@ def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None, zip_r
         simulation_date_list = [x.strftime("%Y%m%d") for x in dateRange_obj_list]
 
     else:  # non-"analysis_assim"
-        if startDate_str:
-            simulation_date_list = [startDate_str.replace("-", "")]
-        else:
+        if not startDate_str:
             raise Exception("startDate is not set")
+        if startDate_str.lower() == "latest":
+            latest_data_info_dict = _check_latest_data()
+            config_geometry_string = subset_parameter_dict["config"] + "." + subset_parameter_dict["geom"]
+            subset_parameter_dict["time"] = latest_data_info_dict[config_geometry_string]["time"]
+
+            simulation_date_list = [latest_data_info_dict[config_geometry_string]["date"]]
+        else:
+            simulation_date_list = [startDate_str.replace("-", "")]
+
 
     # list of model configurations
     # model_configuration_list = ['analysis_assim', 'short_range', 'medium_range', 'long_range']
