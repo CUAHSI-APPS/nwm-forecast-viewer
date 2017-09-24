@@ -1400,16 +1400,16 @@ def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None, zip_r
     # [1, 2, ...];  [] or None means all default time stamps
     if subset_parameter_dict['config'] == "analysis_assim":
         time_stamp_list = []
-    elif subset_parameter_dict['config'] == "long_range":
-        time_stamp_list = []
-        if subset_parameter_dict['lag_00z'] == "on":
-            time_stamp_list.append(0)
-        if subset_parameter_dict['lag_06z'] == "on":
-            time_stamp_list.append(6)
-        if subset_parameter_dict['lag_12z'] == "on":
-            time_stamp_list.append(12)
-        if subset_parameter_dict['lag_18z'] == "on":
-            time_stamp_list.append(18)
+    # elif subset_parameter_dict['config'] == "long_range":
+    #     time_stamp_list = []
+    #     if subset_parameter_dict['lag_00z'] == "on":
+    #         time_stamp_list.append(0)
+    #     if subset_parameter_dict['lag_06z'] == "on":
+    #         time_stamp_list.append(6)
+    #     if subset_parameter_dict['lag_12z'] == "on":
+    #         time_stamp_list.append(12)
+    #     if subset_parameter_dict['lag_18z'] == "on":
+    #         time_stamp_list.append(18)
     else:
         time_stamp_list = [int(subset_parameter_dict['time'])]
 
