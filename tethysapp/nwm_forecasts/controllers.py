@@ -1270,9 +1270,9 @@ def _build_latest_dict_info(rslt_list, filename_list, date_string, config, geom,
 def _check_latest_data():
 
     nomads_root = netcdf_folder_path
+
     # get latest date:
-    # get latest date:
-    r = re.compile(r"nwm.\d\d\d\d\d\d\d\d")
+    r = re.compile(r"nwm.20\d\d\d\d\d\d")
     dir_name_list = filter(lambda x: os.path.isdir(os.path.join(nomads_root, x)) and r.match(x),
                            os.listdir(nomads_root))
     dir_name_list.sort(key=lambda x: int(x.split('.')[1]), reverse=True)
@@ -1392,7 +1392,7 @@ def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None, zip_r
                 config_geometry_string = subset_parameter_dict["config"] + "." + subset_parameter_dict["geom"]
 
             else:
-                config_geometry_string = subset_parameter_dict["config"] + "." + subset_parameter_dict["geom"] + "." + subset_parameter_dict["mem"]
+                config_geometry_string = subset_parameter_dict["config"] + "." + subset_parameter_dict["geom"] + ".mem" + subset_parameter_dict["mem"]
 
             subset_parameter_dict["time"] = latest_data_info_dict[config_geometry_string]["time"]
 
