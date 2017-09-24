@@ -1246,10 +1246,32 @@ def spatial_query(request):
         return HttpResponse(status=500, content=ex.message)
 
 
+def _build_latest_dict_info(rslt_list, filename_list, date_string, config, geom, mem_i=None):
+    #  called by _check_latest_data()
+    if mem_i:
+        key_name = config + "." + geom + ".mem" + str(mem_i)
+    else:
+        key_name = config + "." + geom
+
+    if key_name not in rslt_list:
+        if mem_i:
+            r = re.compile("nwm\.t\d\dz\.{0}\.{1}_{2}*".format(config, geom, mem_i))
+        else:
+            r = re.compile("nwm\.t\d\dz\.{0}\.{1}*".format(config, geom))
+        newlist = filter(r.match, filename_list)
+        if len(newlist) > 0:
+            newlist.sort(key=lambda x: int(x.split('.')[1][1:3]), reverse=True)
+            max_item = newlist[0]
+            rslt_list[key_name] = {"date": date_string, "time": max_item.split('.')[1][1:3]}
+
+    pass
+
+
 def _check_latest_data():
     nomads_root = "/media/sf_nwm_new_data"
 
     nomads_root = netcdf_folder_path
+    # get latest date:
     # get latest date:
     r = re.compile(r"nwm.\d\d\d\d\d\d\d\d")
     dir_name_list = filter(lambda x: os.path.isdir(os.path.join(nomads_root, x)) and r.match(x),
@@ -1257,35 +1279,31 @@ def _check_latest_data():
     dir_name_list.sort(key=lambda x: int(x.split('.')[1]), reverse=True)
     print dir_name_list
     config_list = ["analysis_assim", "short_range", "medium_range", "long_range"]
-    model_list = ["forcing", "channel_rt", "reservoir", "land", "terrain_rt"]
+    geom_list = ["forcing", "channel_rt", "reservoir", "land", "terrain_rt"]
 
     rslt_list = {}
     for date_dir in dir_name_list:
         date_path = os.path.join(nomads_root, date_dir)
         date_string = date_dir.split(".")[1]
+        # all file names in one list
         filename_list = []
-        for (dirpath, dirnames, filenames) in os.walk(date_path):
+        for dirpath, dirnames, filenames in os.walk(date_path):
             filename_list = filename_list + filenames
         print filename_list
         for config in config_list:
-            for model in model_list:
-                if config == "long_range" and (model == "forcing" or model == "terrain_rt"):
+            for geom in geom_list:
+                if config == "long_range" and (geom == "forcing" or geom == "terrain_rt"):
                     continue
-                key_name = config + "." + model
-                if key_name not in rslt_list:
-                    r = re.compile("nwm\.t\d\dz\.{0}\.{1}*".format(config, model))
-                    newlist = filter(r.match, filename_list)
-                    if len(newlist) > 0:
-                        newlist.sort(key=lambda x: int(x.split('.')[1][1:3]), reverse=True)
-                        max_item = newlist[0]
-                        rslt_list[key_name] = {"date": date_string, "time": max_item.split('.')[1][1:3]}
-
-        if len(rslt_list) == 18:
+                if config == "long_range":
+                    for mem_i in range(1, 5):
+                        _build_latest_dict_info(rslt_list, filename_list, date_string, config, geom, mem_i)
+                else:
+                    _build_latest_dict_info(rslt_list, filename_list, date_string, config, geom, None)
+        if len(rslt_list) == 27:
             break
     print len(rslt_list)
     print rslt_list
     return rslt_list
-    pass
 
 
 @shared_task
@@ -1370,8 +1388,13 @@ def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None, zip_r
             raise Exception("startDate is not set")
         if startDate_str.lower() == "latest":
             latest_data_info_dict = _check_latest_data()
-            config_geometry_string = subset_parameter_dict["config"] + "." + subset_parameter_dict["geom"]
-            subset_parameter_dict["time"] = latest_data_info_dict[config_geometry_string]["time"]
+
+            if subset_parameter_dict["config"] != "long_range":
+                config_geometry_string = subset_parameter_dict["config"] + "." + subset_parameter_dict["geom"]
+                subset_parameter_dict["time"] = latest_data_info_dict[config_geometry_string]["time"]
+            else:
+                config_geometry_mem_string = subset_parameter_dict["config"] + "." + subset_parameter_dict["geom"] + "." + subset_parameter_dict["mem"]
+                subset_parameter_dict["time"] = latest_data_info_dict[config_geometry_mem_string]["time"]
 
             simulation_date_list = [latest_data_info_dict[config_geometry_string]["date"]]
         else:
@@ -1420,8 +1443,9 @@ def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None, zip_r
 
     if "long_range" in model_configuration_list:
         model_configuration_list.remove("long_range")
-        for i in range(1, 5):
-            model_configuration_list.append("long_range_mem{0}".format(str(i)))
+        # for i in range(1, 5):
+        #     model_configuration_list.append("long_range_mem{0}".format(str(i)))
+        model_configuration_list.append("long_range_mem{0}".format(str(subset_parameter_dict['mem'])))
 
     output_netcdf_folder_path = os.path.join(output_folder_path, job_id)
 
