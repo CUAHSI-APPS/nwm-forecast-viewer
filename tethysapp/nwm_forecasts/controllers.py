@@ -1268,7 +1268,6 @@ def _build_latest_dict_info(rslt_list, filename_list, date_string, config, geom,
 
 
 def _check_latest_data():
-    nomads_root = "/media/sf_nwm_new_data"
 
     nomads_root = netcdf_folder_path
     # get latest date:
