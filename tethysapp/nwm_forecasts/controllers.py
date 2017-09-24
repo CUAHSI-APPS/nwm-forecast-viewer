@@ -1391,10 +1391,11 @@ def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None, zip_r
 
             if subset_parameter_dict["config"] != "long_range":
                 config_geometry_string = subset_parameter_dict["config"] + "." + subset_parameter_dict["geom"]
-                subset_parameter_dict["time"] = latest_data_info_dict[config_geometry_string]["time"]
+
             else:
-                config_geometry_mem_string = subset_parameter_dict["config"] + "." + subset_parameter_dict["geom"] + "." + subset_parameter_dict["mem"]
-                subset_parameter_dict["time"] = latest_data_info_dict[config_geometry_mem_string]["time"]
+                config_geometry_string = subset_parameter_dict["config"] + "." + subset_parameter_dict["geom"] + "." + subset_parameter_dict["mem"]
+
+            subset_parameter_dict["time"] = latest_data_info_dict[config_geometry_string]["time"]
 
             simulation_date_list = [latest_data_info_dict[config_geometry_string]["date"]]
         else:
