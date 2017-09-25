@@ -55,6 +55,9 @@ class nwmForecasts(TethysAppBase):
                     UrlMap(name='spatial_query',
                            url='nwm-forecasts/spatial-query',
                            controller='nwm_forecasts.controllers.spatial_query'),
+                    UrlMap(name='check_latest_data',
+                           url='nwm-forecasts/latest-data-info',
+                           controller='nwm_forecasts.controllers.check_latest_data_api'),
                     UrlMap(name='api_page',
                            url='nwm-forecasts/api-page',
                            controller='nwm_forecasts.controllers.api_page')

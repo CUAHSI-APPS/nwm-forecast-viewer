@@ -1246,6 +1246,16 @@ def spatial_query(request):
         return HttpResponse(status=500, content=ex.message)
 
 
+def check_latest_data_api(request):
+    try:
+        latest_dict = _check_latest_data()
+        return JsonResponse(latest_dict)
+    except Exception as ex:
+        logger.error("check_latest_data_api: {0}".format(ex))
+        return JsonResponse({"status": "error", "msg": ex})
+    pass
+
+
 def _build_latest_dict_info(rslt_list, filename_list, date_string, config, geom, mem_i=None):
     #  called by _check_latest_data()
     if mem_i:
@@ -1255,15 +1265,14 @@ def _build_latest_dict_info(rslt_list, filename_list, date_string, config, geom,
 
     if key_name not in rslt_list:
         if mem_i:
-            r = re.compile("nwm.t\\d\\dz.{0}.{1}_{2}.*".format(config, geom, mem_i))
+            r = re.compile("nwm.t\\d\\dz.{0}.{1}_{2}.*.conus.nc".format(config, geom, mem_i))
         else:
-            r = re.compile("nwm.t\\d\\dz.{0}.{1}.*".format(config, geom))
+            r = re.compile("nwm.t\\d\\dz.{0}.{1}.*.conus.nc".format(config, geom))
         newlist = filter(r.match, filename_list)
         if len(newlist) > 0:
             newlist.sort(key=lambda x: int(x.split('.')[1][1:3]), reverse=True)
             max_item = newlist[0]
             rslt_list[key_name] = {"date": date_string, "time": max_item.split('.')[1][1:3]}
-
     pass
 
 
@@ -1281,6 +1290,7 @@ def _check_latest_data():
     geom_list = ["forcing", "channel_rt", "reservoir", "land", "terrain_rt"]
 
     rslt_list = {}
+    rslt_list["checked_at_utc"] = datetime.datetime.utcnow().strftime("%Y%m%d-%H:%M:%S")
     for date_dir in dir_name_list:
         date_path = os.path.join(nomads_root, date_dir)
         date_string = date_dir.split(".")[1]
@@ -1298,10 +1308,11 @@ def _check_latest_data():
                         _build_latest_dict_info(rslt_list, filename_list, date_string, config, geom, mem_i)
                 else:
                     _build_latest_dict_info(rslt_list, filename_list, date_string, config, geom, None)
-        if len(rslt_list) == 27:
+        if len(rslt_list) == 28:  # 27 data items + 1 checked_at_utc item
             break
-    print len(rslt_list)
-    print rslt_list
+
+    logger.debug("latest data dict length: {0}".format(len(rslt_list)))
+    logger.debug("latest data dict: {0}".format(rslt_list))
     return rslt_list
 
 
