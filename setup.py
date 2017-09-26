@@ -17,7 +17,7 @@ setup(
     description='This application allows you to visualize National Water Model forecasts for a specific NHD stream reach.',
     long_description='',
     keywords='',
-    author='Michael Souffront & Curtis Rae',
+    author='Michael Souffront & Curtis Rae & Zhiyu (Drew) Li',
     author_email='',
     url='',
     license='',
