@@ -202,11 +202,49 @@ Subsetting API has been changed to work asynchronously, which contain 3 endpoint
 <br>
 Send a <b>HTTP POST Request</b> with the following JSON payload to <b>/apps/nwm-forecasts/submit-subsetting-job/</b>.
 <br>
-<img src="{% static 'nwm_forecasts/help/subsetting_json_payload.jpg' %}">
+<!--<img src="{% static 'nwm_forecasts/help/subsetting_json_payload.jpg' %}">-->
+<pre>
+    # prepare the data sent to api endpoint
+    JSON_payload = {
+        'subset_parameter': {
+            'config': "analysis_assim",  # AA: analysis_assim, SR: short_range, MR: medium_range, LR: long_range
+            'startDate': "2017-09-20",  # YYYY-MM-DD for SR, MR & LR; Also set 'endDate' for AA
+            'endDate': "2017-09-29",  # YYYY-MM-DD (only for AA)
+            'geom': "channel_rt",  # forcing, channel_rt, reservoir, land
+            'time': "00",  # 00, 01 ... 23 (only for SR, MR and LR)
+            'mem': "1",  # 1, 2, 3, 4 (LR ensemble member)
+            'merge': True  # True or False
+        },
+        'watershed_epsg': 4326,  # keep this unchanged as latest GeoJSON standard requires coordinates in WGS84/EPSG:4326 projection
+                                 # see: https://tools.ietf.org/html/rfc7946#section-4
+        'watershed_geometry': geojson_polygon_str_4326  # the polygon geojson string in WGS84/EPSG:4326 extracted from shapefile
+    }
+
+</pre>
 <br>
 Expected response: <br>
 {"job_id": JOB_ID, "status": JOB_STATUS}
 <br>
+<pre>
+<b>Get "latest" data without specifying "startDate", "endDate" or "time"</b>
+
+<b>For AA:</b>
+    a) Subset data starting from t00z of day "YYYY-MM-DD" to Today(UTC)'s latest data
+    "startDate": "YYYY-MM-DD"
+    "endDate": "latest
+
+    b) Subset data starting from t00z of the Xth day before Today to Today's latest data
+    "startDate": "X" # X is a number indicates the Xth day before today
+    "endDate": "latest
+
+    c) Subset latest data for Today(UTC) starting from t00z
+    "startDate": ""
+    "endDate": "latest"
+
+<b>For SR, MR, LR:</b>
+    Subset latest timestamp for Today(UTC), and parameter "time" is ignored
+    "startDate": "latest"
+</pre>
 <br>
 
 2) <b>Check job status:</b> <br>
