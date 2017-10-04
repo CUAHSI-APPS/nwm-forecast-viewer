@@ -262,8 +262,185 @@ Send a <b>HTTP POST Request</b> with following JSON payload to <b>/apps/nwm-fore
 Or send a <b>HTTP GET Request</b> with parameter "job_id" to <b>/apps/nwm-forecasts/download-subsetting-results/?job_id=JOB_ID</b>.<br>
 Expected response: subsetting results in one zip file
 <br>
-<br>
 <a href="{% static 'nwm_forecasts/help/subsetting_api_demo.py' %}" download>Download Demo Script</a>
+<br>
+<br>
+<br>
+<b>Other API Endpoints:</b>
+<br>
+4) <b>Latest data list: get a list of the "latest" data for subsetting operation </b>
+<br>
+Send a <b>GET Request</b> to <b>/apps/nwm-forecasts/latest-data-info</b>
+<br>
+Expected response:
+<br>
+<pre>
+   {
+   "short_range.forcing":{
+      "date":"20171004",
+      "time":"12"
+   },
+   "analysis_assim.forcing":{
+      "date":"20171004",
+      "time":"13"
+   },
+   "analysis_assim.land":{
+      "date":"20171004",
+      "time":"14"
+   },
+   "analysis_assim.terrain_rt":{
+      "date":"20171004",
+      "time":"14"
+   },
+   "medium_range.land":{
+      "date":"20171004",
+      "time":"06"
+   },
+   "checked_at_utc":"20171004-15:10:43",
+   "long_range.land.mem1":{
+      "date":"20171003",
+      "time":"18"
+   },
+   "analysis_assim.channel_rt":{
+      "date":"20171004",
+      "time":"14"
+   },
+   "short_range.reservoir":{
+      "date":"20171004",
+      "time":"12"
+   },
+   "long_range.land.mem4":{
+      "date":"20171004",
+      "time":"00"
+   },
+   "medium_range.forcing":{
+      "date":"20171004",
+      "time":"06"
+   },
+   "long_range.land.mem3":{
+      "date":"20171004",
+      "time":"00"
+   },
+   "medium_range.terrain_rt":{
+      "date":"20171004",
+      "time":"06"
+   },
+   "medium_range.channel_rt":{
+      "date":"20171004",
+      "time":"06"
+   },
+   "long_range.channel_rt.mem1":{
+      "date":"20171003",
+      "time":"18"
+   },
+   "long_range.reservoir.mem4":{
+      "date":"20171004",
+      "time":"00"
+   },
+   "long_range.reservoir.mem1":{
+      "date":"20171003",
+      "time":"18"
+   },
+   "long_range.reservoir.mem3":{
+      "date":"20171004",
+      "time":"00"
+   },
+   "long_range.reservoir.mem2":{
+      "date":"20171004",
+      "time":"00"
+   },
+   "long_range.channel_rt.mem4":{
+      "date":"20171004",
+      "time":"00"
+   },
+   "long_range.land.mem2":{
+      "date":"20171004",
+      "time":"00"
+   },
+   "analysis_assim.reservoir":{
+      "date":"20171004",
+      "time":"14"
+   },
+   "short_range.terrain_rt":{
+      "date":"20171004",
+      "time":"12"
+   },
+   "long_range.channel_rt.mem3":{
+      "date":"20171004",
+      "time":"00"
+   },
+   "long_range.channel_rt.mem2":{
+      "date":"20171004",
+      "time":"00"
+   },
+   "medium_range.reservoir":{
+      "date":"20171004",
+      "time":"06"
+   },
+   "short_range.channel_rt":{
+      "date":"20171004",
+      "time":"12"
+   },
+   "short_range.land":{
+      "date":"20171004",
+      "time":"12"
+   }
+}
+</pre>
+<br>
+<br>
+5) <b>Spatial Query: check what NWM features are covered by a polygon</b>
+<br>
+Send a <b>HTTP POST Request</b> with the following JSON payload to <b>/apps/nwm-forecasts/spatial-query/</b>.
+<br>
+<pre>
+    # prepare the data sent to api endpoint
+    JSON_payload = {
+        'watershed_epsg': 4326,  # keep this unchanged as latest GeoJSON standard requires coordinates in WGS84/EPSG:4326 projection
+                                 # see: https://tools.ietf.org/html/rfc7946#section-4
+        'watershed_geometry': geojson_polygon_str_4326  # the polygon geojson string in WGS84/EPSG:4326 extracted from shapefile
+    }
+</pre>
+<br>
+<b>Expected Response:</b>
+<br>
+<pre>
+{
+   u'status':u'success',
+   u'stream':{
+      u'count':812,
+      u'comids':[
+         1469236,
+         1469238,
+         ....
+         1439171,
+         1438481,
+         1438553
+      ]
+   },
+   u'reservoir':{
+      u'count':2,
+      u'comids':[
+         120053035,
+         1437333
+      ]
+   },
+   u'grid_terrain':{
+      u'minX':9615,
+      u'minY':3093,
+      u'maxX':10023,
+      u'maxY':3392
+   },
+   u'time_elapsed':2.3506100177764893,
+   u'grid_land':{
+      u'minX':2403,
+      u'minY':773,
+      u'maxX':2505,
+      u'maxY':848
+   }
+}
+</pre>
+<br>
 
 {% endblock %}
 
