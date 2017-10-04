@@ -3,103 +3,188 @@
 {% load tethys_gizmos %}
 {% load staticfiles %}
 
-{% block app_content %}
-  <div id="map-view" class="noGraph"></div>
-  <div id="popup" class="noGraph"></div>
-  <div id="info" class="hidden"></div>
-  <br />
-  <div id="nc-chart" class="hidden"></div>
-{% endblock %}
+{% block app_navigation_items %}
+{{ block.super }}
+<li class="active" title="retrieve/view time series data for a single reach/reservoir/cell"><a href="">Home</a></li>
+<li title="subset NWM outputs by watershed polygon"><a href="{% url 'nwm_forecasts:subset' %}">Subset</a></li>
 
-{% block app_content_wrapper_override %}
-  <!-- Modal1  -->
-  <div class="modal fade" id="popup-load-watershed" role="dialog">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <button type="button" class="close" data-dismiss="modal">&times;</button>
-          <h4 class="modal-title">Add a watershed from HydroShare</h4>
-        </div>
-        <div class="modal-body">
-          <b>Searching for available watersheds on HydroShare...</b>
-          <br>
-          <img src="/static/nwm_forecasts/images/loading-animation.gif">
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-default" id="close-popup" data-dismiss="modal">Close</button>
-          <button type="button" id="btn-load-watershed" class="btn btn-default hidden" disabled>Add</button>
-        </div>
-      </div>
+{% if hs_ready|lower == "true" %}
+<br/>
+<button id="watershedBtn" title="add a watershed polygon to map" type="button" class="btn btn-primary"
+        data-toggle="modal" data-target="#popup-load-watershed">Add Watershed
+</button>
+<br><br>
+{%endif%}
+
+<form id="paramForm" method="get" action="{% url 'nwm_forecasts:home' %}">
+
+    <div class="form-group ">
+        <label class="control-label" for="config" title="Select a model configuration">Configuration</label>
+        <select id="config" class="form-control" name="config">
+            <option value="analysis_assim" title="0-3 hrs forecast (per hr)">Analysis and Assimilation</option>
+            <option value="short_range" selected="selected" title="0-18 hrs forecast duration (per hr)">Short Range</option>
+            <option value="medium_range" title="0-10 days forecast duration (4 run/day)">Medium Range</option>
+            <option value="long_range" title="0-30 days forecast duration (4 run/day)">Long Range</option>
+        </select>
     </div>
-  </div>
-  <!-- End Modal -->
 
-  <!-- Modal2  -->
-  <div class="modal fade" id="hydroshare-modal" tabindex="-1" role="dialog" aria-labelledby="AddHydroshareResource">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-          <h6 class="modal-title">Share this Time Series on HydroShare (*Required)</h6>
-        </div>
-        <div class="modal-body">
-          <div class="form-group">
-            <label for="resource-title" class="control-label">*Resource Title:</label>
-            <input type="text" class="form-control" id="resource-title">
-          </div>
-          <!--<form action="">-->
-          <div class="form-group">
-            <label for="staticTS">
-              <input id="staticTS" type="radio" name="time_period" value="current" checked> Static time series
-            </label><br />
-            <label for="dynamicTS">
-              <input id="dynamicTS"type="radio" name="time_period" value="preceding"> Dynamic time series
-            </label><br />
-            <div class="form-group" id="time_selection" hidden>
-              <form class="form-inline">
-                Always retrieve data for the most recent:
-                <input type="text" class="form-control" name="period" onkeypress='return event.charCode >= 48 && event.charCode <= 57'
-                data-toggle="tooltip" data-placement="top" title="" data-original-title="Input must be a number">
-                <select id="time_period_units" class="form-control">
-                  <option value="h">Hour(s)</option>
-                  <option value="d">Day(s)</option>
-                  <option value="m">Month(s)</option>
-                </select>
-              </form>
+    <div class="form-group ">
+        <label class="control-label" for="geom" title="NWM outputs are stored in 4 files">Geometry</label>
+        <select id="geom" class="form-control" name="geom">
+            <option value="channel_rt" selected="selected" title="stream routing point-type file">Channel</option>
+            <option value="land" title="land surface 1km gridded file">Land</option>
+            <option value="reservoir" title="reservoir point-type file">Reservoir</option>
+            <option value="forcing" title="1km gridded forcing file">Forcing</option>
+        </select>
+    </div>
+
+    <div class="form-group ">
+        <label class="control-label" for="variable" title="available variables">Variable</label>
+        <select id="variable" class="form-control" name="variable">
+            <option id="streamVar" value="streamflow" selected>Streamflow</option>
+            <option id="velocVar" value="velocity">Velocity</option>
+            <option id="infVar" value="inflow" class="hidden">Inflow</option>
+            <option id="outfVar" value="outflow" class="hidden">Outflow</option>
+            <option id="snowhVar" value="SNOWH" class="hidden">Snow Depth</option>
+            <option id="sneqVar" value="SNEQV" class="hidden">Snow Water Equivalent</option>
+            <option id="snowcVar" value="FSNO" class="hidden">Snow-cover</option>
+            <option id="etVar" value="ACCET" class="hidden">Accumulated Total ET</option>
+            <option id="ssVar" value="SOILSAT_TOP" class="hidden">Near Surface Soil Saturation</option>
+            <option id="avsnowVar" value="SNOWT_AVG" class="hidden">Average Snow Temperature</option>
+            <option id="subrunoffVar" value="UGDRNOFF" class="hidden">Accumulated Groundwater Runoff</option>
+            <option id="runoffVar" value="SFCRNOFF" class="hidden">Accumulated Surface Runoff</option>
+            <option id="evapVar" value="ACCECAN" class="hidden">Accumulated Canopy Evaporation</option>
+            <option id="soiltVar" value="SOIL_T" class="hidden">Soil Temperature</option>
+            <option id="soilmVar" value="SOIL_M" class="hidden">Volumetric Soil Moisture</option>
+            <option id="canwVar" value="CANWAT" class="hidden">Total Canopy Water</option>
+            <option id="ssiVar" value="SOILSAT" class="hidden">Soil Saturation (Column integrated)</option>
+            <option id="rainrateVar" value="RAINRATE" class="hidden">Rain Rate</option>
+            <option id="lwdownVar" value="LWDOWN" class="hidden">Surface Downward Long-wave Radiation Flux</option>
+            <option id="swdownVar" value="SWDOWN" class="hidden">Surface Downward Short-wave Radiation Flux</option>
+            <option id="pfscVar" value="PSFC" class="hidden">Surface Pressure</option>
+            <option id="q2dVar" value="Q2D" class="hidden">2-m Specific Humidity</option>
+            <option id="t2dVar" value="T2D" class="hidden">2-m Air Temperature</option>
+            <option id="u2dVar" value="U2D" class="hidden">10-m U-component of Wind</option>
+            <option id="v2dVar" value="V2D" class="hidden">10-m V-component of Wind</option>
+
+        </select>
+    </div>
+
+    <div id="comidDiv">
+        <label class="control-label" for="comidInput" title="Stream reach COMID">COMID</label>
+        <input id="comidInput" name="COMID" type="text" class="form-control form-group" data-toggle="tooltip"
+               data-placement="top" title="Select stream reach from map or enter manually" required>
+    </div>
+
+    <div id="gridDiv" class="hidden">
+        <label class="control-label" for="gridInputY" title="South-North value of this cell">Grid Cell South-North
+            Value</label>
+        <input id="gridInputY" name="Y" type="text" class="form-control form-group"
+               title="Select a grid cell from map or enter manually" disabled required>
+        <label class="control-label" for="gridInputX" title="West-East value of this cell">Grid Cell West-East
+            Value</label>
+        <input id="gridInputX" name="X" type="text" class="form-control form-group"
+               title="Select a grid cell from map or enter manually" disabled required>
+    </div>
+
+    <input id="longInput" name="lon" type="text" value="-98" class="hidden">
+    <input id="latInput" name="lat" type="text" value="38.5" class="hidden">
+
+    {% gizmo date_picker start_date %}
+
+    <div class="form-group">
+        <label class="control-label" for="time" title="Model initialization time (UTC)">Initialization Time
+            (UTC)</label>
+        <select id="time" class="form-control" name="time">
+            <option value="00">00:00</option>
+            <option value="01">01:00</option>
+            <option value="02">02:00</option>
+            <option value="03">03:00</option>
+            <option value="04">04:00</option>
+            <option value="05">05:00</option>
+            <option value="06">06:00</option>
+            <option value="07">07:00</option>
+            <option value="08">08:00</option>
+            <option value="09">09:00</option>
+            <option value="10">10:00</option>
+            <option value="11">11:00</option>
+            <option value="12">12:00</option>
+            <option value="13">13:00</option>
+            <option value="14">14:00</option>
+            <option value="15">15:00</option>
+            <option value="16">16:00</option>
+            <option value="17">17:00</option>
+            <option value="18">18:00</option>
+            <option value="19">19:00</option>
+            <option value="20">20:00</option>
+            <option value="21">21:00</option>
+            <option value="22">22:00</option>
+            <option value="23">23:00</option>
+        </select>
+    </div>
+
+    <div id="timeLag" class="hidden">
+        <label title="Time lag for Long Range configuration">Time lag</label>
+        <div class="row">
+            <div class="col-md-1">
+                <p>00z</p>
             </div>
-          </div>
-          <div class="form-group">
-            <label for="resource-abstract" class="control-label">*Resource Abstract:</label>
-            <textarea rows="6" cols="50" id="resource-abstract" class="form-control"></textarea>
-          </div>
-          <div class="form-group">
-            <label for="resource-keywords" class="control-label">*Resource Keywords:</label>
-            <input type="text" class="form-control" id="resource-keywords">
-          </div>
-          <div class="form-group">
-            <input type="checkbox" id="resource-public" checked> Make It Public<br>
-          </div>
+            <div class="col-md-4">
+                {% gizmo toggle_switch longRangeLag00 %}
+            </div>
+            <div class="col-md-1">
+                <p>06z</p>
+            </div>
+            <div class="col-md-4">
+                {% gizmo toggle_switch longRangeLag06 %}
+            </div>
         </div>
-        <div class="modal-footer">
-          <div id="display-status" class="col-md-8"></div>
-          <div id="footer-buttons" class="col-md-4">
-            <button type="button" class="btn btn-default footer" data-dismiss="modal">Close</button>
-            <button type="button" class="btn btn-primary footer" id="hydroshare-proceed">Proceed</button>
-          </div>
+        <div class="row">
+            <div class="col-md-1">
+                <p>12z</p>
+            </div>
+            <div class="col-md-4">
+                {% gizmo toggle_switch longRangeLag12 %}
+            </div>
+            <div class="col-md-1">
+                <p>18z</p>
+            </div>
+            <div class="col-md-4">
+                {% gizmo toggle_switch longRangeLag18 %}
+            </div>
         </div>
-      </div>
     </div>
-  </div>
-  <!-- End Modal -->
 
-  {{block.super}}
+    <label id="endDateLabel" class="control-label hidden" for="endDate">End Date</label>
+    {% gizmo date_picker end_date %}
+
+    <button name="submit" type="submit" title="retrieve time series data for this reach/reservoir/cell"
+            class="btn btn-primary" type="submit" value="Success" id="submitBtn" form="paramForm">
+        View Forecast
+    </button>
+</form>
+
+<!--<input type="text" id="watershed_attributes_str" name="watershed_attributes_str" value='{{watershed_attributes_str}}' hidden >-->
+<!--<input type="text" id="watershed_geojson_str" name="watershed_geojson_str" value='{{watershed_geojson_str}}' hidden >-->
+
+{% endblock%}
+
+{% block app_content %}
+<div id="map-view" class="noGraph map-view"></div>
+<!--<div id="mouse-position"></div>-->
+<div id="popup" class="noGraph"></div>
+<div id="info" class="hidden"></div>
+<br/>
+<div id="nc-chart" class="hidden"></div>
 {% endblock %}
 
 {% block app_actions %}
-  <div id="actionBtns" class="hidden">
+<div id="actionBtns" class="hidden">
     {% if waterml_url %}
-      <a id="WMLbtn" target="_blank" href="{% url 'nwm_forecasts:waterml' %}{{waterml_url}}" class="btn btn-default">Get WaterML</a>
-      <!--<a id="HSbtn" class="btn btn-default" data-toggle="modal" data-target="#hydroshare-modal" role="button">Add to HydroShare</a>-->
+    <a id="WMLbtn" target="_blank" href="{% url 'nwm_forecasts:waterml' %}{{waterml_url}}" class="btn btn-default">Get
+        WaterML</a>
+    <a id="HSbtn" class="btn btn-default hidden" data-toggle="modal" data-target="#hydroshare-modal" role="button">Add
+        to HydroShare</a>
     {% endif %}
-  </div>
+</div>
 {% endblock %}

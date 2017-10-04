@@ -1,0 +1,193 @@
+{% extends "nwm_forecasts/base.html" %}
+
+{% load tethys_gizmos %}
+{% load staticfiles %}
+
+{% block app_content %}
+  <div id="map-view" class="noGraph"></div>
+  <div id="mouse-position"></div>
+  <div id="popup" class="noGraph"></div>
+  <div id="info" class="hidden"></div>
+  <br />
+  <div id="nc-chart" class="hidden"></div>
+{% endblock %}
+
+{% block app_content_wrapper_override %}
+
+<!-- Modal3 -->
+<div class="modal fade" id="welcome-popup" role="dialog">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <center><h4 class="modal-title">National Water Model Forecast Viewer Guide</h4></center>
+      </div>
+      <div class="modal-body">
+        <div id="welcome-info">
+          <ol>
+            <b>About the App</b>
+          <p><span class="sub">Users can obtain forecasts of different hydrologic variables available from any of the
+            associated National Hydrography Datasets (e.g., channel, rivers, land surface grids, reservoir).</span></p>
+
+            <b>How to Use the App</b>
+          <li class="modalList">Under <b>Enter Configuration</b> - Select a forecast range: Short, Medium, Long, or Analyis & Assimilation</li>
+          <li class="modalList">Under <b>Enter Geometry</b> - Select a geometry: Channel, Land, or Reservoir</li>
+          <li class="modalList">Under <b>Enter Variable</b> - Select a variable: This list will change depending on the type of geometry</li>
+          <li class="modalList">Under <b>Enter COMID</b> - Click a feature on the map: Clicking on a feature will populate this
+            field (you may need to zoom in to be able to see some features)</li>
+          <li class="modalList">Select <b>Date and Time</b> - Select a date: The date and time options will vary depending on the forecast type</li>
+          <li class="modalList">Click <b>Submit</b> - Click submit to view the forecast</li>
+          </ol>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <div id="byu-logo-container">
+          <span><i>Developed at the BYU Hydroinformatics Lab</i></span>
+          <img src="{% static 'nwm_forecasts/images/byu-logo.png' %}"/>
+        </div>
+        <button type="button" class="btn btn-default" id="close-popup" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- End Modal -->
+
+  <!-- Modal1  -->
+  <div class="modal fade" id="popup-load-watershed" role="dialog">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+          <h4 class="modal-title">Add a watershed from HydroShare</h4>
+          <h8> Loading resources owned by you: </h8>
+          <h9> 1) Geographic Feature resource has a Polygon with valid projection</h9>
+          <h9> 2) Generic resource has a *.geojson file in WGS84/EPSG:4326 projection, and has "watershed" as its resource keyword</h9>
+        </div>
+        <div class="modal-body">
+          <b>Searching for available watersheds on HydroShare...</b>
+          <br>
+          <img src="/static/nwm_forecasts/images/loading-animation.gif">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" id="close-popup" data-dismiss="modal">Close</button>
+          <button type="button" id="btn-load-watershed" class="btn btn-default hidden" disabled>Add</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- End Modal -->
+
+  <!-- Modal2  -->
+  <div class="modal fade" id="hydroshare-modal" tabindex="-1" role="dialog" aria-labelledby="AddHydroshareResource">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+          <h6 class="modal-title">Share this Time Series on HydroShare (*Required)</h6>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="resource-title" class="control-label">*Resource Title:</label>
+            <input type="text" class="form-control" id="resource-title">
+          </div>
+          <!--<form action="">-->
+          <div class="form-group">
+            <label for="staticTS">
+              <input id="staticTS" type="radio" name="time_period" value="current" checked> Static time series
+            </label><br />
+            <label for="dynamicTS">
+              <input id="dynamicTS"type="radio" name="time_period" value="preceding"> Dynamic time series
+            </label><br />
+            <div class="form-group" id="time_selection" hidden>
+              <form class="form-inline">
+                Always retrieve data for the most recent:
+                <input type="text" class="form-control" name="period" onkeypress='return event.charCode >= 48 && event.charCode <= 57'
+                data-toggle="tooltip" data-placement="top" title="" data-original-title="Input must be a number">
+                <select id="time_period_units" class="form-control">
+                  <option value="h">Hour(s)</option>
+                  <option value="d">Day(s)</option>
+                  <option value="m">Month(s)</option>
+                </select>
+              </form>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="resource-abstract" class="control-label">*Resource Abstract:</label>
+            <textarea rows="6" cols="50" id="resource-abstract" class="form-control"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="resource-keywords" class="control-label">*Resource Keywords:</label>
+            <input type="text" class="form-control" id="resource-keywords">
+          </div>
+          <div class="form-group">
+            <input type="checkbox" id="resource-public" checked> Make It Public<br>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <div id="display-status" class="col-md-8"></div>
+          <div id="footer-buttons" class="col-md-4">
+            <button type="button" class="btn btn-default footer" data-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary footer" id="hydroshare-proceed">Proceed</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- End Modal -->
+
+
+<!-- Modal3  Add subset NWM netcdf to Hydroshare -->
+<div class="modal fade" id="hydroshare-subset" tabindex="-1" role="dialog" aria-labelledby="AddHydroshareResource">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" onclick="$('#subsetBtn, #watershedBtn, #submitBtn').removeAttr('disabled');"
+                        aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h6 class="modal-title">Upload subsetting result to HydroShare</h6>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="resource-title-subset" class="control-label">*Resource Title:</label>
+                    <input type="text" class="form-control" id="resource-title-subset">
+                </div>
+                <div class="form-group">
+                    <label for="resource-type-subset" class="control-label">*Resource Type:</label>
+                    <select class="form-control" id="resource-type-subset">
+                        <option>CompositeResource</option>
+                        <option>GenericResource</option>
+                        <!--<option>NetcdfResource</option>-->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="resource-abstract-subset" class="control-label">*Resource Abstract:</label>
+                    <textarea rows="6" cols="50" id="resource-abstract-subset" class="form-control"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="resource-keywords-subset" class="control-label">*Resource Keywords (Separate each keyword with a comma):</label>
+                    <input type="text" class="form-control" id="resource-keywords-subset">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div id="display-status-subset" class="col-md-8"></div>
+                <div id="footer-buttons-subset" class="col-md-4">
+                    <!--<button type="button" class="btn btn-default footer" data-dismiss="modal" onclick="clearUploadForm()">Close</button>-->
+                    <button type="button" class="btn btn-primary footer" id="hydroshare-proceed-subset" onclick="subset_watershed_hydroshare()">Proceed</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+  <!-- End Modal -->
+{{block.super}}
+{% endblock %}
+
+
+
+{% block app_actions %}
+  <div id="actionBtns" class="hidden">
+    {% if waterml_url %}
+      <a id="WMLbtn" target="_blank" href="{% url 'nwm_forecasts:waterml' %}{{waterml_url}}" class="btn btn-default">Get WaterML</a>
+      <a id="HSbtn" class="btn btn-default hidden" data-toggle="modal" data-target="#hydroshare-modal" role="button">Add to HydroShare</a>
+    {% endif %}
+  </div>
+{% endblock %}

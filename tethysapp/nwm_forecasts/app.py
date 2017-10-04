@@ -12,7 +12,7 @@ class nwmForecasts(TethysAppBase):
     package = 'nwm_forecasts'
     root_url = 'nwm-forecasts'
     color = '#e74c3c'
-    description= 'This app allows the user to visualize National Water Model forecasts.'
+    description = 'This app allows the user to visualize National Water Model forecasts.'
     enable_feedback = False
     feedback_emails = []
 
@@ -25,6 +25,9 @@ class nwmForecasts(TethysAppBase):
         url_maps = (UrlMap(name='home',
                            url='nwm-forecasts',
                            controller='nwm_forecasts.controllers.home'),
+                    UrlMap(name='subset',
+                           url='nwm-forecasts/subset',
+                           controller='nwm_forecasts.controllers.subset'),
                     UrlMap(name='get_netcdf_data_ajax',
                            url='nwm-forecasts/get-netcdf-data',
                            controller='nwm_forecasts.controllers.get_netcdf_data'),
@@ -36,7 +39,28 @@ class nwmForecasts(TethysAppBase):
                            controller='nwm_forecasts.controllers.get_hs_watershed_list'),
                     UrlMap(name='load_watershed',
                            url='nwm-forecasts/load-watershed',
-                           controller='nwm_forecasts.controllers.load_watershed')
+                           controller='nwm_forecasts.controllers.load_watershed'),
+                    UrlMap(name='subset_watershed',
+                           url='nwm-forecasts/subset-watershed',
+                           controller='nwm_forecasts.controllers.subset_watershed'),
+                    UrlMap(name='submit_subsetting_job',
+                           url='nwm-forecasts/submit-subsetting-job',
+                           controller='nwm_forecasts.controllers.subset_watershed_api'),
+                    UrlMap(name='check_subsetting_job_status',
+                           url='nwm-forecasts/check-subsetting-job-status',
+                           controller='nwm_forecasts.controllers.check_subsetting_job_status'),
+                    UrlMap(name='download_subsetting_results',
+                           url='nwm-forecasts/download-subsetting-results',
+                           controller='nwm_forecasts.controllers.download_subsetting_results'),
+                    UrlMap(name='spatial_query',
+                           url='nwm-forecasts/spatial-query',
+                           controller='nwm_forecasts.controllers.spatial_query'),
+                    UrlMap(name='check_latest_data',
+                           url='nwm-forecasts/latest-data-info',
+                           controller='nwm_forecasts.controllers.check_latest_data_api'),
+                    UrlMap(name='api_page',
+                           url='nwm-forecasts/api-page',
+                           controller='nwm_forecasts.controllers.api_page')
                     )
 
         return url_maps

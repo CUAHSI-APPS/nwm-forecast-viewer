@@ -1,0 +1,454 @@
+{% extends "nwm_forecasts/base.html" %}
+
+{% load staticfiles %}
+
+{% block app_navigation_items %}
+{{ block.super }}
+<li> <a href="{% url 'nwm_forecasts:home' %}">Home</a></li>
+<li> <a href="{% url 'nwm_forecasts:subset' %}">Subset</a></li>
+{% endblock%}
+
+{% block app_content %}
+<h1>Developers API</h1>
+    <p>
+        A Developers API is provided for those who wish to incorporate the National Water Model data into their own
+        separate application or script.
+    </p>
+    <br>
+
+    <h3>GetWaterML</h3>
+    <div style="font-size:110%">
+    Current UTC Date: {{date_string_today}} <br>
+    <b>Available Data for GetWaterML</b><br>
+    Analysis & Assimilation: 2016-06-09 to {{date_string_today}}<br>
+    Short Range: {{date_string_minus_oldest}} to {{date_string_today}}<br>
+    Medium Range: {{date_string_minus_oldest}} to {{date_string_today}}<br>
+    Long Range: {{date_string_minus_oldest}} to {{date_string_today}}<br>
+    </div>
+    <br>
+    <table>
+        <tr>
+            <td><b>Supported Methods</b></td>
+            <td colspan="5">GET</td>
+        </tr>
+        <tr>
+            <td><b>Returns</b></td>
+            <td colspan="5">A WaterML file of the specified forecast.</td>
+        </tr>
+        <tr>
+            <td rowspan="12"><b>Params</b></td>
+            <td><b>Name</b></td>
+            <td><b>Description</b></td>
+            <td><b>Valid Values</b></td>
+            <td><b>Required</b></td>
+            <td><b>Default if omitted</b></td>
+        </tr>
+        <tr>
+            <td>config</td>
+            <td>The configuration of the forecast.</td>
+            <td>One and only one of the following strings: "short_range", "long_range", "medium_range", or "analysis_assim".</td>
+            <td>Yes</td>
+            <td>Cannot be ommitted.</td>
+        </tr>
+        <tr>
+            <td>geom</td>
+            <td>The geometry of the forecast.</td>
+            <td>One and only one of the following strings: "channel_rt", "land", "reservoir" or "forcing".</td>
+            <td>Yes.</td>
+            <td>Cannot be ommitted.</td>
+        </tr>
+        <tr>
+            <td>variable</td>
+            <td>The variable of the forecast.</td>
+            <td>One and only one of the following strings, depending on the specified configuration and geometry.
+                <br>analysis_assim + channel_rt: "streamflow" or "velocity".
+                <br>analysis_assim + reservoir: "inflow" or "outflow".
+                <br>analysis_assim + land: "SNOWH", "SNEQV", "FSNO", "ACCET", "SOILSAT_TOP", or "SNOWT_AVG".
+                <br>analysis_assim + forcing: "RAINRATE", "LWDOWN", "PSFC", "Q2D", "SWDOWN", "T2D", "U2D", "V2D".
+                <br>short_range + channel_rt: "streamflow" or "velocity".
+                <br>short_range + reservoir: "inflow" or "outflow".
+                <br>short_range + land: "SNOWH", "SNEQV", "FSNO", "ACCET", "SOILSAT_TOP", or "SNOWT_AVG".
+                <br>short_range + forcing: "RAINRATE", "LWDOWN", "PSFC", "Q2D", "SWDOWN", "T2D", "U2D", "V2D".
+                <br>medium_range + channel_rt: "streamflow" or "velocity".
+                <br>medium_range + reservoir: "inflow" or "outflow".
+                <br>medium_range + land: "SNOWH", "SNEQV", "FSNO", "ACCET", "SOILSAT_TOP", "SNOWT_AVG", "UGDRNOFF", "ACCECAN", "SOIL_T", "SOIL_M", or "CANWAT".
+                <br>medium_range + forcing: "RAINRATE", "LWDOWN", "PSFC", "Q2D", "SWDOWN", "T2D", "U2D", "V2D".
+                <br>long_range + channel_rt: "streamflow".
+                <br>long_range + reservoir: "inflow" or "outflow".
+                <br>long_range + land: "SNEQV", "ACCET", "SOILSAT", "UGDRNOFF", "SFCRNOFF", "CANWAT".
+                <br>long_range + forcing: N/A (long_range has no forcing files.)
+            </td>
+            <td>Yes.</td>
+            <td>Cannot be ommitted.</td>
+        </tr>
+        <tr>
+            <td>COMID</td>
+            <td>The identifier of the stream reach, reservoir, or grid cell for the forecast.</td>
+            <td>A numeric string. e.g. "12345678". If geometry=land, enter the grid south_north index followed by a comma and then the grid west_east index. e.g. "1357,2468"</td>
+            <td>Yes.</td>
+            <td>Cannot be ommitted.</td>
+        </tr>
+        <tr>
+            <td>lon</td>
+            <td>Longitude</td>
+            <td>A numeric string with a longitude coordinate in decimal degrees".</td>
+            <td>No.</td>
+            <td>Empty string.</td>
+        </tr>
+        <tr>
+            <td>lat</td>
+            <td>Latitude</td>
+            <td>A numeric string with a latitude coordinate in decimal degrees".</td>
+            <td>No.</td>
+            <td>Empty string.</td>
+        </tr>
+        <tr>
+            <td>startDate</td>
+            <td>The beginning date of the forecast.</td>
+            <td>A string of the form "YYYY-MM-DD"</td>
+            <td>Yes.</td>
+            <td>Cannot be ommitted.</td>
+        </tr>
+        <tr>
+            <td>endDate</td>
+            <td><i>Only applicable/valid if config=analysis_assim.</i><br>The ending date of the analysis assimilation.</td>
+            <td>A string of the form "YYYY-MM-DD" representing any date between "2016-06-09" and the current date.</td>
+            <td>No.</td>
+            <td>The endDate is the startDate plus one day.</td>
+        </tr>
+        <tr>
+            <td>time</td>
+            <td><i>Only applicable/valid if config=short_range or medium_range.</i><br>The UTC time of day at which the forecast is initialized, represented by an hour from 00 to 23. Time 00 corresponds to 12:00AM, and so forth up to time 23 for 11:00PM.
+            </td>
+            <td>Numeric string from 00 to 23. e.g. "00"
+            <br>short_range: 00, 01, 02 ...23.
+                <br>medium_range: 00, 06, 12, 18.</td>
+            <td>No.</td>
+            <td>"00"</td>
+        </tr>
+        <tr>
+            <td>lag</td>
+            <td><i>Only applicable/valid if config=long_range.</i><br>The time lag of the long range ensemble forecast.</td>
+            <td>The following strings: t00z, t06z, t12z. e.g. "t00z"</td>
+            <td>No</td>
+            <td>"t00z"</td>
+        </tr>
+        <tr>
+            <td>member</td>
+            <td><i>Only applicable/valid if config=long_range.</i><br>Represents the desired ensemble member of the long range forecast.</td>
+            <td>Numeric string between 1 and 4. e.g. "1".</td>
+            <td>No</td>
+            <td>"1"</td>
+        </tr>
+    </table>
+    <br>
+<h5>Example 1:</h5>
+Configuration: Analysis & Assimilation<br>
+Geometry: Land<br>
+Variable: SNOWH<br>
+Start Date:{{date_string_minus_2}}<br>
+End Date: {{date_string_minus_3}}<br>
+Cell Index/Location (south_north, west_east): 1635,2030<br>
+ <a href="https://apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=analysis_assim&geom=land&variable=SNOWH&COMID=1635,2030&startDate={{date_string_minus_3}}&endDate={{date_string_minus_2}}" target="_blank">
+     <code>https://apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=analysis_assim&geom=land&variable=SNOWH&COMID=1635,2030&startDate={{date_string_minus_3}}&endDate={{date_string_minus_2}}</code>
+ </a>
+<br>
+<h5>Example 2:</h5>
+Configuration: Short Range <br>
+Geometry: Forcing <br>
+Variable: RAINRATE <br>
+Date:{{date_string_minus_2}} <br>
+Timestamp: 04 <br>
+Cell Index/Location (south_north, west_east): 1636,2036<br>
+<a href="https://apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=short_range&geom=forcing&variable=RAINRATE&COMID=1636,2036&startDate={{date_string_minus_2}}&time=04" target="_blank">
+    <code>https://apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=short_range&geom=forcing&variable=RAINRATE&COMID=1636,2036&startDate={{date_string_minus_2}}&time=04</code>
+</a>
+<br>
+<h5>Example 3:</h5>
+Configuration: Medium Range <br>
+Geometry: Channel <br>
+Variable: streamflow <br>
+Date:{{date_string_minus_2}} <br>
+Timestamp: 06 <br>
+Channel COMID: 11359107<br>
+<a href="https://apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=medium_range&geom=channel_rt&variable=streamflow&COMID=11359107&startDate={{date_string_minus_2}}&time=06" target="_blank">
+    <code>https://apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=medium_range&geom=channel_rt&variable=streamflow&COMID=11359107&startDate={{date_string_minus_2}}&time=06</code>
+</a>
+<h5>Example 4:</h5>
+Configuration: Long Range <br>
+Geometry: Reservoir <br>
+Variable: inflow <br>
+Date:{{date_string_minus_2}} <br>
+Reservoir COMID: 3501837<br>
+Lag: t00z <br>
+<a href="https://apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=long_range&geom=reservoir&variable=inflow&COMID=3501837&startDate={{date_string_minus_2}}&lag=t00z" target="_blank">
+    <code>https://apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=long_range&geom=reservoir&variable=inflow&COMID=3501837&startDate={{date_string_minus_2}}&lag=t00z</code>
+</a>
+<br>
+<h3>Subsetting</h3>
+    <div style="font-size:110%">
+    Current UTC Date: {{date_string_today}} <br>
+    <b>Available Data for Subsetting</b><br>
+    Analysis & Assimilation: {{date_string_minus_oldest}} to {{date_string_today}}<br>
+    Short Range: {{date_string_minus_oldest}} to {{date_string_today}}<br>
+    Medium Range: {{date_string_minus_oldest}} to {{date_string_today}}<br>
+    Long Range: {{date_string_minus_oldest}} to {{date_string_today}}<br>
+    </div>
+    <br>
+   <br>
+Subsetting API has been changed to work asynchronously, which contain 3 endpoints:
+<br>
+1) <b>Submit a subsetting job:</b>
+<br>
+Send a <b>HTTP POST Request</b> with the following JSON payload to <b>/apps/nwm-forecasts/submit-subsetting-job/</b>.
+<br>
+<!--<img src="{% static 'nwm_forecasts/help/subsetting_json_payload.jpg' %}">-->
+<pre>
+    # prepare the data sent to api endpoint
+    JSON_payload = {
+        'subset_parameter': {
+            'config': "analysis_assim",  # AA: analysis_assim, SR: short_range, MR: medium_range, LR: long_range
+            'startDate': "2017-09-20",  # YYYY-MM-DD for SR, MR & LR; Also set 'endDate' for AA
+            'endDate': "2017-09-29",  # YYYY-MM-DD (only for AA)
+            'geom': "channel_rt",  # forcing, channel_rt, reservoir, land
+            'time': "00",  # 00, 01 ... 23 (only for SR, MR and LR)
+            'mem': "1",  # 1, 2, 3, 4 (LR ensemble member)
+            'merge': True  # True or False
+        },
+        'watershed_epsg': 4326,  # keep this unchanged as latest GeoJSON standard requires coordinates in WGS84/EPSG:4326 projection
+                                 # see: https://tools.ietf.org/html/rfc7946#section-4
+        'watershed_geometry': geojson_polygon_str_4326  # the polygon geojson string in WGS84/EPSG:4326 extracted from shapefile
+    }
+
+</pre>
+<br>
+Expected response: <br>
+{"job_id": JOB_ID, "status": JOB_STATUS}
+<br>
+<pre>
+<b>Get "latest" data without specifying "startDate", "endDate" or "time"</b>
+
+<b>For AA:</b>
+    a) Subset data starting from t00z of day "YYYY-MM-DD" to Today(UTC)'s latest data
+    "startDate": "YYYY-MM-DD"
+    "endDate": "latest
+
+    b) Subset data starting from t00z of the Xth day before Today to Today's latest data
+    "startDate": "X" # X is a number indicates the Xth day before today
+    "endDate": "latest
+
+    c) Subset latest data for Today(UTC) starting from t00z
+    "startDate": ""
+    "endDate": "latest"
+
+<b>For SR, MR, LR:</b>
+    Subset latest timestamp for Today(UTC), and parameter "time" is ignored
+    "startDate": "latest"
+</pre>
+<br>
+
+2) <b>Check job status:</b> <br>
+Send a <b>HTTP POST Request</b> with following JSON payload to <b>/apps/nwm-forecasts/check-subsetting-job-status/</b>.<br>
+{"job_id": JOB_ID} <br>
+Or send a <b>HTTP GET Request</b> with parameter "job_id" to <b>/apps/nwm-forecasts/check-subsetting-job-status/?job_id=JOB_ID</b>. <br>
+Expected response: <br>
+{"status": JOB_STATUS} <br>
+If the value of 'status' is 'SUCCESS', it means the job is done.
+<br>
+<br>
+3) <b>Retrieve subetting results: </b><br>
+Send a <b>HTTP POST Request</b> with following JSON payload to <b>/apps/nwm-forecasts/download-subsetting-results/</b>.<br>
+{"job_id": JOB_ID} <br>
+Or send a <b>HTTP GET Request</b> with parameter "job_id" to <b>/apps/nwm-forecasts/download-subsetting-results/?job_id=JOB_ID</b>.<br>
+Expected response: subsetting results in one zip file
+<br>
+<a href="{% static 'nwm_forecasts/help/subsetting_api_demo.py' %}" download>Download Demo Script</a>
+<br>
+<br>
+<br>
+<b>Other API Endpoints:</b>
+<br>
+4) <b>Latest data list: get a list of the "latest" data for subsetting operation </b>
+<br>
+Send a <b>GET Request</b> to <b>/apps/nwm-forecasts/latest-data-info</b>
+<br>
+Expected response:
+<br>
+<pre>
+   {
+   "short_range.forcing":{
+      "date":"20171004",
+      "time":"12"
+   },
+   "analysis_assim.forcing":{
+      "date":"20171004",
+      "time":"13"
+   },
+   "analysis_assim.land":{
+      "date":"20171004",
+      "time":"14"
+   },
+   "analysis_assim.terrain_rt":{
+      "date":"20171004",
+      "time":"14"
+   },
+   "medium_range.land":{
+      "date":"20171004",
+      "time":"06"
+   },
+   "checked_at_utc":"20171004-15:10:43",
+   "long_range.land.mem1":{
+      "date":"20171003",
+      "time":"18"
+   },
+   "analysis_assim.channel_rt":{
+      "date":"20171004",
+      "time":"14"
+   },
+   "short_range.reservoir":{
+      "date":"20171004",
+      "time":"12"
+   },
+   "long_range.land.mem4":{
+      "date":"20171004",
+      "time":"00"
+   },
+   "medium_range.forcing":{
+      "date":"20171004",
+      "time":"06"
+   },
+   "long_range.land.mem3":{
+      "date":"20171004",
+      "time":"00"
+   },
+   "medium_range.terrain_rt":{
+      "date":"20171004",
+      "time":"06"
+   },
+   "medium_range.channel_rt":{
+      "date":"20171004",
+      "time":"06"
+   },
+   "long_range.channel_rt.mem1":{
+      "date":"20171003",
+      "time":"18"
+   },
+   "long_range.reservoir.mem4":{
+      "date":"20171004",
+      "time":"00"
+   },
+   "long_range.reservoir.mem1":{
+      "date":"20171003",
+      "time":"18"
+   },
+   "long_range.reservoir.mem3":{
+      "date":"20171004",
+      "time":"00"
+   },
+   "long_range.reservoir.mem2":{
+      "date":"20171004",
+      "time":"00"
+   },
+   "long_range.channel_rt.mem4":{
+      "date":"20171004",
+      "time":"00"
+   },
+   "long_range.land.mem2":{
+      "date":"20171004",
+      "time":"00"
+   },
+   "analysis_assim.reservoir":{
+      "date":"20171004",
+      "time":"14"
+   },
+   "short_range.terrain_rt":{
+      "date":"20171004",
+      "time":"12"
+   },
+   "long_range.channel_rt.mem3":{
+      "date":"20171004",
+      "time":"00"
+   },
+   "long_range.channel_rt.mem2":{
+      "date":"20171004",
+      "time":"00"
+   },
+   "medium_range.reservoir":{
+      "date":"20171004",
+      "time":"06"
+   },
+   "short_range.channel_rt":{
+      "date":"20171004",
+      "time":"12"
+   },
+   "short_range.land":{
+      "date":"20171004",
+      "time":"12"
+   }
+}
+</pre>
+<br>
+<br>
+5) <b>Spatial Query: check what NWM features are covered by a polygon</b>
+<br>
+Send a <b>HTTP POST Request</b> with the following JSON payload to <b>/apps/nwm-forecasts/spatial-query/</b>.
+<br>
+<pre>
+    # prepare the data sent to api endpoint
+    JSON_payload = {
+        'watershed_epsg': 4326,  # keep this unchanged as latest GeoJSON standard requires coordinates in WGS84/EPSG:4326 projection
+                                 # see: https://tools.ietf.org/html/rfc7946#section-4
+        'watershed_geometry': geojson_polygon_str_4326  # the polygon geojson string in WGS84/EPSG:4326 extracted from shapefile
+    }
+</pre>
+<br>
+<b>Expected Response:</b>
+<br>
+<pre>
+{
+   u'status':u'success',
+   u'stream':{
+      u'count':812,
+      u'comids':[
+         1469236,
+         1469238,
+         ....
+         1439171,
+         1438481,
+         1438553
+      ]
+   },
+   u'reservoir':{
+      u'count':2,
+      u'comids':[
+         120053035,
+         1437333
+      ]
+   },
+   u'grid_terrain':{
+      u'minX':9615,
+      u'minY':3093,
+      u'maxX':10023,
+      u'maxY':3392
+   },
+   u'time_elapsed':2.3506100177764893,
+   u'grid_land':{
+      u'minX':2403,
+      u'minY':773,
+      u'maxX':2505,
+      u'maxY':848
+   }
+}
+</pre>
+<br>
+
+{% endblock %}
+
+{% block content_dependent_styles %}
+  <link href="{% static 'nwm_forecasts/css/main.css' %}" rel="stylesheet"/>
+  <link href="{% static 'nwm_forecasts/css/api_page.css' %}" rel="stylesheet"/>
+
+{% endblock %}
+
+{% block app_actions %}
+{% endblock %}

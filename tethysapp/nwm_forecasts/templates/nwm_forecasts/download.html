@@ -1,0 +1,123 @@
+{% extends "nwm_forecasts/base.html" %}
+
+{% load tethys_gizmos %}
+{% load staticfiles %}
+
+{% block app_navigation_items %}
+{{ block.super }}
+<li title="retrieve/view time series data for a single reach/reservoir/cell"><a href="{% url 'nwm_forecasts:home' %}">Home</a></li>
+<li title="subset NWM outputs by watershed polygon" class="active"><a href="">Subset</a></li>
+<br>
+
+{% if hs_ready|lower == "true" %}
+<button id="watershedBtn" type="button" title="add a watershed polygon to map" class="btn btn-primary" data-toggle="modal" data-target="#popup-load-watershed">Add Watershed</button>
+<br><br>
+{% endif %}
+
+<form id="paramForm" method="get">
+
+    <div class="form-group ">
+        <label class="control-label" for="config" title="Select a model configuration">Configuration</label>
+        <select id="config" class="form-control" name="config">
+            <option value="analysis_assim" title="0-3 hrs forecast (per hr)">Analysis and Assimilation</option>
+            <option value="short_range" selected="selected" title="0-18 hrs forecast duration (per hr)">Short Range</option>
+            <option value="medium_range" title="0-10 days forecast duration (4 run/day)">Medium Range</option>
+            <option value="long_range" title="0-30 days forecast duration (4 run/day)">Long Range</option>
+        </select>
+    </div>
+
+    <div class="form-group ">
+        <label class="control-label" for="geom" title="NWM outputs are stored in 4 files">Geometry</label>
+        <select id="geom" class="form-control" name="geom">
+            <option value="channel_rt" selected="selected" title="stream routing point-type file">Channel</option>
+            <option value="land" title="land surface 1km gridded file">Land</option>
+            <option value="reservoir" title="reservoir point-type file">Reservoir</option>
+            <option value="forcing" title="1km gridded forcing file">Forcing</option>
+        </select>
+    </div>
+
+    {% gizmo date_picker start_date %}
+
+    <div class="form-group">
+        <label class="control-label" for="time" title="Model initialization time (UTC)">Initialization Time
+            (UTC)</label>
+        <select id="time" class="form-control" name="time">
+            <option value="00">00:00</option>
+            <option value="01">01:00</option>
+            <option value="02">02:00</option>
+            <option value="03">03:00</option>
+            <option value="04">04:00</option>
+            <option value="05">05:00</option>
+            <option value="06">06:00</option>
+            <option value="07">07:00</option>
+            <option value="08">08:00</option>
+            <option value="09">09:00</option>
+            <option value="10">10:00</option>
+            <option value="11">11:00</option>
+            <option value="12">12:00</option>
+            <option value="13">13:00</option>
+            <option value="14">14:00</option>
+            <option value="15">15:00</option>
+            <option value="16">16:00</option>
+            <option value="17">17:00</option>
+            <option value="18">18:00</option>
+            <option value="19">19:00</option>
+            <option value="20">20:00</option>
+            <option value="21">21:00</option>
+            <option value="22">22:00</option>
+            <option value="23">23:00</option>
+        </select>
+    </div>
+
+    <div id="timeLag" class="hidden">
+        <label title="Time lag for Long Range configuration">Time lag</label>
+        <div class="row">
+            <div class="col-md-1">
+                <p>00z</p>
+            </div>
+            <div class="col-md-4">
+                {% gizmo toggle_switch longRangeLag00 %}
+            </div>
+            <div class="col-md-1">
+                <p>06z</p>
+            </div>
+            <div class="col-md-4">
+                {% gizmo toggle_switch longRangeLag06 %}
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-1">
+                <p>12z</p>
+            </div>
+            <div class="col-md-4">
+                {% gizmo toggle_switch longRangeLag12 %}
+            </div>
+            <div class="col-md-1">
+                <p>18z</p>
+            </div>
+            <div class="col-md-4">
+                {% gizmo toggle_switch longRangeLag18 %}
+            </div>
+        </div>
+    </div>
+
+    <label id="endDateLabel" class="control-label hidden" for="endDate">End Date</label>
+    {% gizmo date_picker end_date %}
+</form>
+
+{% if hs_ready|lower == "true" %}
+<br>
+<!--<input type="checkbox" id="chkbox-subset-merge" name="chkbox-subset-merge">Merge results<br>-->
+<input type="checkbox" id="chkbox-upload-subset-to-hs" name="chkbox-upload-subset-to-hs" title="upload subsetting results to hydroshare">Upload to HydroShare<br>
+<br>
+{%endif%}
+<button id="subsetBtn" type="button" class="btn btn-primary" title="subset this watershed and download results" disabled>Download</button>
+<div id="subset_watershed_loading" class="hidden" disabled><img src="/static/nwm_forecasts/images/loading-animation.gif"></div>
+
+{% endblock%}
+
+{% block app_content %}
+  <div id="map-view" class="noGraph full-map-view"></div>
+  <!--<div id="mouse-position"></div>-->
+  <div id="popup" class="noGraph"></div>
+{% endblock %}

@@ -2,8 +2,6 @@
 
 {% load staticfiles %}
 
-{% load tethys_gizmos %}
-
 {% block title %}- {{ tethys_app.name }}{% endblock %}
 
 {% block app_icon %}
@@ -11,98 +9,20 @@
   <img src="{% static tethys_app.icon %}">
 {% endblock %}
 
-{% block exit_button_override %}
-  <div class="exit-button" style="display: flex; display: -webkit-flex;">
-    <a href="javascript:void(0);" onclick="TETHYS_APP_BASE.exit_app('https://apps.hydroshare.org/apps/nwm-data-explorer/api/');" style="margin-right: 20px;">API</a>
-    <a href="javascript:void(0);" onclick="TETHYS_APP_BASE.exit_app('{% url 'app_library' %}');">Exit</a>
-  </div>
-{% endblock %}
-
 {# The name you provided in your app.py is accessible through the tethys_app.name context variable #}
 {% block app_title %}{{ tethys_app.name }}{% endblock %}
 
+
+{% block exit_button_override %}
+  <div class="my-exit-button">
+      <a href="javascript:void(0);" onclick="if(!window.location.href.includes('/subset/')) {$('#welcome-popup').modal('show');}else{$('#welcome-popup-subset').modal('show');}">Help</a>
+      <a href="javascript:void(0);" onclick="TETHYS_APP_BASE.exit_app('{% url 'nwm_forecasts:api_page' %}');" >API</a>
+      <a href="javascript:void(0);" onclick="TETHYS_APP_BASE.exit_app('{% url 'app_library' %}');">Exit</a>
+  </div>
+{% endblock %}
+
+
 {% block app_navigation_items %}
-  <button id="watershedBtn" type="button" class="btn btn-primary" data-toggle="modal" data-target="#popup-load-watershed">Add Watershed</button>
-  <br /><br />
-  <form id="paramForm" method="get" action="{% url 'nwm_forecasts:home' %}">
-    {% gizmo select_input config_input %}
-    {% gizmo select_input geom_input %}
-    <div class="form-group ">
-      <label class="control-label" for="variable">Enter Variable</label>
-      <select id="variable" class="form-control" name="variable">
-        <option id="streamVar" value="streamflow" selected>Streamflow</option>
-        <option id="velocVar" value="velocity">Velocity</option>
-        <option id="infVar" value="inflow" class="hidden">Inflow</option>
-        <option id="outfVar" value="outflow" class="hidden">Outflow</option>
-        <option id="snowhVar" value="SNOWH" class="hidden">Snow Depth</option>
-        <option id="sneqVar" value="SNEQV" class="hidden">Snow Water Equivalent</option>
-        <option id="snowcVar" value="FSNO" class="hidden">Snow-cover</option>
-        <option id="etVar" value="ACCET" class="hidden">Accumulated Total ET</option>
-        <option id="ssVar" value="SOILSAT_TOP" class="hidden">Near Surface Soil Saturation</option>
-        <option id="avsnowVar" value="SNOWT_AVG" class="hidden">Average Snow Temperature</option>
-        <option id="subrunoffVar" value="UGDRNOFF" class="hidden">Accumulated Groundwater Runoff</option>
-        <option id="runoffVar" value="SFCRNOFF" class="hidden">Accumulated Surface Runoff</option>
-        <option id="evapVar" value="ACCECAN" class="hidden">Accumulated Canopy Evaporation</option>
-        <option id="soiltVar" value="SOIL_T" class="hidden">Soil Temperature</option>
-        <option id="soilmVar" value="SOIL_M" class="hidden">Volumetric Soil Moisture</option>
-        <option id="canwVar" value="CANWAT" class="hidden">Total Canopy Water</option>
-        <option id="ssiVar" value="SOILSAT" class="hidden">Soil Saturation (Column integrated)</option>
-      </select>
-    </div>
-    <div id="comidDiv">
-      <label class="control-label" for="comidInput">Enter COMID</label>
-      <input id="comidInput" name="COMID" type="text" class="form-control form-group" data-toggle="tooltip"
-             data-placement="top" title="Select stream reach from map or enter manually">
-    </div>
-    <div id="gridDiv" class="hidden">
-      <label class="control-label" for="gridInputY">Enter Grid Cell South-North Value</label>
-      <input id="gridInputY" name="Y" type="text" class="form-control form-group" disabled>
-      <label class="control-label" for="gridInputX">Enter Grid Cell West-East Value</label>
-      <input id="gridInputX" name="X" type="text" class="form-control form-group" disabled>
-    </div>
-    <input id="longInput" name="longitude" type="text" value="-98" class="hidden">
-    <input id="latInput" name="latitude" type="text" value="38.5" class="hidden">
-
-    {% gizmo date_picker start_date %}
-    {% gizmo select_input start_time %}
-
-    <div id="timeLag" class="hidden">
-      <label>Time lag</label>
-      <div class="row">
-        <div class="col-md-1">
-          <p>00z</p>
-        </div>
-        <div class="col-md-4">
-          {% gizmo toggle_switch longRangeLag00 %}
-        </div>
-        <div class="col-md-1">
-          <p>06z</p>
-        </div>
-        <div class="col-md-4">
-          {% gizmo toggle_switch longRangeLag06 %}
-        </div>
-      </div>
-      <div class="row">
-        <div class="col-md-1">
-          <p>12z</p>
-        </div>
-        <div class="col-md-4">
-          {% gizmo toggle_switch longRangeLag12 %}
-        </div>
-        <div class="col-md-1">
-          <p>18z</p>
-        </div>
-        <div class="col-md-4">
-          {% gizmo toggle_switch longRangeLag18 %}
-        </div>
-      </div>
-    </div>
-
-    <label id="endDateLabel" class="control-label hidden" for="endDate">Enter Ending Date</label>
-    {% gizmo date_picker end_date %}
-    <input type="text" id="input-watershed-id" name="watershed" hidden>
-  </form>
-  {% gizmo button submit_button %}
 
 {% endblock %}
 
@@ -115,7 +35,7 @@
 {% block content_dependent_styles %}
   {{ block.super }}
   <link href="{% static 'nwm_forecasts/css/main.css' %}" rel="stylesheet"/>
-  <link href="{% static 'nwm_forecasts/vendor/openlayers3.8.2/ol.css' %}" rel="stylesheet"/>
+  <link href="{% static 'nwm_forecasts/vendor/openlayers3.20.1/ol.css' %}" rel="stylesheet"/>
 {% endblock %}
 
 {% block scripts %}
@@ -124,19 +44,316 @@
   <script src="{% static 'nwm_forecasts/js/hydroshare.js' %}" type="text/javascript"></script>
   <script src="{% static 'nwm_forecasts/vendor/projection_libs/proj4.js' %}" type="text/javascript"></script>
   <script src="{% static 'nwm_forecasts/vendor/projection_libs/reproject.js' %}" type="text/javascript"></script>
-  <script src="{% static 'nwm_forecasts/vendor/openlayers3.8.2/ol.js' %}" type="text/javascript"></script>
+  <script src="{% static 'nwm_forecasts/vendor/openlayers3.20.1/ol.js' %}" type="text/javascript"></script>
   <script src="{% static 'nwm_forecasts/vendor/highcharts4.1.7/hc.js' %}" type="text/javascript"></script>
   <script src="{% static 'nwm_forecasts/vendor/highcharts4.1.7/exporting.js' %}" type="text/javascript"></script>
   <script src="{% static 'nwm_forecasts/vendor/highcharts4.1.7/export-csv.js' %}" type="text/javascript"></script>
-  <script src="{% static 'nwm_forecasts/vendor/WATERS/WATERSServices-1.0.0-min.js' %}"></script>
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDPgvDUpbEwcbg9C0cRTfDtDa-Vj4WBwI0" type="text/javascript"></script>
-  {% if watershed %}
-    {% if watershed.success %}
-      <script>
-        $(function () {
-          addGeojsonLayerToMap('{{watershed.geojson_str}}', '{{watershed.proj_str}}', '{{ watershed.id }}', false);
-        });
-      </script>
-    {% endif %}
-  {% endif %}
+{% endblock %}
+
+{% block app_content_wrapper_override %}
+
+<div id="hs_username" class="hidden">{{hs_username}}</div>
+<div id="date_string_today" class="hidden">{{date_string_today}}</div>
+<div id="date_string_oldest" class="hidden">{{date_string_oldest}}</div>
+<div id="date_string_AA_oldest" class="hidden">{{date_string_AA_oldest}}</div>
+
+<!-- Home help popup -->
+<div class="modal fade" id="welcome-popup" role="dialog">
+  <div class="modal-dialog">
+    <div class="modal-content" style="width: 150%;">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <center><h4 class="modal-title">National Water Model Forecast Viewer Guide</h4></center>
+      </div>
+      <div class="modal-body">
+        <div id="welcome-info">
+          <ol>
+            <b>About the App</b>
+          <p><span class="sub">Users can obtain forecasts of different hydrologic variables available from any of the
+            associated National Hydrography Datasets (e.g., channel, rivers, land surface grids, reservoir).</span></p>
+
+              <b>Current UTC Date:</b> {{date_string_today}} <br>
+            <b>Available Data:</b><br>
+              <ol>
+                Analysis & Assimilation: {{date_string_AA_oldest}} to {{date_string_today}}<br>
+                Short Range: {{date_string_oldest}} to {{date_string_today}}<br>
+                Medium Range: {{date_string_oldest}} to {{date_string_today}}<br>
+                Long Range: {{date_string_oldest}} to {{date_string_today}}<br>
+              </ol>
+              <br>
+              <b>How to View Forecast</b>
+              <li class="modalList"><b>Add Watershed (optional)</b> - Add a watershed polygon from HydroShare or local files</li>
+              <li class="modalList"><b>*Configuration</b> - Select a forecast range: Short, Medium, Long, or Analyis & Assimilation</li>
+              <li class="modalList"><b>*Geometry</b> - Select a geometry: Channel, Land, Reservoir or Forcing</li>
+              <li class="modalList"><b>*Variable</b> - Select a variable: This list will change depending on the type of geometry</li>
+              <li class="modalList"><b>*COMID</b> - Click a feature on the map: Clicking on a feature( stream/reservoir/cell) will populate this
+                field (you may need to zoom in to be able to see some features). If you know the ID you can enter it directly</li>
+              <li class="modalList"><b>Date and Time</b> - Select a date: The date and time options will vary depending on the forecast type</li>
+              <li class="modalList"><b>View Forecast</b> - Click 'View Forecast' button</li>
+          </ol>
+        </div>
+          *More about NWM and its terminology: <a target="_blank" href="http://water.noaa.gov/about/nwm">View Here</a>
+      </div>
+      <div class="modal-footer">
+        <div class="byu-logo-container">
+          <span><i>Developed at the BYU Hydroinformatics Lab</i></span>
+          <img src="{% static 'nwm_forecasts/images/byu-logo.png' %}"/>
+        </div>
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        <!--<input type="checkbox" name="help-page-checkbox" id="help-page-checkbox" onclick="sessionStorage.welcome_popup_checkbox=this.checked;" >Display Help page at startup<br>-->
+      </div>
+    </div>
+  </div>
+</div>
+<!-- End Modal -->
+
+<!-- Subset Help popup-->
+<div class="modal fade" id="welcome-popup-subset" role="dialog">
+  <div class="modal-dialog">
+    <div class="modal-content" style="width: 150%;">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <center><h4 class="modal-title">National Water Model Forecast Viewer Guide</h4></center>
+      </div>
+      <div class="modal-body">
+        <div >
+          <ol>
+            <b>About Subsetting</b>
+          <p>
+              <span class="sub">Users can subset NWM outputs (NetCDF files) by a watershed polygon to get 'shrunken' NetCDFs that only contain data for this specific area.</span>
+          </p>
+              <b>Current UTC Date:</b> {{date_string_today}} <br>
+            <b>Available Data for Subsetting:</b>
+              <br>
+              <ol>
+                Analysis & Assimilation: {{date_string_oldest}} to {{date_string_today}}<br>
+                Short Range: {{date_string_oldest}} to {{date_string_today}}<br>
+                Medium Range: {{date_string_oldest}} to {{date_string_today}}<br>
+                Long Range: {{date_string_oldest}} to {{date_string_today}}<br>
+              </ol>
+              <br>
+              <b>How to Subset a Watershed</b>
+              <li class="modalList"><b>Add Watershed</b> - Add a watershed polygon from HydroShare or local files</li>
+              <li class="modalList"><b>*Configuration</b> - Select a forecast range: Short, Medium, Long, or Analyis & Assimilation</li>
+              <li class="modalList"><b>*Geometry</b> - Select a geometry: Channel, Land, Reservoir or Forcing</li>
+              <li class="modalList"><b>Date and Time</b> - Select a date: The date and time options will vary depending on the forecast type</li>
+              <li class="modalList"><b>Upload to HydroShare (optional)</b> - Check 'Upload to HydroShare' to create a HydroShare resource for subsetted netcdfs </li>
+              <li class="modalList"><b>Download subsetting results</b> - Click 'Download' button</li>
+          </ol>
+        </div>
+          *More about NWM and its terminology: <a target="_blank" href="http://water.noaa.gov/about/nwm">View Here</a>
+      </div>
+      <div class="modal-footer">
+        <div class="byu-logo-container">
+          <span><i>Developed at the BYU Hydroinformatics Lab</i></span>
+          <img src="{% static 'nwm_forecasts/images/byu-logo.png' %}"/>
+        </div>
+        <button type="button" class="btn btn-default"  data-dismiss="modal">Close</button>
+        <!--<input type="checkbox" name="help-page-checkbox" id="help-page-checkbox" onclick="sessionStorage.welcome_popup_checkbox=this.checked;" >Display Help page at startup<br>-->
+      </div>
+    </div>
+  </div>
+</div>
+<!-- End Modal -->
+
+<div id="popup-add-local-watershed" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">Add Local File</h4>
+                </div>
+                <div class="modal-body">
+                    <h5>1. Choose where to store files:</h5>
+                    <div id="projNotSavedInfo" class="alert-danger" hidden>
+                        Your project is not currently saved. Please save the project or choose to store files in a
+                        unique resource.
+                    </div>
+                    <label for="storeFiles-Proj">In project resource (project must be saved)</label>
+                    <input type="radio" name="store-local-files" id="storeFiles-Proj" value="project">
+                    <label for="storeFiles-Res">In unique resource (create new resource)</label>
+                    <input type="radio" name="store-local-files" id="storeFiles-Res" value="resource" checked>
+                    <fieldset id="fields-newRes">
+                        <div class="form-group">
+                            <label for="resType" class="control-label">Resource Type:</label>
+                            <select id="resType">
+                                <option value="GenericResource">Generic</option>
+                                <option value="RasterResource">Raster</option>
+                                <option value="GeographicFeatureResource">Geographic Feature</option>
+                                <option value="ScriptResource">Script</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="resTitle" class="control-label">Resource Title:</label>
+                            <input type="text" class="form-control resField" id="resTitle">
+                        </div>
+                        <div class="form-group">
+                            <label for="resAbstract" class="control-label">Resource Abstract:</label>
+                            <textarea rows="6" cols="50" id="resAbstract" class="form-control resField"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="resKeywords" class="control-label">Resource Keywords:</label>
+                            <input type="text" class="form-control resField" id="resKeywords">
+                        </div>
+                    </fieldset>
+                    <h5>2. Choose files:</h5>
+                    <input id="input-files" type="file">
+                    <br>
+                    <div id="msg-file" class="hidden"></div>
+                </div>
+                <div class="modal-footer">
+                    <div class="button-group flex1-0">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                        <button type="button" id="btn-upload-file" class="btn btn-default btn-upload" disabled>Add</button>
+                    </div>
+                </div>
+            </div>
+            <!--End modal content-->
+        </div>
+</div>
+    <!--End modal-->
+
+  <!-- Modal1  -->
+  <div class="modal fade" id="popup-load-watershed" role="dialog">
+    <div class="modal-dialog">
+      <div class="modal-content" style="width: 150%;">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+          <h4 class="modal-title">Add a watershed from HydroShare</h4>
+          <h8> Loading resources owned by you: </h8>
+            <br>
+          <h9> 1) Geographic Feature resource has a Polygon with valid projection</h9>
+             <br>
+          <h9> 2) Generic resource has a *.geojson file in WGS84/EPSG:4326 projection, and has "watershed" as its resource keyword</h9>
+            <br>
+        </div>
+        <div class="modal-body">
+          <b>Searching for available watersheds on HydroShare...</b>
+          <br>
+          <img src="/static/nwm_forecasts/images/loading-animation.gif">
+        </div>
+        <div class="modal-footer">
+          <!--<button type="button" class="btn btn-default" id="close-popup" data-dismiss="modal">Close</button>-->
+            <div style="text-align: left;">
+            <input id="input-local-watershed" style="display: inline-block" accept=".shp,.shx,.prj,.dbf,.geojson" type="file" onchange="if(this.files.length>0){$('#btn-load-watershed').removeAttr('disabled');var fn =this.files[0].name;$('#hs-shp-resource-title').val(fn.substring(0, fn.indexOf('.')));}" multiple="true">
+            <input type="checkbox" id="add-local-shp-hs-checkbox" onclick="if($('#input-local-watershed')[0].files.length>0){if(this.checked){$('#hs-shp-resource-title-div').removeClass('hidden')}else{$('#hs-shp-resource-title-div').addClass('hidden')}}" >Add to HydroShare
+                <div id="hs-shp-resource-title-div" class="hidden">
+                    <label for="hs-shp-resource-title" class="control-label">*Resource Title:</label>
+                    <input type="text" class="form-control" style="width: 50%; display: inline-block" id="hs-shp-resource-title">
+                </div>
+            </div>
+
+            <button type="button" id="btn-load-watershed-refresh" class="btn btn-default" onclick="getHSWatershedList(true);">Refresh</button>
+            <button type="button" id="btn-load-watershed" class="btn btn-default" disabled>Add</button>
+
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- End Modal -->
+
+  <!-- Modal2  -->
+  <div class="modal fade" id="hydroshare-modal" tabindex="-1" role="dialog" aria-labelledby="AddHydroshareResource">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+          <h6 class="modal-title">Share this Time Series on HydroShare (*Required)</h6>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="resource-title" class="control-label">*Resource Title:</label>
+            <input type="text" class="form-control" id="resource-title">
+          </div>
+          <!--<form action="">-->
+          <div class="form-group">
+            <label for="staticTS">
+              <input id="staticTS" type="radio" name="time_period" value="current" checked> Static time series
+            </label><br />
+            <label for="dynamicTS">
+              <input id="dynamicTS"type="radio" name="time_period" value="preceding"> Dynamic time series
+            </label><br />
+            <div class="form-group" id="time_selection" hidden>
+              <form class="form-inline">
+                Always retrieve data for the most recent:
+                <input type="text" class="form-control" name="period" onkeypress='return event.charCode >= 48 && event.charCode <= 57'
+                data-toggle="tooltip" data-placement="top" title="" data-original-title="Input must be a number">
+                <select id="time_period_units" class="form-control">
+                  <option value="h">Hour(s)</option>
+                  <option value="d">Day(s)</option>
+                  <option value="m">Month(s)</option>
+                </select>
+              </form>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="resource-abstract" class="control-label">*Resource Abstract:</label>
+            <textarea rows="6" cols="50" id="resource-abstract" class="form-control"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="resource-keywords" class="control-label">*Resource Keywords:</label>
+            <input type="text" class="form-control" id="resource-keywords">
+          </div>
+          <div class="form-group">
+            <input type="checkbox" id="resource-public" checked> Make It Public<br>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <div id="display-status" class="col-md-8"></div>
+          <div id="footer-buttons" class="col-md-4">
+            <button type="button" class="btn btn-default footer" data-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary footer" id="hydroshare-proceed">Proceed</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- End Modal -->
+
+
+<!-- Modal3  Add subset NWM netcdf to Hydroshare -->
+<div class="modal fade" id="hydroshare-subset" tabindex="-1" role="dialog" aria-labelledby="AddHydroshareResource">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" onclick="$('#subsetBtn, #watershedBtn, #submitBtn').removeAttr('disabled');"
+                        aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h6 class="modal-title">Upload subsetting result to HydroShare</h6>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="resource-title-subset" class="control-label">*Resource Title:</label>
+                    <input type="text" class="form-control" id="resource-title-subset">
+                </div>
+                <!--<div class="form-group">-->
+                    <!--<label for="resource-type-subset" class="control-label">*Resource Type:</label>-->
+                    <!--<select class="form-control" id="resource-type-subset">-->
+                        <!--<option>CompositeResource</option>-->
+                        <!--<option>GenericResource</option>-->
+                        <!--&lt;!&ndash;<option>NetcdfResource</option>&ndash;&gt;-->
+                    <!--</select>-->
+                <!--</div>-->
+                <div class="form-group">
+                    <label for="resource-abstract-subset" class="control-label">*Resource Abstract:</label>
+                    <textarea rows="6" cols="50" id="resource-abstract-subset" class="form-control"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="resource-keywords-subset" class="control-label">*Resource Keywords (Separate each keyword with a comma):</label>
+                    <input type="text" class="form-control" id="resource-keywords-subset">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div id="display-status-subset" class="col-md-8"></div>
+                <div id="footer-buttons-subset" class="col-md-4">
+                    <!--<button type="button" class="btn btn-default footer" data-dismiss="modal" onclick="clearUploadForm()">Close</button>-->
+                    <button type="button" class="btn btn-primary footer" id="hydroshare-proceed-subset" onclick="subset_watershed_hydroshare()">Proceed</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+  <!-- End Modal -->
+{{block.super}}
 {% endblock %}

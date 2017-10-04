@@ -13,8 +13,17 @@ p {
     width: 270px;
 }
 
-#map-view {
+#subsetBtn, #watershedBtn {
+    width: 270px;
+}
+
+.map-view {
     height: 400px;
+    width: 100%;
+}
+
+.full-map-view {
+    height: 100%;
     width: 100%;
 }
 
@@ -37,4 +46,59 @@ p {
 }
 #tbl-watersheds td, #tbl-watersheds th {
     padding: 10px;
+}
+
+.byu-logo-container {
+    float: left;
+    position: absolute;
+    bottom: 8px; //8
+}
+.byu-logo-container img {
+    float: left;
+    height: 50px; //50
+    width: 50px; //50
+}
+.byu-logo-container span {
+    position: relative;
+    top: 25px; //25px
+    margin-left: 10px;
+}
+
+.error {
+    background-color: red;
+    color: white;
+    text-align: center;
+    border-radius: 4%;
+}
+.uploading {
+    background-color: yellow;
+    color: darkblue;
+    text-align: center;
+}
+.success {
+    background-color: green;
+    color: white;
+    text-align: center;
+    border-radius: 4%;
+}
+
+.my-exit-button {
+  display: flex;
+  margin-right: 50px;
+  margin-top: 26px;
+  position: relative;
+  right: 100px;
+}
+
+.my-exit-button a {
+  display: block;
+  padding: 10px 20px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+    margin-right: 20px;
 }
