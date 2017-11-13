@@ -73,6 +73,8 @@ db_file_path = "/nwm.sqlite"
 # full path to original NWM output folder (for subsetting)
 netcdf_folder_path = "/projects/water/nwm/data/nomads/"
 
+# how many days of data is stored in nomads folder
+nomads_data_days = 40
 
 nwm_viewer_subsetting_soft_time_limit = int(getattr(settings, "NWM_VIEWER_SUBSETTING_SOFT_TIME_LIMIT", 1200)) # in seconds
 nwm_viewer_subsetting_time_limit = int(getattr(settings, "NWM_VIEWER_SUBSETTING_TIME_LIMIT", 1800))  # in seconds
@@ -87,7 +89,7 @@ def _get_current_utc_date():
         return "2017-04-19", "2017-04-19", "2017-04-19", "2017-04-19"
 
     date_string_today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
-    date_string_oldest = (datetime.datetime.utcnow() + datetime.timedelta(days=-30)).strftime("%Y-%m-%d")
+    date_string_oldest = (datetime.datetime.utcnow() + datetime.timedelta(days=-1*nomads_data_days)).strftime("%Y-%m-%d")
     date_string_minus_2 = (datetime.datetime.utcnow() + datetime.timedelta(days=-2)).strftime("%Y-%m-%d")
     date_string_minus_3 = (datetime.datetime.utcnow() + datetime.timedelta(days=-3)).strftime("%Y-%m-%d")
 
@@ -1281,7 +1283,7 @@ def _check_latest_data():
     nomads_root = netcdf_folder_path
 
     # get latest date:
-    r = re.compile(r"nwm.20\d\d\d\d\d\d")
+    r = re.compile(r"nwm\.20\d\d\d\d\d\d")
     dir_name_list = filter(lambda x: os.path.isdir(os.path.join(nomads_root, x)) and r.match(x),
                            os.listdir(nomads_root))
     dir_name_list.sort(key=lambda x: int(x.split('.')[1]), reverse=True)

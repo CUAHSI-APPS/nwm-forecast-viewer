@@ -81,7 +81,8 @@ $('#config').on('change', function ()
         // set earliest date user can select
         if (window.location.href.includes("/subset"))
         {
-            $('#startDate').datepicker("setStartDate", $("#date_string_oldest").html());
+           // $('#startDate').datepicker("setStartDate", $("#date_string_oldest").html());
+            $('#startDate').datepicker("setStartDate", "2017-05-09");
         }
         else
         {
