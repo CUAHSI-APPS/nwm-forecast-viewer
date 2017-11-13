@@ -83,6 +83,7 @@ $('#config').on('change', function ()
         {
            // $('#startDate').datepicker("setStartDate", $("#date_string_oldest").html());
             $('#startDate').datepicker("setStartDate", "2017-05-09");
+            $('#endDate').datepicker("setStartDate", "2017-05-09");
         }
         else
         {
@@ -1954,12 +1955,12 @@ function _prepare_watershed_data()
         merge: merge_netcdf
     };
 
-    // analysis_assim date range no more than 3 days
+    // analysis_assim date range no more than 7 days
     if (parameter.config == "analysis_assim")
     {
-        if (!_check_datetime_range($("#startDate").val(), $("#endDate").val(), 3))
+        if (!_check_datetime_range($("#startDate").val(), $("#endDate").val(), 7))
         {
-            alert("Invalid start/end date; You may subset Analysis & Assimilation data for 3 days or less");
+            alert("Invalid start/end date; You may subset Analysis & Assimilation data for 7 days or less");
             $("#subsetBtn, #watershedBtn, #submitBtn").removeAttr('disabled');
             return;
         }
