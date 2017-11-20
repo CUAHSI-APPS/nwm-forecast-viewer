@@ -124,16 +124,16 @@
     </div>
 
     <div id="timeLag" class="hidden">
-        <label title="Time lag for Long Range configuration">Time lag</label>
+        <label title="Long Range Forecast runs 4 cycles per day (every 6 hours). Each cycle has 4 ensemble members.">Ensemble Forecast Cycle Initialization Time (UTC)</label>
         <div class="row">
             <div class="col-md-2">
-                <p>00:00Z</p>
+                <p>00:00</p>
             </div>
             <div class="col-md-4">
                 {% gizmo toggle_switch longRangeLag00 %}
             </div>
             <div class="col-md-2">
-                <p>06:00Z</p>
+                <p>06:00</p>
             </div>
             <div class="col-md-4">
                 {% gizmo toggle_switch longRangeLag06 %}
@@ -141,13 +141,13 @@
         </div>
         <div class="row">
             <div class="col-md-2">
-                <p>12:00Z</p>
+                <p>12:00</p>
             </div>
             <div class="col-md-4">
                 {% gizmo toggle_switch longRangeLag12 %}
             </div>
             <div class="col-md-2">
-                <p>18:00Z</p>
+                <p>18:00</p>
             </div>
             <div class="col-md-4">
                 {% gizmo toggle_switch longRangeLag18 %}

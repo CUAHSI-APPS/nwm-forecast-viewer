@@ -465,14 +465,19 @@ function init_restore_ui_map()
     //         undefinedHTML: '&nbsp;'
     //     });
 
-
+    // var googleLayer = new olgm.layer.Google();
     map = new ol.Map({
         // controls: ol.control.defaults({
         //     attributionOptions: ({
         //         collapsible: false
         //     })
         // }).extend([mousePositionControl]),
+          // use OL3-Google-Maps recommended default interactions
+        // interactions: olgm.interaction.defaults(),
         target: 'map-view',
+  //        layers: [
+  //   googleLayer
+  // ],
         view: new ol.View({
             center: ol.proj.transform([-98, 38.5], 'EPSG:4326', 'EPSG:3857'),
             zoom: 4,
@@ -481,6 +486,8 @@ function init_restore_ui_map()
             projection: 'EPSG:3857'
         })
     });
+    // var olGM = new olgm.OLGoogleMaps({map: map}); // map is the ol.Map instance
+    // olGM.activate();
     mapView = map.getView();
 
     var qLong, qLat, qConfig, qGeom, qVar, qDate, qTime, qCOMID, qDateEnd;
@@ -718,7 +725,7 @@ function init_restore_ui_map()
     base_layer = new ol.layer.Tile({
         source: new ol.source.BingMaps({
             key: 'eLVu8tDRPeQqmBlKAjcw~82nOqZJe2EpKmqd-kQrSmg~AocUZ43djJ-hMBHQdYDyMbT-Enfsk0mtUIGws1WeDuOvjY4EXCH-9OK3edNLDgkc',
-            imagerySet: 'AerialWithLabels'
+            imagerySet: 'RoadOnDemand' // AerialWithLabels
         })
     });
 
@@ -876,6 +883,14 @@ function init_restore_ui_map()
         if (stream_info != null && stream_info.feature != null && stream_info.mid_point != null)
         {
             selected_streams_layer.getSource().clear();
+            // OL3GM lib doesn't support MULTI* geometry, so have to convert MultiLineString to LineString
+            // see https://github.com/mapgears/ol3-google-maps/blob/master/LIMITATIONS.md
+            var geom_obj = stream_info.feature.getGeometry();
+            if (geom_obj.getType() == "MultiLineString")
+            {
+                var geom_lingstring_obj = stream_info.feature.getGeometry().getLineString(0);
+                stream_info.feature.setGeometry(geom_lingstring_obj);
+            }
             selected_streams_layer.getSource().addFeature(stream_info.feature);
             center_map_at_pnt_3857 = stream_info.mid_point;
         }
@@ -982,6 +997,15 @@ function map_singleclick(evt)
         if (stream_info.feature != null)
         {
             selected_streams_layer.getSource().clear();
+
+            // OL3GM lib doesn't support MULTI* geometry, so have to convert MultiLineString to LineString
+            // see https://github.com/mapgears/ol3-google-maps/blob/master/LIMITATIONS.md
+            var geom_obj = stream_info.feature.getGeometry();
+            if (geom_obj.getType() == "MultiLineString")
+            {
+                var geom_lingstring_obj = stream_info.feature.getGeometry().getLineString(0);
+                stream_info.feature.setGeometry(geom_lingstring_obj);
+            }
             selected_streams_layer.getSource().addFeature(stream_info.feature);
         }
         if (stream_info.mid_point != null)
@@ -1027,6 +1051,7 @@ function map_pointermove(evt)
     var hit = map.forEachLayerAtPixel(pixel, function(layer)
     {
         if (layer != base_layer)
+        //if (layer != googleLayer)
         {
             return true;
         }
@@ -1236,8 +1261,27 @@ function get_netcdf_chart_data(config, geom, variable, comid, date, time, lag, e
                                 for (i = 1; i < returned_tsPairsData[key][j].length - 1; i++)
                                 {
                                     var seriesDataTemp = returned_tsPairsData[key][j][i];
-                                    var seriesDesc = 'Member 0' + String(i) + ' ' +
-                                        returned_tsPairsData[key][j][returned_tsPairsData[key][j].length - 1];
+
+
+                                    var tXXz =  returned_tsPairsData[key][j][returned_tsPairsData[key][j].length - 1];
+                                    var  cycleName = "";
+                                    if (tXXz == "t00z") {
+                                        cycleName = "No.1 (00:00)";
+                                    }
+                                    else if (tXXz == "t06z")
+                                    {
+                                        cycleName = "No.2 (06:00)";
+                                    }
+                                    else if (tXXz == "t12z")
+                                    {
+                                        cycleName = "No.3 (12:00)";
+                                    }
+                                    else if (tXXz == "t18z")
+                                    {
+                                        cycleName = "No.4 (18:00)";
+                                    }
+                                    var seriesDesc = 'Member ' + String(i) + ' of Cycle ' + cycleName;
+
                                     seriesDataGroup.push([seriesDataTemp, seriesDesc, startDateG]);
                                     nc_chart.yAxis[0].setExtremes(null, null);
                                     plotData(config, geom, variable, seriesDataTemp, startDateG, i - 1, seriesDesc);
@@ -1412,19 +1456,19 @@ var plotData = function(config, geom, variable, data, start, colorIndex, seriesD
     }
     else if (variable === 'FSNO')
     {
-        var units = 'Snow Cover (Fraction)';
+        var units = 'Snow Cover on the ground (%)';
         nc_chart.yAxis[0].setTitle({text: units});
         $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
     }
     else if (variable === 'SOIL_M')
     {
-        var units = 'Soil Moisture';
+        var units = 'Volumetric Soil Moisture (m3 m-3)';
         nc_chart.yAxis[0].setTitle({text: units});
         $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
     }
     else if (variable === 'SOILSAT_TOP' || variable === 'SOILSAT')
     {
-        var units = 'Soil Saturation (Fraction)';
+        var units = 'Soil Saturation (%)';
         nc_chart.yAxis[0].setTitle({text: units});
         $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
     }

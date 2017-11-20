@@ -51,7 +51,7 @@ local_vm_test_data_date = "20170419"
 hs_hostname = 'www.hydroshare.org'
 app_dir = '/projects/water/nwm/data/'
 if local_vm_test:
-    transition_date_v11 = local_vm_test_data_date  # local vm
+    transition_date_v11 = '20170418'  # local vm
 else:
     transition_date_v11 = "20170508"
 transition_timestamp_v11_AA = "12"
@@ -568,7 +568,10 @@ def loopThroughFiles(localFileDir, q_out, nc_files, var, comidIndex=None, comidI
         elif var == 'SNEQV':
             q_outT = prediction_dataTemp.variables[var][0, comidIndexY, comidIndexX].tolist()
             q_out.append(round((q_outT / 1000) * 3.28084, 4))
-        elif var in ['FSNO', 'SOILSAT_TOP', 'SOILSAT', 'CANWAT', 'SNOWT_AVG']:
+        elif var in ['FSNO', 'SOILSAT_TOP', 'SOILSAT']:
+            q_outT = prediction_dataTemp.variables[var][0, comidIndexY, comidIndexX].tolist()
+            q_out.append(round(q_outT * 100, 4))
+        elif var in ['SNOWT_AVG']:
             q_outT = prediction_dataTemp.variables[var][0, comidIndexY, comidIndexX].tolist()
             q_out.append(round(q_outT, 4))
         elif var in ['SOIL_M', 'SOIL_T']:

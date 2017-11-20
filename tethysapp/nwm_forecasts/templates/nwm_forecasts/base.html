@@ -34,12 +34,15 @@
 
 {% block content_dependent_styles %}
   {{ block.super }}
+  <link rel="stylesheet" href="{% static 'nwm_forecasts/vendor/ol3gm/ol3gm.css' %}" type="text/css" />
   <link href="{% static 'nwm_forecasts/css/main.css' %}" rel="stylesheet"/>
   <link href="{% static 'nwm_forecasts/vendor/openlayers3.20.1/ol.css' %}" rel="stylesheet"/>
 {% endblock %}
 
 {% block scripts %}
   {{ block.super }}
+  <!--<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?v=3&key=AIzaSyDPgvDUpbEwcbg9C0cRTfDtDa-Vj4WBwI0"></script>-->
+  <!--<script type="text/javascript" src="{% static 'nwm_forecasts/vendor/ol3gm/ol3gm.js' %}"></script>-->
   <script src="{% static 'nwm_forecasts/js/main.js' %}" type="text/javascript"></script>
   <script src="{% static 'nwm_forecasts/js/hydroshare.js' %}" type="text/javascript"></script>
   <script src="{% static 'nwm_forecasts/vendor/projection_libs/proj4.js' %}" type="text/javascript"></script>
@@ -48,7 +51,6 @@
   <script src="{% static 'nwm_forecasts/vendor/highcharts4.1.7/hc.js' %}" type="text/javascript"></script>
   <script src="{% static 'nwm_forecasts/vendor/highcharts4.1.7/exporting.js' %}" type="text/javascript"></script>
   <script src="{% static 'nwm_forecasts/vendor/highcharts4.1.7/export-csv.js' %}" type="text/javascript"></script>
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDPgvDUpbEwcbg9C0cRTfDtDa-Vj4WBwI0" type="text/javascript"></script>
 {% endblock %}
 
 {% block app_content_wrapper_override %}
