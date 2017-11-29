@@ -59,12 +59,12 @@ transition_timestamp_v11_SR = "11"
 transition_timestamp_v11_MR = "12"
 transition_timestamp_v11_LR = "00"
 
-hydroshare_ready = True
+tethys_hs_helper_ready = True
 try:
     from tethys_services.backends.hs_restclient_helper import get_oauth_hs
-except Exception:
-    logger.error("could not load: tethys_services.backends.hs_restclient_helper import get_oauth_hs")
-    hydroshare_ready = False
+except ImportError:
+    logger.error("could not import moudule: tethys_services.backends.hs_restclient_helper import get_oauth_hs")
+    tethys_hs_helper_ready = False
 
 date_string_AA_oldest = "2016-06-09"
 
@@ -122,14 +122,16 @@ def _init_page(request):
     longRangeLag12 = ToggleSwitch(display_text='', name='12z', size='mini')
     longRangeLag18 = ToggleSwitch(display_text='', name='18z', size='mini')
 
-    global hydroshare_ready
+    global tethys_hs_helper_ready
     hs_username = ""
-    if hydroshare_ready:
+    if tethys_hs_helper_ready:
         try:
             hs = get_oauth_hs(request)
             hs_username = hs.getUserInfo()['username']
+            request.session['hydroshare_ready'] = True
         except Exception:
-            hydroshare_ready = False
+            request.session['hydroshare_ready'] = False
+
 
     waterml_url = ""
 
@@ -182,7 +184,7 @@ def _init_page(request):
         'longRangeLag12': longRangeLag12,
         'longRangeLag18': longRangeLag18,
         'waterml_url': waterml_url,
-        'hs_ready': hydroshare_ready,
+        'hs_ready': request.session.get("hydroshare_ready", False),
         'hs_username': hs_username,
         # 'watershed_geojson_str': watershed_obj_session['geojson_str'] if watershed_obj_session is not None else "",
         # 'watershed_attributes_str': json.dumps(watershed_obj_session['attributes']) if watershed_obj_session is not None else "",
@@ -598,7 +600,7 @@ def get_hs_watershed_list(request):
     response_obj = {}
     hs_username = ""
     try:
-        if not hydroshare_ready:
+        if not request.session.get("hydroshare_ready", False):
             raise Exception("not logged in via hydroshare")
         if request.is_ajax() and request.method == 'GET':
             resources_list = []
@@ -683,7 +685,7 @@ def get_hs_watershed_list(request):
 @login_required()
 def load_watershed(request):
 
-    if not hydroshare_ready:
+    if not request.session.get("hydroshare_ready", False):
         raise Exception("not logged in via hydroshare")
 
     tmp_dir = None
@@ -911,7 +913,7 @@ def reproject_wkt_gdal(in_proj_type,
 def upload_to_hydroshare(request):
     temp_dir = None
     try:
-        if not hydroshare_ready:
+        if not request.session.get("hydroshare_ready", False):
             raise Exception("not logged in via hydroshare")
         return_json = {}
         if request.method == 'POST':
@@ -1010,7 +1012,7 @@ def subset_watershed(request):
     upload_to_hydroshare = False
 
     try:
-        if not hydroshare_ready:
+        if not request.session.get("hydroshare_ready", False):
             raise Exception("not logged in via hydroshare")
         if request.method == 'POST':
 
