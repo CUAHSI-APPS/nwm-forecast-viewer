@@ -1,7 +1,8 @@
 var target, observer, config;
 //Map variables
 var map, mapView;
-var base_layer, grid_layer, reservoir_layer, all_streams_layer, selected_streams_layer, watershed_layer;
+var base_layer, grid_layer, reservoir_layer, all_streams_layer, selected_streams_layer, watershed_layer,
+    usgs_gauges_layer;
 var toggle_layers;
 var popup_div, popup_overlay;
 
@@ -791,6 +792,23 @@ function init_restore_ui_map()
         // maxResolution: 50 // show layer when resolution is smaller than 50 meters/pixel
     });
 
+
+
+    var usgs_gauges_Source = new ol.source.TileWMS({
+        url: 'https://geoserver.byu.edu/arcgis/services/NWM/NHD_usgs_gauge_loc/MapServer/WmsServer?',
+        params: {
+            LAYERS: "0",
+        },
+        //see: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img#attr-crossorigin
+        //http://openlayers.org/en/v3.12.1/apidoc/ol.source.TileWMS.html
+        crossOrigin: 'anonymous' //This is necessary for CORS security in the browser
+    });
+
+    usgs_gauges_layer = new ol.layer.Tile({
+        source: usgs_gauges_Source,
+        keyword: "usgs_gauges",
+    });
+
     var createLineStyleFunction = function () {
         return function (feature, resolution) {
             var style = new ol.style.Style({
@@ -838,6 +856,7 @@ function init_restore_ui_map()
     map.addLayer(reservoir_layer);
     map.addLayer(all_streams_layer);
     map.addLayer(selected_streams_layer);
+    map.addLayer(usgs_gauges_layer);
 
     toggle_layers = [grid_layer, reservoir_layer, all_streams_layer, selected_streams_layer];
 
