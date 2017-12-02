@@ -72,30 +72,63 @@
         <div id="welcome-info">
           <ol>
             <b>About the App</b>
-          <p><span class="sub">Users can obtain forecasts of different hydrologic variables available from any of the
-            associated National Hydrography Datasets (e.g., channel, rivers, land surface grids, reservoir).</span></p>
-
-              <b>Current UTC Date:</b> {{date_string_today}} <br>
-            <b>Available Data:</b><br>
+          <p>
+              <span class="sub">The NWM Viewer app has 2 modes:
               <ol>
-                Analysis & Assimilation: {{date_string_AA_oldest}} to {{date_string_today}}<br>
-                Short Range: {{date_string_oldest}} to {{date_string_today}}<br>
-                Medium Range: {{date_string_oldest}} to {{date_string_today}}<br>
-                Long Range: {{date_string_oldest}} to {{date_string_today}}<br>
+                <li><b>Home</b>: Retrieve and view time series for a single stream reach, reservoir or grid cell (Home mode)</li>
+                <li><b>Subset</b>: Subset NWM outputs (NetCDF files) with a watershed polygon to get 'shrunken' NetCDFs that only contain data for a specific area.</li>
+              </ol>
+              </span>
+          </p>
+
+
+              <b>Data Availability</b> (Current UTC Time {{date_string_today}})<br>
+              <ol>
+                <b>Analysis & Assimilation</b>: {{date_string_AA_oldest}} to {{date_string_today}}<br>
+                <b>Short Range</b>: {{date_string_oldest}} to {{date_string_today}}<br>
+                <b>Medium Range</b>: {{date_string_oldest}} to {{date_string_today}}<br>
+                <b>Long Range</b>: {{date_string_oldest}} to {{date_string_today}}<br>
               </ol>
               <br>
-              <b>How to View Forecast</b>
-              <li class="modalList"><b>Add Watershed (optional)</b> - Add a watershed polygon from HydroShare or local files</li>
-              <li class="modalList"><b>*Configuration</b> - Select a forecast range: Short, Medium, Long, or Analyis & Assimilation</li>
-              <li class="modalList"><b>*Geometry</b> - Select a geometry: Channel, Land, Reservoir or Forcing</li>
-              <li class="modalList"><b>*Variable</b> - Select a variable: This list will change depending on the type of geometry</li>
-              <li class="modalList"><b>*COMID</b> - Click a feature on the map: Clicking on a feature( stream/reservoir/cell) will populate this
-                field (you may need to zoom in to be able to see some features). If you know the ID you can enter it directly</li>
-              <li class="modalList"><b>Date and Time</b> - Select a date: The date and time options will vary depending on the forecast type</li>
-              <li class="modalList"><b>View Forecast</b> - Click 'View Forecast' button</li>
+              <b>Home mode</b> (switch to Subset mode for the other part)
+              <li class="modalList"><b>Add Watershed (optional)</b> - Add a watershed polygon from HydroShare or local files (geojson or shapefile)</li>
+              <li class="modalList"><b>Model Configuration</b> <br>
+                  NWM has 4 model configurations:
+                    <ol>
+                        <li><b>Analysis & Assimilation</b> runs hourly and provides a snapshot of current hydrologic conditions at each run</li>
+                        <li><b>Short Range</b> runs hourly and provides a 18-hour (1-hour interval) deterministic forecast at each run</li>
+                        <li><b>Medium Range</b> runs 4 times per day (every 6 hours) and provides a 10-day (3-hour interval) deterministic forecast at each run</li>
+                        <li><b>Long Range</b> runs 4 times per day (every 6 hours) and provides a 4-member 30-day (6-hour interval) ensemble forecast at each run (16-member ensemble daily)</li>
+
+                  </ol>
+              </li>
+              <li class="modalList"><b>Model Output File</b> <br>
+                  NWM stores model outputs in different NetCDF files.
+                  <ol>
+                      <li><b>Channel file</b>: stream routing result for 2.7 millions stream reaches (point-type NetCDF)</li>
+                      <li><b>Land file</b>: forecasts land surface processing result for continental US (1km gridded NetCDF)</li>
+                      <li><b>Reservoir file</b>: forecasts for 1260 reservoirs (point-type NetCDF)</li>
+                      <li><b>Forcing file</b>: forcing variables for NWM (1km gridded NetCDF)</li>
+                  </ol>
+              </li>
+              <li class="modalList"><b>Variable</b>: choose a variable (available variables may vary depending on previous Model Configuration and Model Output File)</li>
+              <li class="modalList"><b>COMID / Grid Cell Index</b>:</li>
+              <ol>
+                  <li><b>COMID</b>: the unique and permanent identifier assigned to each stream reach and reservoir in NHD+ system. You can either manually enter a COMID or select a stream reach or reservoir on map</li>
+                  <li><b>Grid Cell Index</b>: a pair of index value assigned to each grid cell. You can either manually enter the index values or select a grid cell on map</li>
+              </ol>
+              <li class="modalList"><b>Date and Time</b> <br>
+                  The date and time options vary depending on <b>Model Configuration</b>:
+                  <ol>
+                      <li> <b>Begin/End Date</b>: a string YYYY-MM-DD to indicate model run date or date range
+                      <li> <b>Model Initialization Time</b>: time point at which model starts to run. Short Range models runs hourly (24 runs per day); Medium Range model runs every 6 hours (4 runs per day).</li>
+                      <li> <b>Ensemble Model Initialization Time</b>: time point at which model starts to run. Long Range model runs every 6 hours (4 runs per day). Each run produces a 4-member 30-day forecast.</li>
+                  </ol>
+              </li>
+              <li class="modalList"><b>View Forecast</b> - Click 'View Forecast' button to retrieve time series</li>
           </ol>
         </div>
-          *More about NWM and its terminology: <a target="_blank" href="http://water.noaa.gov/about/nwm">View Here</a>
+          *More about NWM: <a target="_blank" href="http://water.noaa.gov/about/nwm">View Here</a>
       </div>
       <div class="modal-footer">
         <div class="byu-logo-container">
