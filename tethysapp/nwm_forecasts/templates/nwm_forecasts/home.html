@@ -8,7 +8,7 @@
 <li class="active" data-toggle="tooltip"
                data-placement="bottom" title="Retrieve and View NWM forecasts for a single stream reach, reservoir or grid cell"><a href="">Home</a></li>
 <li data-toggle="tooltip"
-               data-placement="bottom" title="Subset NWM outputs by watershed polygon"><a href="{% url 'nwm_forecasts:subset' %}">Subset</a></li>
+               data-placement="bottom" title="Subset NWM outputs with a watershed polygon"><a href="{% url 'nwm_forecasts:subset' %}">Subset</a></li>
 
 {% if hs_ready|lower == "true" %}
 <br/>
@@ -22,23 +22,23 @@
 
     <div class="form-group ">
         <label class="control-label" for="config" data-toggle="tooltip"
-               data-placement="bottom" title="NWM has 4 model configurations: Analysis & Assimilation, Short Range, Medium Range and Long Range ">Model Configuration</label>
+               data-placement="bottom" title="NWM has 4 model configurations: Analysis & Assimilation, Short Range, Medium Range and Long Range">Model Configuration</label>
         <select id="config" class="form-control" name="config">
-            <option value="analysis_assim" title="Analysis & Assimilation runs hourly and provides a snapshot of current hydrologic conditions at each run">Analysis and Assimilation</option>
-            <option value="short_range" selected="selected" title="Short Range runs hourly and provides a 18-hour (1-hour interval) deterministic forecast at each run">Short Range</option>
-            <option value="medium_range" title="Medium Range runs 4 times per day (every 6 hours) and provides a 10-day (3-hour interval) deterministic forecast at each run">Medium Range</option>
-            <option value="long_range" title="Long Range runs 4 times per day (every 6 hours) and provides a 4-member 30-day (6-hour interval) ensemble forecast at each run (16-member ensemble daily)">Long Range</option>
+            <option value="analysis_assim" title="Analysis & Assimilation (AA) runs hourly and each run provides a snapshot of current hydrologic conditions. (24-hour timeseries with 1-hour interval daily)">Analysis and Assimilation</option>
+            <option value="short_range" selected="selected" title="Short Range (SR) runs hourly and each run provides a 18-hour deterministic forecast with 1-hour interval.">Short Range</option>
+            <option value="medium_range" title="Medium Range (MR) runs 4 times per day (every 6 hours) and each run provides a 10-day deterministic forecast with 3-hour interval">Medium Range</option>
+            <option value="long_range" title="Long Range (LR) runs 4 times per day (every 6 hours) and each run provides a 4-member 30-day ensemble forecast with 6-hour interval (16-member ensemble daily)">Long Range</option>
         </select>
     </div>
 
     <div class="form-group ">
         <label class="control-label" for="geom" data-toggle="tooltip"
-               data-placement="top" title="NWM stores model outputs in different NetCDF files. This app supports Channel file, Land file, Reservoir file and Forcing file.">Model Output File</label>
+               data-placement="top" title="NWM stores model outputs in different NetCDF files. This app can access Channel file, Land file, Reservoir file and Forcing file.">Model Output File</label>
         <select id="geom" class="form-control" name="geom">
             <option value="channel_rt" selected="selected" title="Channel file stores stream routing result for 2.7 millions stream reaches (point-type NetCDF)">Channel</option>
-            <option value="land" title="Land file stores forecasts land surface processing result for continental US (1km gridded NetCDF)">Land</option>
+            <option value="land" title="Land file stores land surface processing result (1km gridded NetCDF)">Land</option>
             <option value="reservoir" title="Reservoir file stores forecasts for 1260 reservoirs (point-type NetCDF)">Reservoir</option>
-            <option value="forcing" title="Forcing file stores forcing variables for NWM (1km gridded NetCDF)">Forcing</option>
+            <option value="forcing" title="Forcing file stores forcing variables (1km gridded NetCDF)">Forcing</option>
         </select>
     </div>
 
@@ -77,9 +77,9 @@
 
     <div id="comidDiv">
         <label class="control-label" for="comidInput" data-toggle="tooltip"
-               data-placement="top" title="COMID is the unique and permanent identifier assigned to each stream reach and reservoir in NHD+ system. You can either manually enter a COMID or select a stream reach or reservoir on map to fill this field">COMID</label>
+               data-placement="top" title="COMID is a unique and permanent identifier assigned to each stream reach and reservoir in the NHD+ system. You can either manually enter a COMID or select a stream reach or reservoir on map to fill this field">COMID</label>
         <input id="comidInput" name="COMID" type="text" class="form-control form-group" data-toggle="tooltip"
-               data-placement="top" title="COMID is the unique and permanent identifier assigned to each stream reach and reservoir in NHD+ system. You can either manually enter a COMID or select a stream reach or reservoir on map to fill this field" required>
+               data-placement="top" title="COMID is a unique and permanent identifier assigned to each stream reach and reservoir in the NHD+ system. You can either manually enter a COMID or select a stream reach or reservoir on map to fill this field" required>
     </div>
 
     <div id="gridDiv" class="hidden">
@@ -104,7 +104,7 @@
 
     <div class="form-group">
         <label class="control-label" for="time" data-toggle="tooltip"
-               data-placement="top" title="NWM runs multiple times per day. 'Model Initialization Time' indicates a time point model starts to run.">Model Initialization Time
+               data-placement="top" title="NWM runs multiple times per day. 'Model Initialization Time' indicates a time point at which model starts to run.">Model Initialization Time
             (UTC)</label>
         <select id="time" class="form-control" name="time">
             <option value="00">00:00</option>
@@ -170,8 +170,9 @@
     <label id="endDateLabel" class="control-label hidden" for="endDate">End Date</label>
     {% gizmo date_picker end_date %}
 
-    <button name="submit" type="submit" title="retrieve time series data for this reach/reservoir/cell"
-            class="btn btn-primary" type="submit" value="Success" id="submitBtn" form="paramForm">
+    <button name="submit" type="submit" title="Retrieve and plot time series for this reach/reservoir/cell"
+            class="btn btn-primary" data-toggle="tooltip"
+               data-placement="top" type="submit" value="Success" id="submitBtn" form="paramForm">
         View Forecast
     </button>
 </form>
