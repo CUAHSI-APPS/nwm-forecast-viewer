@@ -1463,7 +1463,22 @@ def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None, zip_r
         model_configuration_list.remove("long_range")
         # for i in range(1, 5):
         #     model_configuration_list.append("long_range_mem{0}".format(str(i)))
-        model_configuration_list.append("long_range_mem{0}".format(str(subset_parameter_dict['mem'])))
+        mem_parameter = subset_parameter_dict.get('mem', None)
+        if mem_parameter is None:
+            # request comes from API, not UI
+            mem_index = 0
+            for lag_name in ["lag_00z", "lag_06z", "lag_12z", "lag_18z"]:
+                mem_index += 1
+                lag_value = subset_parameter_dict.get(lag_name, None)
+                if lag_value.lower() == "on":
+                    model_configuration_list.append("long_range_mem{0}".format(str(mem_index)))
+        elif isinstance(mem_parameter, basestring) and (1 <= int(mem_parameter) <= 4):
+            # request comes from API and is a list
+            for i in mem_parameter:
+                model_configuration_list.append("long_range_mem{0}".format(str(i)))
+        else:
+            raise Exception("invalid 'mem' parameter for Long Range")
+
 
     output_netcdf_folder_path = os.path.join(output_folder_path, job_id)
 
