@@ -570,10 +570,10 @@ def loopThroughFiles(localFileDir, q_out, nc_files, var, comidIndex=None, comidI
         elif var == 'SNEQV':
             q_outT = prediction_dataTemp.variables[var][0, comidIndexY, comidIndexX].tolist()
             q_out.append(round((q_outT / 1000) * 3.28084, 4))
-        elif var in ['FSNO', 'SOILSAT_TOP', 'SOILSAT']:
+        elif var in ['FSNO']:
             q_outT = prediction_dataTemp.variables[var][0, comidIndexY, comidIndexX].tolist()
             q_out.append(round(q_outT * 100, 4))
-        elif var in ['SNOWT_AVG']:
+        elif var in ['SNOWT_AVG', 'SOILSAT_TOP', 'SOILSAT']:
             q_outT = prediction_dataTemp.variables[var][0, comidIndexY, comidIndexX].tolist()
             q_out.append(round(q_outT, 4))
         elif var in ['SOIL_M', 'SOIL_T']:
@@ -1747,8 +1747,10 @@ def get_data_waterml(request):
             units = {'name': 'Depth', 'short': 'ft', 'long': 'Feet'}
         elif var in ['ACCET', 'ACCECAN', 'CANWAT', 'UGDRNOFF', 'SFCRNOFF']:
             units = {'name': 'Depth', 'short': 'in', 'long': 'Inches'}
-        if var in ['SOILSAT_TOP', 'SOILSAT', 'FSNO']:
-            units = {'name': 'Fraction', 'short': 'None', 'long': 'None'}
+        elif var in ['FSNO']:
+            units = {'name': 'km^2/km^2', 'short': 'Snow cover', 'long': 'Snow cover'}
+        elif var in ['SOILSAT_TOP', 'SOILSAT']:
+            units = {'name': 'm^3/m^3', 'short': 'Soil Saturation', 'long': 'Soil Saturation'}
         elif var == 'SOIL_M':
             units = {'name': 'Soil Moisture', 'short': 'm^3/m^3', 'long': 'Water Volume per Soil Volume'}
         elif var in ['SNOWT_AVG', 'SOIL_T']:
@@ -1756,19 +1758,19 @@ def get_data_waterml(request):
         elif var in ['RAINRATE']:
             units = {'name': 'Rain Rate', 'short': 'in/hr', 'long': 'Millimeter per Second'}
         elif var in ['LWDOWN']:
-            units = {'name': 'Surface downward long-wave radiation flux', 'short': 'W m-2', 'long': 'W m-2'}
+            units = {'name': 'Surface downward long-wave radiation flux', 'short': 'W/m^2', 'long': 'W/m^2'}
         elif var in ['PSFC']:
             units = {'name': 'Surface Pressure', 'short': 'Pa', 'long': 'Pa'}
         elif var in ['Q2D']:
-            units = {'name': '2-m Specific humidity', 'short': 'kg kg-1', 'long': 'kg kg-1'}
+            units = {'name': '2-m Specific humidity', 'short': 'kg/kg', 'long': 'kg/kg'}
         elif var in ['SWDOWN']:
-            units = {'name': 'Surface downward short-wave radiation flux', 'short': 'W m-2', 'long': 'W m-2'}
+            units = {'name': 'Surface downward short-wave radiation flux', 'short': 'W/m^2', 'long': 'W/m^2'}
         elif var in ['T2D']:
             units = {'name': '2-m Air Temperature', 'short': 'K', 'long': 'K'}
         elif var in ['U2D']:
-            units = {'name': '10-m U-component of wind', 'short': 'm s-1', 'long': 'm s-1'}
+            units = {'name': '10-m U-component of wind', 'short': 'm/s', 'long': 'm/s'}
         elif var in ['V2D']:
-            units = {'name': '10-m V-component of wind', 'short': 'm s-1', 'long': 'm s-1'}
+            units = {'name': '10-m V-component of wind', 'short': 'm/s', 'long': 'm/s'}
 
         nodata_value = -9999
 

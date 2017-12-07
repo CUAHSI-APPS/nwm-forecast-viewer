@@ -1481,13 +1481,13 @@ var plotData = function(config, geom, variable, data, start, colorIndex, seriesD
     }
     else if (variable === 'SOIL_M')
     {
-        var units = 'Volumetric Soil Moisture (m3 m-3)';
+        var units = 'Volumetric Soil Moisture (m^3/m^3)';
         nc_chart.yAxis[0].setTitle({text: units});
         $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
     }
     else if (variable === 'SOILSAT_TOP' || variable === 'SOILSAT')
     {
-        var units = 'Soil Saturation (%)';
+        var units = 'Soil Saturation (m^3/m^3)';
         nc_chart.yAxis[0].setTitle({text: units});
         $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
     }
@@ -1505,7 +1505,7 @@ var plotData = function(config, geom, variable, data, start, colorIndex, seriesD
     }
     else if (variable === 'LWDOWN')
     {
-        var units = 'Surface downward long-wave radiation flux (W m-2)';
+        var units = 'Surface downward long-wave radiation flux (W/m^2)';
         nc_chart.yAxis[0].setTitle({text: units});
         $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
     }
@@ -1517,13 +1517,13 @@ var plotData = function(config, geom, variable, data, start, colorIndex, seriesD
     }
     else if (variable === 'Q2D')
     {
-        var units = '2-m Specific humidity (kg kg-1)';
+        var units = '2-m Specific humidity (kg/kg)';
         nc_chart.yAxis[0].setTitle({text: units});
         $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
     }
     else if (variable === 'SWDOWN')
     {
-        var units = 'Surface downward short-wave radiation flux (W m-2)';
+        var units = 'Surface downward short-wave radiation flux (W/m^2)';
         nc_chart.yAxis[0].setTitle({text: units});
         $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
     }
@@ -1535,13 +1535,13 @@ var plotData = function(config, geom, variable, data, start, colorIndex, seriesD
     }
     else if (variable === 'U2D')
     {
-        var units = '10-m U-component of wind (m s-1)';
+        var units = '10-m U-component of wind (m/s)';
         nc_chart.yAxis[0].setTitle({text: units});
         $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
     }
     else if (variable === 'V2D')
     {
-        var units = '10-m V-component of wind (m s-1)';
+        var units = '10-m V-component of wind (m/s)';
         nc_chart.yAxis[0].setTitle({text: units});
         $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
     }
