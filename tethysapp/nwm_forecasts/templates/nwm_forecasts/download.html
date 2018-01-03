@@ -5,42 +5,46 @@
 
 {% block app_navigation_items %}
 {{ block.super }}
-<li title="retrieve/view time series data for a single reach/reservoir/cell"><a href="{% url 'nwm_forecasts:home' %}">Home</a></li>
-<li title="subset NWM outputs by watershed polygon" class="active"><a href="">Subset</a></li>
+<li data-toggle="tooltip"
+    data-placement="bottom" title="Retrieve and View NWM forecasts for a single stream reach, reservoir or grid cell"><a href="{% url 'nwm_forecasts:home' %}">Home</a></li>
+<li class="active" data-toggle="tooltip"
+    data-placement="bottom" title="Subset NWM outputs with a watershed polygon"><a href="">Subset</a></li>
 <br>
 
 {% if hs_ready|lower == "true" %}
-<button id="watershedBtn" type="button" title="add a watershed polygon to map" class="btn btn-primary" data-toggle="modal" data-target="#popup-load-watershed">Add Watershed</button>
+<button id="watershedBtn" type="button" title="Add a watershed polygon to map" class="btn btn-primary" data-toggle="modal" data-target="#popup-load-watershed">Add Watershed</button>
 <br><br>
 {% endif %}
 
 <form id="paramForm" method="get">
 
     <div class="form-group ">
-        <label class="control-label" for="config" title="Select a model configuration">Configuration</label>
+        <label class="control-label" for="config" data-toggle="tooltip"
+               data-placement="bottom" title="NWM has 4 model configurations: Analysis & Assimilation, Short Range, Medium Range and Long Range">Model Configuration</label>
         <select id="config" class="form-control" name="config">
-            <option value="analysis_assim" title="0-3 hrs forecast (per hr)">Analysis and Assimilation</option>
-            <option value="short_range" selected="selected" title="0-18 hrs forecast duration (per hr)">Short Range</option>
-            <option value="medium_range" title="0-10 days forecast duration (4 run/day)">Medium Range</option>
-            <option value="long_range" title="0-30 days forecast duration (4 run/day)">Long Range</option>
+            <option value="analysis_assim" title="Analysis & Assimilation (AA) runs hourly and each run provides a snapshot of current hydrologic conditions. (24-hour timeseries with 1-hour interval daily)">Analysis and Assimilation</option>
+            <option value="short_range" selected="selected" title="Short Range (SR) runs hourly and each run provides a 18-hour deterministic forecast with 1-hour interval.">Short Range</option>
+            <option value="medium_range" title="Medium Range (MR) runs 4 times per day (every 6 hours) and each run provides a 10-day deterministic forecast with 3-hour interval">Medium Range</option>
+            <option value="long_range" title="Long Range (LR) runs 4 times per day (every 6 hours) and each run provides a 4-member 30-day ensemble forecast with 6-hour interval (16-member ensemble daily)">Long Range</option>
         </select>
     </div>
 
     <div class="form-group ">
-        <label class="control-label" for="geom" title="NWM outputs are stored in 4 files">Geometry</label>
+        <label class="control-label" for="geom" data-toggle="tooltip"
+               data-placement="top" title="NWM stores model outputs in different NetCDF files. This app can access Channel file, Land file, Reservoir file and Forcing file.">Model Output File</label>
         <select id="geom" class="form-control" name="geom">
-            <option value="channel_rt" selected="selected" title="stream routing point-type file">Channel</option>
-            <option value="land" title="land surface 1km gridded file">Land</option>
-            <option value="reservoir" title="reservoir point-type file">Reservoir</option>
-            <option value="forcing" title="1km gridded forcing file">Forcing</option>
+            <option value="channel_rt" selected="selected" title="Channel file stores stream routing result for 2.7 millions stream reaches (point-type NetCDF)">Channel</option>
+            <option value="land" title="Land file stores land surface processing result (1km gridded NetCDF)">Land</option>
+            <option value="reservoir" title="Reservoir file stores forecasts for 1260 reservoirs (point-type NetCDF)">Reservoir</option>
+            <option value="forcing" title="Forcing file stores forcing variables (1km gridded NetCDF)">Forcing</option>
         </select>
     </div>
 
     {% gizmo date_picker start_date %}
 
     <div class="form-group">
-        <label class="control-label" for="time" title="Model initialization time (UTC)">Initialization Time
-            (UTC)</label>
+        <label class="control-label" for="time" data-toggle="tooltip"
+               data-placement="top" title="NWM runs multiple times per day. 'Model Initialization Time' indicates a time point at which model starts to run.">Model Initialization Time (UTC)</label>
         <select id="time" class="form-control" name="time">
             <option value="00">00:00</option>
             <option value="01">01:00</option>
@@ -70,30 +74,31 @@
     </div>
 
     <div id="timeLag" class="hidden">
-        <label title="Time lag for Long Range configuration">Time lag</label>
+        <label data-toggle="tooltip"
+               data-placement="top" title="Long Range Forecast runs 4 cycles per day (every 6 hours). Each cycle produces a 4-member 30-day forecast.">Ensemble Model Initialization Time (UTC)</label>
         <div class="row">
-            <div class="col-md-1">
-                <p>00z</p>
+            <div class="col-md-2">
+                <p title="Cycle-1 runs at UTC time 00:00">00:00</p>
             </div>
             <div class="col-md-4">
                 {% gizmo toggle_switch longRangeLag00 %}
             </div>
-            <div class="col-md-1">
-                <p>06z</p>
+            <div class="col-md-2">
+                <p title="Cycle-2 runs at UTC time 06:00">06:00</p>
             </div>
             <div class="col-md-4">
                 {% gizmo toggle_switch longRangeLag06 %}
             </div>
         </div>
         <div class="row">
-            <div class="col-md-1">
-                <p>12z</p>
+            <div class="col-md-2">
+                <p title="Cycle-3 runs at UTC time 12:00">12:00</p>
             </div>
             <div class="col-md-4">
                 {% gizmo toggle_switch longRangeLag12 %}
             </div>
-            <div class="col-md-1">
-                <p>18z</p>
+            <div class="col-md-2">
+                <p title="Cycle-4 runs at UTC time 18:00">18:00</p>
             </div>
             <div class="col-md-4">
                 {% gizmo toggle_switch longRangeLag18 %}
@@ -108,10 +113,12 @@
 {% if hs_ready|lower == "true" %}
 <br>
 <!--<input type="checkbox" id="chkbox-subset-merge" name="chkbox-subset-merge">Merge results<br>-->
-<input type="checkbox" id="chkbox-upload-subset-to-hs" name="chkbox-upload-subset-to-hs" title="upload subsetting results to hydroshare">Upload to HydroShare<br>
+<input type="checkbox" id="chkbox-upload-subset-to-hs" name="chkbox-upload-subset-to-hs" data-toggle="tooltip"
+               data-placement="bottom" title="Upload subsetting results to hydroshare">Upload to HydroShare<br>
 <br>
 {%endif%}
-<button id="subsetBtn" type="button" class="btn btn-primary" title="subset this watershed and download results" disabled>Download</button>
+<button id="subsetBtn" type="button" class="btn btn-primary" data-toggle="tooltip"
+               data-placement="bottom" title="Start Subsetting process" disabled>Download</button>
 <div id="subset_watershed_loading" class="hidden" disabled><img src="/static/nwm_forecasts/images/loading-animation.gif"></div>
 
 {% endblock%}

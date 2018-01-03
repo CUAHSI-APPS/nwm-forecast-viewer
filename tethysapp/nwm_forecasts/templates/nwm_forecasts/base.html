@@ -34,12 +34,15 @@
 
 {% block content_dependent_styles %}
   {{ block.super }}
+  <link rel="stylesheet" href="{% static 'nwm_forecasts/vendor/ol3gm/ol3gm.css' %}" type="text/css" />
   <link href="{% static 'nwm_forecasts/css/main.css' %}" rel="stylesheet"/>
   <link href="{% static 'nwm_forecasts/vendor/openlayers3.20.1/ol.css' %}" rel="stylesheet"/>
 {% endblock %}
 
 {% block scripts %}
   {{ block.super }}
+  <!--<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?v=3&key=AIzaSyDPgvDUpbEwcbg9C0cRTfDtDa-Vj4WBwI0"></script>-->
+  <!--<script type="text/javascript" src="{% static 'nwm_forecasts/vendor/ol3gm/ol3gm.js' %}"></script>-->
   <script src="{% static 'nwm_forecasts/js/main.js' %}" type="text/javascript"></script>
   <script src="{% static 'nwm_forecasts/js/hydroshare.js' %}" type="text/javascript"></script>
   <script src="{% static 'nwm_forecasts/vendor/projection_libs/proj4.js' %}" type="text/javascript"></script>
@@ -48,7 +51,6 @@
   <script src="{% static 'nwm_forecasts/vendor/highcharts4.1.7/hc.js' %}" type="text/javascript"></script>
   <script src="{% static 'nwm_forecasts/vendor/highcharts4.1.7/exporting.js' %}" type="text/javascript"></script>
   <script src="{% static 'nwm_forecasts/vendor/highcharts4.1.7/export-csv.js' %}" type="text/javascript"></script>
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDPgvDUpbEwcbg9C0cRTfDtDa-Vj4WBwI0" type="text/javascript"></script>
 {% endblock %}
 
 {% block app_content_wrapper_override %}
@@ -69,31 +71,64 @@
       <div class="modal-body">
         <div id="welcome-info">
           <ol>
-            <b>About the App</b>
-          <p><span class="sub">Users can obtain forecasts of different hydrologic variables available from any of the
-            associated National Hydrography Datasets (e.g., channel, rivers, land surface grids, reservoir).</span></p>
-
-              <b>Current UTC Date:</b> {{date_string_today}} <br>
-            <b>Available Data:</b><br>
-              <ol>
-                Analysis & Assimilation: {{date_string_AA_oldest}} to {{date_string_today}}<br>
-                Short Range: {{date_string_oldest}} to {{date_string_today}}<br>
-                Medium Range: {{date_string_oldest}} to {{date_string_today}}<br>
-                Long Range: {{date_string_oldest}} to {{date_string_today}}<br>
-              </ol>
+            <b>About National Water Model (NWM)</b><br>
+              We highly recommend this brief introduction on <a target="_blank" href="http://water.noaa.gov/about/nwm">National Water Model</a> to first-time users.
               <br>
-              <b>How to View Forecast</b>
-              <li class="modalList"><b>Add Watershed (optional)</b> - Add a watershed polygon from HydroShare or local files</li>
-              <li class="modalList"><b>*Configuration</b> - Select a forecast range: Short, Medium, Long, or Analyis & Assimilation</li>
-              <li class="modalList"><b>*Geometry</b> - Select a geometry: Channel, Land, Reservoir or Forcing</li>
-              <li class="modalList"><b>*Variable</b> - Select a variable: This list will change depending on the type of geometry</li>
-              <li class="modalList"><b>*COMID</b> - Click a feature on the map: Clicking on a feature( stream/reservoir/cell) will populate this
-                field (you may need to zoom in to be able to see some features). If you know the ID you can enter it directly</li>
-              <li class="modalList"><b>Date and Time</b> - Select a date: The date and time options will vary depending on the forecast type</li>
-              <li class="modalList"><b>View Forecast</b> - Click 'View Forecast' button</li>
+              <b>App Features</b>
+          <p>
+              <span class="sub">The NWM Viewer app has 2 main features provided in Home Mode and Subset Mode respectively:
+              <ol>
+                <li><b>Home Mode</b>: Retrieve and View NWM Time Series for a single stream reach, reservoir or grid cell.</li>
+                <li><b>Subset Mode</b>: Subset NWM outputs (NetCDF files) with a watershed polygon to get 'shrunken' NetCDFs that only contain data for a specific area.</li>
+              </ol>
+              </span>
+          </p>
+              <h5>Home Mode</h5>
+              <li class="modalList"><b>Add Watershed (optional)</b> - Add a watershed polygon from HydroShare or local files (geojson or shapefile)</li>
+              <li class="modalList"><b>Model Configuration</b> <br>
+                  NWM has 4 model configurations:
+                    <ol>
+                        <li><b>Analysis & Assimilation (AA)</b> runs hourly and each run provides a snapshot of current hydrologic conditions. (24-hour timeseries with 1-hour interval daily)</li>
+                        <li><b>Short Range (SR)</b> runs hourly and each run provides a 18-hour deterministic forecast with 1-hour interval.</li>
+                        <li><b>Medium Range (MR)</b> runs 4 times per day (every 6 hours) and each run provides a 10-day deterministic forecast with 3-hour interval.</li>
+                        <li><b>Long Range (LR)</b> runs 4 times per day (every 6 hours) and each run provides a 4-member 30-day ensemble forecast with 6-hour interval. (16-member ensemble daily)</li>
+                  </ol>
+              </li>
+              <li class="modalList"><b>Model Output File</b> <br>
+                  NWM stores model outputs in different NetCDF files.
+                  <ol>
+                      <li><b>Channel file</b>: stream routing results for 2.7 millions stream reaches (point-type NetCDF)</li>
+                      <li><b>Land file</b>: land surface processing results (1km gridded NetCDF)</li>
+                      <li><b>Reservoir file</b>: forecasts for 1260 reservoirs (point-type NetCDF)</li>
+                      <li><b>Forcing file</b>: forcing variables (1km gridded NetCDF)</li>
+                  </ol>
+              </li>
+              <li class="modalList"><b>Variable</b>: choose a variable (list of available variables varies depending on previous Model Configuration and Model Output File)</li>
+              <li class="modalList"><b>COMID / Grid Cell Index</b>:</li>
+              <ol>
+                  <li><b>COMID</b>: the unique and permanent identifier assigned to each stream reach and reservoir in the NHD+ system. You can either manually enter a COMID or select a stream reach or reservoir on map.</li>
+                  <li><b>Grid Cell Index</b>: a pair of index value assigned to each grid cell. You can either manually enter the index values or select a grid cell on map.</li>
+              </ol>
+              <li class="modalList"><b>Date and Time</b> <br>
+                  The date and time options vary depending on <b>Model Configuration</b>:
+                  <ol>
+                      <li> <b>Begin/End Date</b>: a string YYYY-MM-DD to indicate model run date for SR, MR and LR configurations or a date range for AA configuration.
+                          <br>
+                          <b>Data Availability</b> (Current UTC Time {{date_string_today}})<br>
+                          <ol>
+                            <b>AA</b>: {{date_string_AA_oldest}} to {{date_string_today}}<br>
+                            <b>SR</b>: {{date_string_oldest}} to {{date_string_today}}<br>
+                            <b>MR</b>: {{date_string_oldest}} to {{date_string_today}}<br>
+                            <b>LR</b>: {{date_string_oldest}} to {{date_string_today}}<br>
+                          </ol>
+                      <li> <b>Model Initialization Time</b>: the time point (T) at which model starts to run. If a model is initialized at time T, SR's first forecast analysis time is T+1 and MR's first forecast analysis time is T+3.</li>
+                      <li> <b>Ensemble Model Initialization Time</b>: the time point (T) at which a model starts to run. LR's first forecast analysis time is T+6.</li>
+                  </ol>
+              </li>
+              <li class="modalList"><b>View Forecast</b> - Click 'View Forecast' button to retrieve time series</li>
           </ol>
         </div>
-          *More about NWM and its terminology: <a target="_blank" href="http://water.noaa.gov/about/nwm">View Here</a>
+          (For instructions on Subset mode please switch mode first)
       </div>
       <div class="modal-footer">
         <div class="byu-logo-container">
@@ -117,32 +152,61 @@
         <center><h4 class="modal-title">National Water Model Forecast Viewer Guide</h4></center>
       </div>
       <div class="modal-body">
-        <div >
+          <div id="welcome-info">
           <ol>
-            <b>About Subsetting</b>
+            <b>About National Water Model (NWM)</b><br>
+              We highly recommend this brief introduction on <a target="_blank" href="http://water.noaa.gov/about/nwm">National Water Model</a> to first-time users.
+              <br>
+              <b>App Features</b>
           <p>
-              <span class="sub">Users can subset NWM outputs (NetCDF files) by a watershed polygon to get 'shrunken' NetCDFs that only contain data for this specific area.</span>
-          </p>
-              <b>Current UTC Date:</b> {{date_string_today}} <br>
-            <b>Available Data for Subsetting:</b>
-              <br>
+              <span class="sub">The NWM Viewer app has 2 main features provided in Home Mode and Subset Mode respectively:
               <ol>
-                Analysis & Assimilation: {{date_string_oldest}} to {{date_string_today}}<br>
-                Short Range: {{date_string_oldest}} to {{date_string_today}}<br>
-                Medium Range: {{date_string_oldest}} to {{date_string_today}}<br>
-                Long Range: {{date_string_oldest}} to {{date_string_today}}<br>
+                <li><b>Home Mode</b>: Retrieve and View NWM Time Series for a single stream reach, reservoir or grid cell.</li>
+                <li><b>Subset Mode</b>: Subset NWM outputs (NetCDF files) with a watershed polygon to get 'shrunken' NetCDFs that only contain data for a specific area.</li>
               </ol>
-              <br>
-              <b>How to Subset a Watershed</b>
-              <li class="modalList"><b>Add Watershed</b> - Add a watershed polygon from HydroShare or local files</li>
-              <li class="modalList"><b>*Configuration</b> - Select a forecast range: Short, Medium, Long, or Analyis & Assimilation</li>
-              <li class="modalList"><b>*Geometry</b> - Select a geometry: Channel, Land, Reservoir or Forcing</li>
-              <li class="modalList"><b>Date and Time</b> - Select a date: The date and time options will vary depending on the forecast type</li>
-              <li class="modalList"><b>Upload to HydroShare (optional)</b> - Check 'Upload to HydroShare' to create a HydroShare resource for subsetted netcdfs </li>
-              <li class="modalList"><b>Download subsetting results</b> - Click 'Download' button</li>
+              </span>
+          </p>
+              <h5>Subset Mode</h5>
+              <li class="modalList"><b>Add Watershed</b>: Add a watershed polygon from HydroShare or local files (geojson or shapefile).</li>
+              <li class="modalList"><b>Model Configuration</b> <br>
+                  NWM has 4 model configurations:
+                    <ol>
+                        <li><b>Analysis & Assimilation (AA)</b> runs hourly and each run provides a snapshot of current hydrologic conditions. (24-hour timeseries with 1-hour interval daily)</li>
+                        <li><b>Short Range (SR)</b> runs hourly and each run provides a 18-hour deterministic forecast with 1-hour interval.</li>
+                        <li><b>Medium Range (MR)</b> runs 4 times per day (every 6 hours) and each run provides a 10-day deterministic forecast with 3-hour interval.</li>
+                        <li><b>Long Range (LR)</b> runs 4 times per day (every 6 hours) and each run provides a 4-member 30-day ensemble forecast with 6-hour interval. (16-member ensemble daily)</li>
+                  </ol>
+              </li>
+              <li class="modalList"><b>Model Output File</b> <br>
+                  NWM stores model outputs in different NetCDF files.
+                  <ol>
+                      <li><b>Channel file</b>: stream routing results for 2.7 millions stream reaches (point-type NetCDF)</li>
+                      <li><b>Land file</b>: land surface processing results (1km gridded NetCDF)</li>
+                      <li><b>Reservoir file</b>: forecasts for 1260 reservoirs (point-type NetCDF)</li>
+                      <li><b>Forcing file</b>: forcing variables (1km gridded NetCDF)</li>
+                  </ol>
+              </li>
+              <li class="modalList"><b>Date and Time</b> <br>
+                  The date and time options vary depending on <b>Model Configuration</b>:
+                  <ol>
+                      <li> <b>Begin/End Date</b>: a string YYYY-MM-DD to indicate model run date for SR, MR and LR configurations or a date range for AA configuration.
+                          <br>
+                          <b>Data Availability</b> (Current UTC Time {{date_string_today}})<br>
+                          <ol>
+                            <b>AA</b>: 2017-05-09 to {{date_string_today}}<br>
+                            <b>SR</b>: {{date_string_oldest}} to {{date_string_today}}<br>
+                            <b>MR</b>: {{date_string_oldest}} to {{date_string_today}}<br>
+                            <b>LR</b>: {{date_string_oldest}} to {{date_string_today}}<br>
+                          </ol>
+                      <li> <b>Model Initialization Time</b>: the time point (T) at which model starts to run. If a model is initialized at time T, SR's first forecast analysis time is T+1 and MR's first forecast analysis time is T+3.</li>
+                      <li> <b>Ensemble Model Initialization Time</b>: the time point (T) at which a model starts to run. LR's first forecast analysis time is T+6.</li>
+                  </ol>
+              </li>
+              <li class="modalList"><b>Upload to HydroShare (optional)</b>: create a HydroShare NetCDF Resource for subsetted files </li>
+              <li class="modalList"><b>Subset</b>: Start Subsetting process </li>
           </ol>
         </div>
-          *More about NWM and its terminology: <a target="_blank" href="http://water.noaa.gov/about/nwm">View Here</a>
+          (For instructions on Home mode please switch mode first)
       </div>
       <div class="modal-footer">
         <div class="byu-logo-container">

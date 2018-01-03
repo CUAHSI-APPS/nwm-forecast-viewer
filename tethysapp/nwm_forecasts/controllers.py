@@ -51,7 +51,7 @@ local_vm_test_data_date = "20170419"
 hs_hostname = 'www.hydroshare.org'
 app_dir = '/projects/water/nwm/data/'
 if local_vm_test:
-    transition_date_v11 = local_vm_test_data_date  # local vm
+    transition_date_v11 = '20170418'  # local vm
 else:
     transition_date_v11 = "20170508"
 transition_timestamp_v11_AA = "12"
@@ -59,12 +59,12 @@ transition_timestamp_v11_SR = "11"
 transition_timestamp_v11_MR = "12"
 transition_timestamp_v11_LR = "00"
 
-hydroshare_ready = True
+tethys_hs_helper_ready = True
 try:
     from tethys_services.backends.hs_restclient_helper import get_oauth_hs
-except Exception:
-    logger.error("could not load: tethys_services.backends.hs_restclient_helper import get_oauth_hs")
-    hydroshare_ready = False
+except ImportError:
+    logger.error("could not import moudule: tethys_services.backends.hs_restclient_helper import get_oauth_hs")
+    tethys_hs_helper_ready = False
 
 date_string_AA_oldest = "2016-06-09"
 
@@ -73,6 +73,8 @@ db_file_path = "/nwm.sqlite"
 # full path to original NWM output folder (for subsetting)
 netcdf_folder_path = "/projects/water/nwm/data/nomads/"
 
+# how many days of data is stored in nomads folder
+nomads_data_days = 40
 
 nwm_viewer_subsetting_soft_time_limit = int(getattr(settings, "NWM_VIEWER_SUBSETTING_SOFT_TIME_LIMIT", 1200)) # in seconds
 nwm_viewer_subsetting_time_limit = int(getattr(settings, "NWM_VIEWER_SUBSETTING_TIME_LIMIT", 1800))  # in seconds
@@ -87,7 +89,7 @@ def _get_current_utc_date():
         return "2017-04-19", "2017-04-19", "2017-04-19", "2017-04-19"
 
     date_string_today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
-    date_string_oldest = (datetime.datetime.utcnow() + datetime.timedelta(days=-30)).strftime("%Y-%m-%d")
+    date_string_oldest = (datetime.datetime.utcnow() + datetime.timedelta(days=-1*nomads_data_days)).strftime("%Y-%m-%d")
     date_string_minus_2 = (datetime.datetime.utcnow() + datetime.timedelta(days=-2)).strftime("%Y-%m-%d")
     date_string_minus_3 = (datetime.datetime.utcnow() + datetime.timedelta(days=-3)).strftime("%Y-%m-%d")
 
@@ -120,14 +122,16 @@ def _init_page(request):
     longRangeLag12 = ToggleSwitch(display_text='', name='12z', size='mini')
     longRangeLag18 = ToggleSwitch(display_text='', name='18z', size='mini')
 
-    global hydroshare_ready
+    global tethys_hs_helper_ready
     hs_username = ""
-    if hydroshare_ready:
+    if tethys_hs_helper_ready:
         try:
             hs = get_oauth_hs(request)
             hs_username = hs.getUserInfo()['username']
+            request.session['hydroshare_ready'] = True
         except Exception:
-            hydroshare_ready = False
+            request.session['hydroshare_ready'] = False
+
 
     waterml_url = ""
 
@@ -180,7 +184,7 @@ def _init_page(request):
         'longRangeLag12': longRangeLag12,
         'longRangeLag18': longRangeLag18,
         'waterml_url': waterml_url,
-        'hs_ready': hydroshare_ready,
+        'hs_ready': request.session.get("hydroshare_ready", False),
         'hs_username': hs_username,
         # 'watershed_geojson_str': watershed_obj_session['geojson_str'] if watershed_obj_session is not None else "",
         # 'watershed_attributes_str': json.dumps(watershed_obj_session['attributes']) if watershed_obj_session is not None else "",
@@ -566,7 +570,10 @@ def loopThroughFiles(localFileDir, q_out, nc_files, var, comidIndex=None, comidI
         elif var == 'SNEQV':
             q_outT = prediction_dataTemp.variables[var][0, comidIndexY, comidIndexX].tolist()
             q_out.append(round((q_outT / 1000) * 3.28084, 4))
-        elif var in ['FSNO', 'SOILSAT_TOP', 'SOILSAT', 'CANWAT', 'SNOWT_AVG']:
+        elif var in ['FSNO']:
+            q_outT = prediction_dataTemp.variables[var][0, comidIndexY, comidIndexX].tolist()
+            q_out.append(round(q_outT * 100, 4))
+        elif var in ['SNOWT_AVG', 'SOILSAT_TOP', 'SOILSAT']:
             q_outT = prediction_dataTemp.variables[var][0, comidIndexY, comidIndexX].tolist()
             q_out.append(round(q_outT, 4))
         elif var in ['SOIL_M', 'SOIL_T']:
@@ -593,7 +600,7 @@ def get_hs_watershed_list(request):
     response_obj = {}
     hs_username = ""
     try:
-        if not hydroshare_ready:
+        if not request.session.get("hydroshare_ready", False):
             raise Exception("not logged in via hydroshare")
         if request.is_ajax() and request.method == 'GET':
             resources_list = []
@@ -678,7 +685,7 @@ def get_hs_watershed_list(request):
 @login_required()
 def load_watershed(request):
 
-    if not hydroshare_ready:
+    if not request.session.get("hydroshare_ready", False):
         raise Exception("not logged in via hydroshare")
 
     tmp_dir = None
@@ -906,7 +913,7 @@ def reproject_wkt_gdal(in_proj_type,
 def upload_to_hydroshare(request):
     temp_dir = None
     try:
-        if not hydroshare_ready:
+        if not request.session.get("hydroshare_ready", False):
             raise Exception("not logged in via hydroshare")
         return_json = {}
         if request.method == 'POST':
@@ -1005,7 +1012,7 @@ def subset_watershed(request):
     upload_to_hydroshare = False
 
     try:
-        if not hydroshare_ready:
+        if not request.session.get("hydroshare_ready", False):
             raise Exception("not logged in via hydroshare")
         if request.method == 'POST':
 
@@ -1281,7 +1288,7 @@ def _check_latest_data():
     nomads_root = netcdf_folder_path
 
     # get latest date:
-    r = re.compile(r"nwm.20\d\d\d\d\d\d")
+    r = re.compile(r"nwm\.20\d\d\d\d\d\d")
     dir_name_list = filter(lambda x: os.path.isdir(os.path.join(nomads_root, x)) and r.match(x),
                            os.listdir(nomads_root))
     dir_name_list.sort(key=lambda x: int(x.split('.')[1]), reverse=True)
@@ -1456,7 +1463,22 @@ def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None, zip_r
         model_configuration_list.remove("long_range")
         # for i in range(1, 5):
         #     model_configuration_list.append("long_range_mem{0}".format(str(i)))
-        model_configuration_list.append("long_range_mem{0}".format(str(subset_parameter_dict['mem'])))
+        mem_parameter = subset_parameter_dict.get('mem', None)
+        if mem_parameter is None:
+            # request comes from API, not UI
+            mem_index = 0
+            for lag_name in ["lag_00z", "lag_06z", "lag_12z", "lag_18z"]:
+                mem_index += 1
+                lag_value = subset_parameter_dict.get(lag_name, None)
+                if lag_value.lower() == "on":
+                    model_configuration_list.append("long_range_mem{0}".format(str(mem_index)))
+        elif isinstance(mem_parameter, basestring) and (1 <= int(mem_parameter) <= 4):
+            # request comes from API and is a list
+            for i in mem_parameter:
+                model_configuration_list.append("long_range_mem{0}".format(str(i)))
+        else:
+            raise Exception("invalid 'mem' parameter for Long Range")
+
 
     output_netcdf_folder_path = os.path.join(output_folder_path, job_id)
 
@@ -1725,8 +1747,10 @@ def get_data_waterml(request):
             units = {'name': 'Depth', 'short': 'ft', 'long': 'Feet'}
         elif var in ['ACCET', 'ACCECAN', 'CANWAT', 'UGDRNOFF', 'SFCRNOFF']:
             units = {'name': 'Depth', 'short': 'in', 'long': 'Inches'}
-        if var in ['SOILSAT_TOP', 'SOILSAT', 'FSNO']:
-            units = {'name': 'Fraction', 'short': 'None', 'long': 'None'}
+        elif var in ['FSNO']:
+            units = {'name': 'km^2/km^2', 'short': 'Snow cover', 'long': 'Snow cover'}
+        elif var in ['SOILSAT_TOP', 'SOILSAT']:
+            units = {'name': 'm^3/m^3', 'short': 'Soil Saturation', 'long': 'Soil Saturation'}
         elif var == 'SOIL_M':
             units = {'name': 'Soil Moisture', 'short': 'm^3/m^3', 'long': 'Water Volume per Soil Volume'}
         elif var in ['SNOWT_AVG', 'SOIL_T']:
@@ -1734,19 +1758,19 @@ def get_data_waterml(request):
         elif var in ['RAINRATE']:
             units = {'name': 'Rain Rate', 'short': 'in/hr', 'long': 'Millimeter per Second'}
         elif var in ['LWDOWN']:
-            units = {'name': 'Surface downward long-wave radiation flux', 'short': 'W m-2', 'long': 'W m-2'}
+            units = {'name': 'Surface downward long-wave radiation flux', 'short': 'W/m^2', 'long': 'W/m^2'}
         elif var in ['PSFC']:
             units = {'name': 'Surface Pressure', 'short': 'Pa', 'long': 'Pa'}
         elif var in ['Q2D']:
-            units = {'name': '2-m Specific humidity', 'short': 'kg kg-1', 'long': 'kg kg-1'}
+            units = {'name': '2-m Specific humidity', 'short': 'kg/kg', 'long': 'kg/kg'}
         elif var in ['SWDOWN']:
-            units = {'name': 'Surface downward short-wave radiation flux', 'short': 'W m-2', 'long': 'W m-2'}
+            units = {'name': 'Surface downward short-wave radiation flux', 'short': 'W/m^2', 'long': 'W/m^2'}
         elif var in ['T2D']:
             units = {'name': '2-m Air Temperature', 'short': 'K', 'long': 'K'}
         elif var in ['U2D']:
-            units = {'name': '10-m U-component of wind', 'short': 'm s-1', 'long': 'm s-1'}
+            units = {'name': '10-m U-component of wind', 'short': 'm/s', 'long': 'm/s'}
         elif var in ['V2D']:
-            units = {'name': '10-m V-component of wind', 'short': 'm s-1', 'long': 'm s-1'}
+            units = {'name': '10-m V-component of wind', 'short': 'm/s', 'long': 'm/s'}
 
         nodata_value = -9999
 
