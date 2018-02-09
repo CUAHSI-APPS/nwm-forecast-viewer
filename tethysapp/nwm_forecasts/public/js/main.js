@@ -731,9 +731,18 @@ function init_restore_ui_map()
     });
 
     var grid_Source = new ol.source.TileWMS({
-        url: 'https://geoserver.byu.edu/arcgis/services/NWM/grid/MapServer/WmsServer?',
+        // BYU
+        //url: 'https://geoserver.byu.edu/arcgis/services/NWM/grid/MapServer/WmsServer?',
+
+        // BYU
+        url: 'https://arcgis.cuahsi.org/arcgis/services/NWM/nwm_app_data/MapServer/WmsServer?',
         params: {
-            LAYERS: "0"
+            // BYU
+            // LAYERS: "0"
+
+            // CUAHSI
+            'LAYERS': "0"  // make sure to check WMS GetCapabilities for layer name/id (?service=wms&version=1.3.0&request=GetCapabilities)
+                           // which may be different from what ArcGIS Server rest api page shows
         },
         //see: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img#attr-crossorigin
         //http://openlayers.org/en/v3.12.1/apidoc/ol.source.TileWMS.html
@@ -749,9 +758,18 @@ function init_restore_ui_map()
     grid_layer.setOpacity(0.4);
 
     var reservoir_Source = new ol.source.TileWMS({
-        url: 'https://geoserver.byu.edu/arcgis/services/NWM/reservoir/MapServer/WmsServer?',
+        // BYU
+        //url: 'https://geoserver.byu.edu/arcgis/services/NWM/reservoir/MapServer/WmsServer?',
+
+        // CUAHSI
+        url: 'https://arcgis.cuahsi.org/arcgis/services/NWM/nwm_app_data/MapServer/WmsServer?',
         params: {
-            LAYERS: "0"
+            // BYU
+            // LAYERS: "0"
+
+            // CUAHSI
+            'LAYERS': "2" // make sure to check WMS GetCapabilities for layer name/id (?service=wms&version=1.3.0&request=GetCapabilities)
+                          // which may be different from what ArcGIS Server rest api page shows
         },
         //see: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img#attr-crossorigin
         //http://openlayers.org/en/v3.12.1/apidoc/ol.source.TileWMS.html
@@ -767,11 +785,25 @@ function init_restore_ui_map()
     var sld_body_all_streams = '<?xml version="1.0" encoding="UTF-8"?><sld:StyledLayerDescriptor version="1.0.0" xmlns="http://www.opengis.net/ogc" xmlns:sld="http://www.opengis.net/sld" xmlns:ogc="http://www.opengis.net/ogc" xmlns:gml="http://www.opengis.net/gml" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.opengis.net/sld http://schemas.opengis.net/sld/1.0.0/StyledLayerDescriptor.xsd"><sld:NamedLayer><sld:Name>0</sld:Name><sld:UserStyle><sld:Name>lineSymbolizer</sld:Name><sld:Title>lineSymbolizer</sld:Title><sld:FeatureTypeStyle><sld:Rule><sld:MinScaleDenominator>0</sld:MinScaleDenominator><sld:MaxScaleDenominator>5000000</sld:MaxScaleDenominator><sld:LineSymbolizer><sld:Stroke><sld:CssParameter name="stroke">#FF0000</sld:CssParameter><sld:CssParameter name="stroke-opacity">1</sld:CssParameter><sld:CssParameter name="stroke-width">2</sld:CssParameter></sld:Stroke></sld:LineSymbolizer></sld:Rule></sld:FeatureTypeStyle></sld:UserStyle></sld:NamedLayer></sld:StyledLayerDescriptor>';
     var sld_body_all_streams_usgs = '<?xml version="1.0" encoding="UTF-8"?><sld:StyledLayerDescriptor version="1.0.0" xmlns="http://www.opengis.net/ogc" xmlns:sld="http://www.opengis.net/sld" xmlns:ogc="http://www.opengis.net/ogc" xmlns:gml="http://www.opengis.net/gml" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.opengis.net/sld http://schemas.opengis.net/sld/1.0.0/StyledLayerDescriptor.xsd"><sld:NamedLayer><sld:Name>4</sld:Name><sld:UserStyle><sld:Name>lineSymbolizer</sld:Name><sld:Title>lineSymbolizer</sld:Title><sld:FeatureTypeStyle><sld:Rule><sld:MinScaleDenominator>0</sld:MinScaleDenominator><sld:MaxScaleDenominator>10000000</sld:MaxScaleDenominator><sld:LineSymbolizer><sld:Stroke><sld:CssParameter name="stroke">#FF0000</sld:CssParameter><sld:CssParameter name="stroke-opacity">1</sld:CssParameter><sld:CssParameter name="stroke-width">2</sld:CssParameter></sld:Stroke></sld:LineSymbolizer></sld:Rule></sld:FeatureTypeStyle></sld:UserStyle></sld:NamedLayer></sld:StyledLayerDescriptor>';
 
+    // CUAHSI endpoints
+    //https://arcgis.cuahsi.org/arcgis/rest/services/NWM/nwm_app_data/MapServer?f=jsapi
+
+
     var all_streams_Source = new ol.source.TileWMS({
-        url: 'https://geoserver.byu.edu/arcgis/services/NWM/nwm_channel_v10/MapServer/WmsServer?',
+        // BYU
+        //url: 'https://geoserver.byu.edu/arcgis/services/NWM/nwm_channel_v10/MapServer/WmsServer?',
+
+        // USGS
         //url: 'https://services.nationalmap.gov/arcgis/services/nhd/MapServer/WMSServer?',
+
+        // CAUHSI
+        url: 'https://arcgis.cuahsi.org/arcgis/services/NWM/nwm_app_data/MapServer/WmsServer?',
         params: {
-            LAYERS: "0",
+            //LAYERS: "0", //BYU
+
+            // CAUHSI
+            'LAYERS': '1', // make sure to check WMS GetCapabilities for layer name/id (?service=wms&version=1.3.0&request=GetCapabilities)
+                           // which may be different from what ArcGIS Server rest api page shows
             //LAYERS: "4", //USGS
             // use a external sld xml file works slowly
             //SLD: 'https://www.hydroshare.org/django_irods/download/4023737940134bbabcab5a1af9e30bae/data/contents/stream_sld.xml',
@@ -795,9 +827,18 @@ function init_restore_ui_map()
 
 
     var usgs_gauges_Source = new ol.source.TileWMS({
-        url: 'https://geoserver.byu.edu/arcgis/services/NWM/NHD_usgs_gauge_loc/MapServer/WmsServer?',
+        // BYU
+        //url: 'https://geoserver.byu.edu/arcgis/services/NWM/NHD_usgs_gauge_loc/MapServer/WmsServer?',
+
+        // CUAHSI
+        url: 'https://arcgis.cuahsi.org/arcgis/services/NWM/nwm_app_data/MapServer/WmsServer?',
         params: {
-            LAYERS: "0",
+
+            //LAYERS: "0", //BYU
+
+            // CUAHSI
+            'LAYERS': "3", // make sure to check WMS GetCapabilities for layer name/id (?service=wms&version=1.3.0&request=GetCapabilities)
+                           // which may be different from what ArcGIS Server rest api page shows
         },
         //see: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img#attr-crossorigin
         //http://openlayers.org/en/v3.12.1/apidoc/ol.source.TileWMS.html
@@ -1173,7 +1214,15 @@ function run_point_indexing_service_byu(comid, pnt_coordinate, pnt_epsg, output_
     if (comid != null) // comid is unknown now
     {
         // WFS GetFeature request
-        var wfs_query_url_template = "https://geoserver.byu.edu/arcgis/services/NWM/nwm_channel_v10/MapServer/WFSServer?service=WFS&request=GetFeature&version=1.1.0&typename=drew_nwm_channel_v10:channels_nwm_ioc&Filter=<ogc:Filter><ogc:PropertyIsEqualTo><ogc:PropertyName>station_id</ogc:PropertyName><ogc:Literal>#station_id#</ogc:Literal></ogc:PropertyIsEqualTo></ogc:Filter>";
+        // Be sure to check WFS GetCapabilities for FeatureType Name (WFSServer?service=wfs&request=GetCapabilities)
+
+
+        // BYU ArcServer
+        //var wfs_query_url_template = "https://geoserver.byu.edu/arcgis/services/NWM/nwm_channel_v10/MapServer/WFSServer?service=WFS&request=GetFeature&version=1.1.0&typename=drew_nwm_channel_v10:channels_nwm_ioc&Filter=<ogc:Filter><ogc:PropertyIsEqualTo><ogc:PropertyName>station_id</ogc:PropertyName><ogc:Literal>#station_id#</ogc:Literal></ogc:PropertyIsEqualTo></ogc:Filter>";
+
+        // CUAHSI ArcServer
+        var wfs_query_url_template = "https://arcgis.cuahsi.org/arcgis/services/NWM/nwm_app_data/MapServer/WFSServer?service=WFS&request=GetFeature&version=1.1.0&typename=NWM_nwm_app_data:channels&Filter=<ogc:Filter><ogc:PropertyIsEqualTo><ogc:PropertyName>station_id</ogc:PropertyName><ogc:Literal>#station_id#</ogc:Literal></ogc:PropertyIsEqualTo></ogc:Filter>";
+
         var wfs_query_url = wfs_query_url_template.replace("#station_id#", comid);
         var features_4269 = new ol.format.WFS().readFeatures(dataCall(wfs_query_url));
         if (features_4269.length < 1)
