@@ -45,10 +45,9 @@ from .app import nwmForecasts as app
 app_workspace = app.get_app_workspace()
 # comid = 18228725
 
-local_vm_test = False
+local_vm_test = True
 local_vm_test_data_date = "20170419"
 
-hs_hostname = 'www.hydroshare.org'
 app_dir = '/projects/water/nwm/data/'
 if local_vm_test:
     transition_date_v11 = '20170418'  # local vm
@@ -69,7 +68,7 @@ except ImportError:
 date_string_AA_oldest = "2016-06-09"
 
 # path to sqlite spatial db file
-db_file_path = "/nwm.sqlite"
+db_file_path = "/projects/hydroshare/apps/apps_common_files/nwm.sqlite"
 # full path to original NWM output folder (for subsetting)
 netcdf_folder_path = "/projects/water/nwm/data/nomads/"
 
@@ -81,7 +80,7 @@ nwm_viewer_subsetting_time_limit = int(getattr(settings, "NWM_VIEWER_SUBSETTING_
 nwm_viewer_subsetting_rate_limit = getattr(settings, "NWM_VIEWER_SUBSETTING_RATE_LIMIT", "10/m")  # request pre min
 nwm_viewer_subsetting_clean_up_minute = getattr(settings, "NWM_VIEWER_SUBSETTING_CLEAN_UP_MINUTE", "*/1")
 nwm_viewer_subsetting_clean_up_hour = getattr(settings, "NWM_VIEWER_SUBSETTING_CLEAN_UP_HOUR", "*/1")
-nwm_viewer_subsetting_result_life_minute = int(getattr(settings, "NWM_VIEWER_SUBSETTING_RESULT_LIFE_MINUTE", 3))  # in minutes
+nwm_viewer_subsetting_result_life_minute = int(getattr(settings, "NWM_VIEWER_SUBSETTING_RESULT_LIFE_MINUTE", 60))  # in minutes
 
 def _get_current_utc_date():
 
@@ -1090,6 +1089,7 @@ def subset_watershed(request):
                 return HttpResponse(status=500, content="Not a POST request")
     except Exception as ex:
         logger.exception(type(ex))
+        logger.exception(ex)
         if upload_to_hydroshare:
             return JsonResponse({"status": "error", "msg": ex.message})
         else:
