@@ -1257,8 +1257,8 @@ def check_latest_data_api(request):
     try:
         latest_dict = _check_latest_data()
         return JsonResponse(latest_dict)
-    except BaseException as ex:
-        logger.error("check_latest_data_api: {0}".format(str(ex)))
+    except Exception as ex:
+        logger.exception("check_latest_data_api: {0}".format(str(ex)))
         return JsonResponse({"status": "error", "msg": str(ex)})
     pass
 
@@ -1318,8 +1318,8 @@ def _check_latest_data():
         if len(rslt_list) == 28:  # 27 data items + 1 checked_at_utc item
             break
 
-    logger.debug("latest data dict length: {0}".format(len(rslt_list)))
-    logger.debug("latest data dict: {0}".format(rslt_list))
+    # logger.debug("latest data dict length: {0}".format(len(rslt_list)))
+    # logger.debug("latest data dict: {0}".format(rslt_list))
     return rslt_list
 
 
