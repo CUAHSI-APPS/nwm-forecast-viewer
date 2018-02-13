@@ -1257,7 +1257,7 @@ def check_latest_data_api(request):
     try:
         latest_dict = _check_latest_data()
         return JsonResponse(latest_dict)
-    except Exception as ex:
+    except BaseException as ex:
         logger.error("check_latest_data_api: {0}".format(str(ex)))
         return JsonResponse({"status": "error", "msg": str(ex)})
     pass
