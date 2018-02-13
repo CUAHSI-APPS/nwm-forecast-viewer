@@ -1292,7 +1292,6 @@ def _check_latest_data():
     dir_name_list = filter(lambda x: os.path.isdir(os.path.join(nomads_root, x)) and r.match(x),
                            os.listdir(nomads_root))
     dir_name_list.sort(key=lambda x: int(x.split('.')[1]), reverse=True)
-    print dir_name_list
     config_list = ["analysis_assim", "short_range", "medium_range", "long_range"]
     geom_list = ["forcing", "channel_rt", "reservoir", "land", "terrain_rt"]
 
@@ -1305,7 +1304,6 @@ def _check_latest_data():
         filename_list = []
         for dirpath, dirnames, filenames in os.walk(date_path):
             filename_list = filename_list + filenames
-        print filename_list
         for config in config_list:
             for geom in geom_list:
                 if config == "long_range" and (geom == "forcing" or geom == "terrain_rt"):
