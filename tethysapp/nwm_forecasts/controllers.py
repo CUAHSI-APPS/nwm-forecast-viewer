@@ -1287,40 +1287,44 @@ def _check_latest_data():
 
     nomads_root = netcdf_folder_path
 
-    # get latest date:
-    r = re.compile(r"nwm\.20\d\d\d\d\d\d")
-    dir_name_list = filter(lambda x: os.path.isdir(os.path.join(nomads_root, x)) and r.match(x),
-                           os.listdir(nomads_root))
-    dir_name_list.sort(key=lambda x: int(x.split('.')[1]), reverse=True)
-    print dir_name_list
-    config_list = ["analysis_assim", "short_range", "medium_range", "long_range"]
-    geom_list = ["forcing", "channel_rt", "reservoir", "land", "terrain_rt"]
+    try:
+        # get latest date:
+        r = re.compile(r"nwm\.20\d\d\d\d\d\d")
+        dir_name_list = filter(lambda x: os.path.isdir(os.path.join(nomads_root, x)) and r.match(x),
+                               os.listdir(nomads_root))
+        dir_name_list.sort(key=lambda x: int(x.split('.')[1]), reverse=True)
+        print dir_name_list
+        config_list = ["analysis_assim", "short_range", "medium_range", "long_range"]
+        geom_list = ["forcing", "channel_rt", "reservoir", "land", "terrain_rt"]
 
-    rslt_list = {}
-    rslt_list["checked_at_utc"] = datetime.datetime.utcnow().strftime("%Y%m%d-%H:%M:%S")
-    for date_dir in dir_name_list:
-        date_path = os.path.join(nomads_root, date_dir)
-        date_string = date_dir.split(".")[1]
-        # all file names in one list
-        filename_list = []
-        for dirpath, dirnames, filenames in os.walk(date_path):
-            filename_list = filename_list + filenames
-        print filename_list
-        for config in config_list:
-            for geom in geom_list:
-                if config == "long_range" and (geom == "forcing" or geom == "terrain_rt"):
-                    continue
-                if config == "long_range":
-                    for mem_i in range(1, 5):
-                        _build_latest_dict_info(rslt_list, filename_list, date_string, config, geom, mem_i)
-                else:
-                    _build_latest_dict_info(rslt_list, filename_list, date_string, config, geom, None)
-        if len(rslt_list) == 28:  # 27 data items + 1 checked_at_utc item
-            break
+        rslt_list = {}
+        rslt_list["checked_at_utc"] = datetime.datetime.utcnow().strftime("%Y%m%d-%H:%M:%S")
+        for date_dir in dir_name_list:
+            date_path = os.path.join(nomads_root, date_dir)
+            date_string = date_dir.split(".")[1]
+            # all file names in one list
+            filename_list = []
+            for dirpath, dirnames, filenames in os.walk(date_path):
+                filename_list = filename_list + filenames
+            print filename_list
+            for config in config_list:
+                for geom in geom_list:
+                    if config == "long_range" and (geom == "forcing" or geom == "terrain_rt"):
+                        continue
+                    if config == "long_range":
+                        for mem_i in range(1, 5):
+                            _build_latest_dict_info(rslt_list, filename_list, date_string, config, geom, mem_i)
+                    else:
+                        _build_latest_dict_info(rslt_list, filename_list, date_string, config, geom, None)
+            if len(rslt_list) == 28:  # 27 data items + 1 checked_at_utc item
+                break
 
-    logger.debug("latest data dict length: {0}".format(len(rslt_list)))
-    logger.debug("latest data dict: {0}".format(rslt_list))
-    return rslt_list
+        logger.debug("latest data dict length: {0}".format(len(rslt_list)))
+        logger.debug("latest data dict: {0}".format(rslt_list))
+        return rslt_list
+    except Exception as ex:
+        logger.exception(str(ex))
+        return {"error": str(ex)}
 
 
 @shared_task
@@ -1343,8 +1347,8 @@ def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None, zip_r
     # Path of output folder
     # output_folder_path = "/tmp"
     output_folder_path = app_workspace.path
-    logger.error("****************************************")
-    logger.error(output_folder_path)
+    logger.info("**************app_workspace*********************")
+    logger.info(output_folder_path)
 
     # shrink dimension size to cover subsetting domain only
     resize_dimension_grid = True
