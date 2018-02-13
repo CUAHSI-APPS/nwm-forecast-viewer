@@ -4,19 +4,25 @@
 {% load staticfiles %}
 
 {% block app_navigation_items %}
-{{ block.super }}
-<li class="active" data-toggle="tooltip"
-               data-placement="bottom" title="Retrieve and View NWM forecasts for a single stream reach, reservoir or grid cell"><a href="">Home</a></li>
-<li data-toggle="tooltip"
-               data-placement="bottom" title="Subset NWM outputs with a watershed polygon"><a href="{% url 'nwm_forecasts:subset' %}">Subset</a></li>
+{#{{ block.super }}#}
+    <li class="separator"></li>
+    <li class="active" data-toggle="tooltip"
+               data-placement="bottom" title="Retrieve and View NWM forecasts for a single stream reach, reservoir or grid cell">
+        <a href="">Home</a>
+    </li>
+    <li class="separator"></li>
+    <li data-toggle="tooltip"
+               data-placement="bottom" title="Subset NWM outputs with a watershed polygon">
+        <a href="{% url 'nwm_forecasts:subset' %}">Subset</a>
+    </li>
 
-{% if hs_ready|lower == "true" %}
-<br/>
-<button id="watershedBtn" title="Add a watershed polygon to map" type="button" class="btn btn-primary"
-        data-toggle="modal" data-target="#popup-load-watershed">Add Watershed
-</button>
-<br><br>
-{%endif%}
+    {% if hs_ready|lower == "true" %}
+        <br/>
+        <button id="watershedBtn" title="Add a watershed polygon to map" type="button" class="btn btn-primary"
+                data-toggle="modal" data-target="#popup-load-watershed">Add Watershed
+        </button>
+        <br><br>
+    {%endif%}
 
 <form id="paramForm" method="get" action="{% url 'nwm_forecasts:home' %}">
 

@@ -13,12 +13,21 @@
 {% block app_title %}{{ tethys_app.name }}{% endblock %}
 
 
-{% block exit_button_override %}
-  <div class="my-exit-button">
-      <a href="javascript:void(0);" onclick="if(!window.location.href.includes('/subset/')) {$('#welcome-popup').modal('show');}else{$('#welcome-popup-subset').modal('show');}">Help</a>
-      <a href="javascript:void(0);" onclick="TETHYS_APP_BASE.exit_app('{% url 'nwm_forecasts:api_page' %}');" >API</a>
-      <a href="javascript:void(0);" onclick="TETHYS_APP_BASE.exit_app('{% url 'app_library' %}');">Exit</a>
-  </div>
+{#{% block exit_button_override %}#}
+{#  <div class="my-exit-button">#}
+{#      <a href="javascript:void(0);" onclick="if(!window.location.href.includes('/subset/')) {$('#welcome-popup').modal('show');}else{$('#welcome-popup-subset').modal('show');}">Help</a>#}
+{#      <a href="javascript:void(0);" onclick="TETHYS_APP_BASE.exit_app('{% url 'nwm_forecasts:api_page' %}');" >API</a>#}
+{#      <a href="javascript:void(0);" onclick="TETHYS_APP_BASE.exit_app('{% url 'app_library' %}');">Exit</a>#}
+{#  </div>#}
+{#{% endblock %}#}
+
+{% block header_buttons %}
+    <div class="header-button glyphicon-button" data-toggle="tooltip" data-placement="bottom" title="Help">
+        <a data-toggle="modal" data-target="#" onclick="if(!window.location.href.includes('/subset/')) {$('#welcome-popup').modal('show');}else{$('#welcome-popup-subset').modal('show');}"><span class="glyphicon glyphicon-question-sign"></span></a>
+    </div>
+    <div class="header-button glyphicon-button" data-toggle="tooltip" data-placement="bottom" title="API">
+        <a data-toggle="modal" data-target="#" onclick="TETHYS_APP_BASE.exit_app('{% url 'nwm_forecasts:api_page' %}');"><span class="glyphicon">API</span></a>
+    </div>
 {% endblock %}
 
 

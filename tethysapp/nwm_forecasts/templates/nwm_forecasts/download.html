@@ -4,11 +4,17 @@
 {% load staticfiles %}
 
 {% block app_navigation_items %}
-{{ block.super }}
+{#{{ block.super }}#}
+     <li class="separator"></li>
 <li data-toggle="tooltip"
-    data-placement="bottom" title="Retrieve and View NWM forecasts for a single stream reach, reservoir or grid cell"><a href="{% url 'nwm_forecasts:home' %}">Home</a></li>
+    data-placement="bottom" title="Retrieve and View NWM forecasts for a single stream reach, reservoir or grid cell">
+    <a href="{% url 'nwm_forecasts:home' %}">Home</a>
+</li>
+    <li class="separator"></li>
 <li class="active" data-toggle="tooltip"
-    data-placement="bottom" title="Subset NWM outputs with a watershed polygon"><a href="">Subset</a></li>
+    data-placement="bottom" title="Subset NWM outputs with a watershed polygon">
+    <a href="">Subset</a>
+</li>
 <br>
 
 {% if hs_ready|lower == "true" %}

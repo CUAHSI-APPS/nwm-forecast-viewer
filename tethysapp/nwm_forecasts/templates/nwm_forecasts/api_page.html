@@ -3,9 +3,11 @@
 {% load staticfiles %}
 
 {% block app_navigation_items %}
-{{ block.super }}
-<li> <a href="{% url 'nwm_forecasts:home' %}">Home</a></li>
-<li> <a href="{% url 'nwm_forecasts:subset' %}">Subset</a></li>
+{#{{ block.super }}#}
+    <li class="separator"></li>
+    <li> <a href="{% url 'nwm_forecasts:home' %}">Home</a></li>
+    <li class="separator"></li>
+    <li> <a href="{% url 'nwm_forecasts:subset' %}">Subset</a></li>
 {% endblock%}
 
 {% block app_content %}
