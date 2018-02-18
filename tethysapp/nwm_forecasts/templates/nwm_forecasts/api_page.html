@@ -202,7 +202,7 @@ Subsetting API has been changed to work asynchronously, which contain 3 endpoint
 <br>
 1) <b>Submit a subsetting job:</b>
 <br>
-Send a <b>HTTP POST Request</b> with the following JSON payload to <b>/apps/nwm-forecasts/submit-subsetting-job/</b>.
+Send a <b>HTTP POST Request</b> with the following JSON payload to <b>/apps/nwm-forecasts/api/submit-subsetting-job/</b>.
 <br>
 <!--<img src="{% static 'nwm_forecasts/help/subsetting_json_payload.jpg' %}">-->
 <pre>
@@ -249,19 +249,15 @@ Expected response: <br>
 </pre>
 <br>
 
-2) <b>Check job status:</b> <br>
-Send a <b>HTTP POST Request</b> with following JSON payload to <b>/apps/nwm-forecasts/check-subsetting-job-status/</b>.<br>
-{"job_id": JOB_ID} <br>
-Or send a <b>HTTP GET Request</b> with parameter "job_id" to <b>/apps/nwm-forecasts/check-subsetting-job-status/?job_id=JOB_ID</b>. <br>
+2) <b>Check job status:</b>
+    <br>Send a <b>HTTP GET Request</b> with parameter "job_id" to <b>/apps/nwm-forecasts/api/check-subsetting-job-status/?job_id=JOB_ID</b>. <br>
 Expected response: <br>
 {"status": JOB_STATUS} <br>
 If the value of 'status' is 'SUCCESS', it means the job is done.
 <br>
 <br>
 3) <b>Retrieve subetting results: </b><br>
-Send a <b>HTTP POST Request</b> with following JSON payload to <b>/apps/nwm-forecasts/download-subsetting-results/</b>.<br>
-{"job_id": JOB_ID} <br>
-Or send a <b>HTTP GET Request</b> with parameter "job_id" to <b>/apps/nwm-forecasts/download-subsetting-results/?job_id=JOB_ID</b>.<br>
+Send a <b>HTTP GET Request</b> with parameter "job_id" to <b>/apps/nwm-forecasts/api/download-subsetting-results/?job_id=JOB_ID</b>.<br>
 Expected response: subsetting results in one zip file
 <br>
 <a href="{% static 'nwm_forecasts/help/subsetting_api_demo.py' %}" download>Download Demo Script</a>
@@ -272,7 +268,7 @@ Expected response: subsetting results in one zip file
 <br>
 4) <b>Latest data list: get a list of the "latest" data for subsetting operation </b>
 <br>
-Send a <b>GET Request</b> to <b>/apps/nwm-forecasts/latest-data-info</b>
+Send a <b>GET Request</b> to <b>/apps/nwm-forecasts/api/latest-data-info</b>
 <br>
 Expected response:
 <br>
@@ -393,7 +389,7 @@ Expected response:
 <br>
 5) <b>Spatial Query: check what NWM features are covered by a polygon</b>
 <br>
-Send a <b>HTTP POST Request</b> with the following JSON payload to <b>/apps/nwm-forecasts/spatial-query/</b>.
+Send a <b>HTTP POST Request</b> with the following JSON payload to <b>/apps/api/nwm-forecasts/spatial-query/</b>.
 <br>
 <pre>
     # prepare the data sent to api endpoint

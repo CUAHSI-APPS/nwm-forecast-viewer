@@ -5,6 +5,10 @@ import os
 import re
 import shutil
 import zipfile
+import json
+import pytz
+from osgeo import ogr
+from osgeo import osr
 
 from django_celery_results.models import TaskResult
 from django.db.models import Q
@@ -353,3 +357,77 @@ def _get_current_utc_date():
     date_string_minus_3 = (datetime.datetime.utcnow() + datetime.timedelta(days=-3)).strftime("%Y-%m-%d")
 
     return date_string_today, date_string_oldest, date_string_minus_2, date_string_minus_3
+
+
+
+def _find_all_files_in_folder(directory, searching_text, match_pattern="endswith", full_path=True):
+
+    files_list = []
+    for root, dirs, files in os.walk(directory):
+        for file in files:
+            found_f = None
+            if match_pattern == "endswith":
+                if file.endswith(searching_text):
+                    found_f = file
+            elif match_pattern == "startswith":
+                if file.startswith(searching_text):
+                    found_f = file
+            elif match_pattern == "in":
+                if searching_text in os.path.basename(file):
+                    found_f = file
+            elif match_pattern == "equals":
+                if searching_text == os.path.basename(file):
+                    found_f = file
+            else:
+                continue
+            if full_path:
+                files_list.append(os.path.join(root, found_f))
+            else:
+                files_list.append(found_f)
+    return files_list
+
+
+def reproject_wkt_gdal(in_proj_type,
+                       in_proj_value,
+                       out_proj_type,
+                       out_proj_value,
+                       in_geom_wkt):
+
+    try:
+        if 'GDAL_DATA' not in os.environ:
+            raise Exception("Environment variable 'GDAL_DATA' not found!")
+
+        source = osr.SpatialReference()
+        if in_proj_type.lower() == "epsg":
+            source.ImportFromEPSG(in_proj_value)
+        elif in_proj_type.lower() == "proj4":
+            source.ImportFromProj4(in_proj_value)
+        elif in_proj_type.lower() == "esri":
+            source.ImportFromESRI([in_proj_value])
+        else:
+            raise Exception("unsupported projection type: " + out_proj_type)
+
+        target = osr.SpatialReference()
+        if out_proj_type.lower() == "epsg":
+            target.ImportFromEPSG(out_proj_value)
+        elif out_proj_type.lower() == "proj4":
+            target.ImportFromProj4(out_proj_value)
+        elif out_proj_type.lower() == "esri":
+            target.ImportFromESRI([out_proj_value])
+        else:
+            raise Exception("unsupported projection type: " + out_proj_type)
+
+        transform = osr.CoordinateTransformation(source, target)
+
+        geom_gdal = ogr.CreateGeometryFromWkt(in_geom_wkt)
+        geom_gdal.Transform(transform)
+
+        return geom_gdal.ExportToWkt()
+
+    except Exception as ex:
+        logger.error("in_proj_type: {0}".format(in_proj_type))
+        logger.error("in_proj_value: {0}".format(in_proj_value))
+        logger.error("out_proj_type: {0}".format(out_proj_type))
+        logger.error("out_proj_value: {0}".format(out_proj_value))
+        logger.error(str(type(ex)) + " " + ex.message)
+        raise ex
