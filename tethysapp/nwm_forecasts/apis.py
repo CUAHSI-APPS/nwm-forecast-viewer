@@ -14,9 +14,10 @@ from rest_framework.decorators import api_view, authentication_classes
 from .subset_utilities import _do_spatial_query, _perform_subset, _check_latest_data
 from .timeseries_utilities import format_time_series, get_site_name, getTimeSeries
 from .controllers_ajax import get_netcdf_data
-from .configs import *
+
 
 logger = logging.getLogger(__name__)
+
 
 @api_view(['GET'])
 @authentication_classes((TokenAuthentication, SessionAuthentication))
@@ -211,10 +212,10 @@ def subset_watershed_api(request):
                                              "zip_results":True,
                                              "query_only": spatial_query_only,},
                                            task_id=job_id,
-                                           countdown=3,
-                                           time_limit=nwm_viewer_subsetting_time_limit,  # 30 minutes
-                                           soft_time_limit=nwm_viewer_subsetting_soft_time_limit,  # 20 minutes
-                                           rate_limit=nwm_viewer_subsetting_rate_limit)  # 10 request/min
+                                           countdown=3,)
+                                           # time_limit=nwm_viewer_subsetting_time_limit,  # 30 minutes
+                                           # soft_time_limit=nwm_viewer_subsetting_soft_time_limit,  # 20 minutes
+                                           # rate_limit=nwm_viewer_subsetting_rate_limit)  # 10 request/min
 
         response = JsonResponse({"job_id": task.task_id, "status": task.state})
         logger.info("------END: subset_watershed_api--------")

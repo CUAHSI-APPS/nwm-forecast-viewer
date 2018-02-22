@@ -41,7 +41,10 @@ def _do_spatial_query(geom_str, in_epsg, job_id=None):
     return query_result_dict
 
 
-@shared_task
+@shared_task(rate_limit=nwm_viewer_subsetting_rate_limit,  # 10 request/min
+             time_limit=nwm_viewer_subsetting_time_limit,  # 30 minutes
+             soft_time_limit=nwm_viewer_subsetting_soft_time_limit,  # 20 minutes
+             )
 def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None, zip_results=False, query_only=False):
 
     if not job_id:
@@ -243,7 +246,9 @@ def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None, zip_r
     return job_id, bag_save_to_path
 
 
-@periodic_task(run_every=crontab(minute=nwm_viewer_subsetting_clean_up_minute, hour=nwm_viewer_subsetting_clean_up_hour), ignore_result=False)
+@periodic_task(run_every=crontab(minute=nwm_viewer_subsetting_clean_up_minute,
+                                 hour=nwm_viewer_subsetting_clean_up_hour),
+               ignore_result=False)
 def clean_up_subsetting_results():
     try:
         utc_current = pytz.utc.localize(datetime.datetime.utcnow())
@@ -357,7 +362,6 @@ def _get_current_utc_date():
     date_string_minus_3 = (datetime.datetime.utcnow() + datetime.timedelta(days=-3)).strftime("%Y-%m-%d")
 
     return date_string_today, date_string_oldest, date_string_minus_2, date_string_minus_3
-
 
 
 def _find_all_files_in_folder(directory, searching_text, match_pattern="endswith", full_path=True):

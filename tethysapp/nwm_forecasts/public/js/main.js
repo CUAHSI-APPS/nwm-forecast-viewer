@@ -2141,6 +2141,7 @@ function subset_watershed_hydroshare()
     $.ajax({
         type: 'POST',
         url: '/apps/nwm-forecasts/subset-watershed/',
+        //url: '/apps/nwm-forecasts/api/submit-subsetting-job/',
         headers: {'X-CSRFToken': csrf_token},
         dataType: 'json',
         data: JSON.stringify(data),
@@ -2205,6 +2206,8 @@ function subset_watershed_download()
     }; //xhttp.onreadystatechange
     // Post data to URL which handles post request
     xhttp.open("POST", '/apps/nwm-forecasts/subset-watershed/');
+    //xhttp.open("POST", '/apps/nwm-forecasts/api/submit-subsetting-job/');
+
     xhttp.setRequestHeader("Content-Type", "application/json");
     var csrf_token = getCookie('csrftoken');
     xhttp.setRequestHeader("X-CSRFToken", csrf_token);

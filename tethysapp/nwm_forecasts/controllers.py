@@ -7,13 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 
 from tethys_sdk.gizmos import ToggleSwitch, DatePicker
-
-tethys_hs_helper_ready = True
-try:
-    from tethys_services.backends.hs_restclient_helper import get_oauth_hs
-except ImportError:
-    logger.error("could not import moudule: tethys_services.backends.hs_restclient_helper import get_oauth_hs")
-    tethys_hs_helper_ready = False
+from tethys_services.backends.hs_restclient_helper import get_oauth_hs
 
 from .configs import *
 from .subset_utilities import _get_current_utc_date
@@ -45,16 +39,14 @@ def _init_page(request):
     longRangeLag12 = ToggleSwitch(display_text='', name='12z', size='mini')
     longRangeLag18 = ToggleSwitch(display_text='', name='18z', size='mini')
 
-    global tethys_hs_helper_ready
     hs_username = ""
-    if tethys_hs_helper_ready:
-        try:
-            hs = get_oauth_hs(request)
-            hs_username = hs.getUserInfo()['username']
-            request.session['hydroshare_ready'] = True
-        except Exception:
-            request.session['hydroshare_ready'] = False
 
+    try:
+        hs = get_oauth_hs(request)
+        hs_username = hs.getUserInfo()['username']
+        request.session['hydroshare_ready'] = True
+    except Exception:
+        request.session['hydroshare_ready'] = False
 
     waterml_url = ""
 
@@ -117,6 +109,7 @@ def _init_page(request):
     }
     return context
 
+
 @login_required()
 def home(request):
     """
@@ -126,6 +119,7 @@ def home(request):
     context = _init_page(request)
     return render(request, 'nwm_forecasts/home.html', context)
 
+
 @login_required()
 def subset(request):
     """
@@ -134,6 +128,7 @@ def subset(request):
 
     context = _init_page(request)
     return render(request, 'nwm_forecasts/download.html', context)
+
 
 @login_required()
 def api_page(request):
