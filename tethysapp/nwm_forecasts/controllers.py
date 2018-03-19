@@ -59,6 +59,12 @@ transition_timestamp_v11_SR = "11"
 transition_timestamp_v11_MR = "12"
 transition_timestamp_v11_LR = "00"
 
+transition_date_v12 = "20180306"
+transition_timestamp_v12_AA = "16"
+transition_timestamp_v12_SR = "15"
+transition_timestamp_v12_MR = "12"
+transition_timestamp_v12_LR = "00"
+
 tethys_hs_helper_ready = True
 try:
     from tethys_services.backends.hs_restclient_helper import get_oauth_hs
@@ -261,8 +267,15 @@ def get_netcdf_data(request):
                     nc_files = sorted([x for x in os.listdir(localFileDir) if geom in x and timeCheck in x
                                       and "georeferenced" in x and x.endswith('.nc')])
                     ts_pairs_data[str(comid)] = processNCFiles(localFileDir, nc_files, geom, comid, var, version="v1.0")
-                else:
+                elif int(dateDir) < int(transition_date_v12) or (
+                    int(dateDir) == int(transition_date_v12) and timestamp_early_than_transition_v11(timeCheck,
+                                                                                                     transition_timestamp_v12_SR)):
                     # v1.1
+                    nc_files = sorted([x for x in os.listdir(localFileDir) if geom in x and timeCheck in x
+                                       and "georeferenced" not in x and x.endswith('.nc')])
+                    ts_pairs_data[str(comid)] = processNCFiles(localFileDir, nc_files, geom, comid, var)
+                else:
+                    # v1.2
                     nc_files = sorted([x for x in os.listdir(localFileDir) if geom in x and timeCheck in x
                                        and "georeferenced" not in x and x.endswith('.nc')])
                     ts_pairs_data[str(comid)] = processNCFiles(localFileDir, nc_files, geom, comid, var)
@@ -295,13 +308,36 @@ def get_netcdf_data(request):
                                        ])
 
                 print nc_files_v10
+
                 nc_files_v11 = sorted([x for x in os.listdir(localFileDir_v11) if geom in x
-                                       and (int(x.split('.')[1]) >= int(dateDir) if int(dateDir) > int(transition_date_v11) else int(x.split('.')[1]) >= int(transition_date_v11) and ((not timestamp_early_than_transition_v11(x, transition_timestamp_v11_AA)) if transition_date_v11 in x else True))
-                                       and int(x.split('.')[1]) <= int(endDate)
+                                       and (int(x.split('.')[1]) >= int(dateDir) if int(dateDir) > int(
+                    transition_date_v11) else int(x.split('.')[1]) >= int(transition_date_v11) and ((
+                                                                                                    not timestamp_early_than_transition_v11(
+                                                                                                        x,
+                                                                                                        transition_timestamp_v11_AA)) if transition_date_v11 in x else True))
+                                       # and int(x.split('.')[1]) <= int(endDate)
+                                       and (int(x.split('.')[1]) <= int(endDate) if int(endDate) < int(
+                    transition_date_v12) else int(x.split('.')[1]) <= int(transition_date_v12) and (
+                timestamp_early_than_transition_v11(x,
+                                                    transition_timestamp_v12_AA) if transition_date_v12 in x else True))
                                        and 'tm00' in x
                                        and "georeferenced" not in x
                                        and x.endswith('.nc')])
                 print nc_files_v11
+
+                nc_files_v12 = sorted([x for x in os.listdir(localFileDir_v11) if geom in x
+                                       and (int(x.split('.')[1]) >= int(dateDir) if int(dateDir) > int(
+                transition_date_v12) else int(x.split('.')[1]) >= int(transition_date_v12) and ((
+                                                                                                        not timestamp_early_than_transition_v11(
+                                                                                                            x,
+                                                                                                            transition_timestamp_v12_AA)) if transition_date_v12 in x else True))
+                                       and int(x.split('.')[1]) <= int(endDate)
+                                       and 'tm00' in x
+                                       and "georeferenced" not in x
+                                       and x.endswith('.nc')])
+
+                print nc_files_v12
+
                 start_time = None
                 q_list = []
                 if len(nc_files_v10) > 0:
@@ -314,6 +350,12 @@ def get_netcdf_data(request):
                     if start_time is None:
                         start_time = v11_data[0]
                     q_list = q_list + v11_data[1]
+
+                if len(nc_files_v12) > 0:
+                    v12_data = processNCFiles(localFileDir_v11, nc_files_v12, geom, comid, var)
+                    if start_time is None:
+                        start_time = v12_data[0]
+                    q_list = q_list + v12_data[1]
 
                 ts_pairs_data[str(comid)] = [start_time, q_list, "notLong"]
 
