@@ -9,24 +9,25 @@ from django.http import JsonResponse, HttpResponse, FileResponse, Http404
 from django.shortcuts import render_to_response
 
 from rest_framework.authentication import TokenAuthentication, SessionAuthentication
-from rest_framework.decorators import api_view, authentication_classes
+from rest_framework.decorators import api_view, authentication_classes, throttle_classes
 
 from .subset_utilities import _do_spatial_query, _perform_subset, _check_latest_data
-from .timeseries_utilities import format_time_series, get_site_name, getTimeSeries
+from .timeseries_utilities import format_time_series, get_site_name, getTimeSeries, _get_netcdf_data
 from .controllers_ajax import get_netcdf_data
-
+from .apis_settings import *
 
 logger = logging.getLogger(__name__)
 
 
 @api_view(['GET'])
 @authentication_classes((TokenAuthentication, SessionAuthentication))
+@throttle_classes([GetDataWatermlRateThrottle_User, GetDataWatermlRateThrottle_Anon])
 def get_data_waterml(request):
     """
     Controller that will show the data in WaterML 1.1 format
     """
     if request.GET:
-        resp = get_netcdf_data(request)
+        resp = _get_netcdf_data(request)
         resp_dict = json.loads(resp.content)
         print resp_dict
 
@@ -185,6 +186,7 @@ def spatial_query_api(request):
 
 @api_view(['POST'])
 @authentication_classes((TokenAuthentication, SessionAuthentication))
+@throttle_classes([SubsetWatershedApiRateThrottle_User, SubsetWatershedApiRateThrottle_Anon])
 def subset_watershed_api(request):
     try:
         request_dict = json.loads(request.body)
@@ -238,6 +240,7 @@ def check_subsetting_job_status(request):
         else:
             JsonResponse({"error": "No job_id is provided"})
     except Exception as ex:
+        logger.exception(str(ex))
         return HttpResponse(status=500, content=ex.message)
 
 
@@ -264,6 +267,7 @@ def download_subsetting_results(request):
         else:
             JsonResponse({"error": "No job_id is provided"})
     except Exception as ex:
+        logger.exception(str(ex))
         return HttpResponse(status=500, content=ex.message)
 
 

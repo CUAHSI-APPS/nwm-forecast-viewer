@@ -4,7 +4,7 @@ from .app import nwmForecasts as app
 app_workspace = app.get_app_workspace()
 # comid = 18228725
 
-local_vm_test = True
+local_vm_test = False
 local_vm_test_data_date = "20170419"
 
 app_dir = '/projects/water/nwm/data/'
@@ -16,6 +16,12 @@ transition_timestamp_v11_AA = "12"
 transition_timestamp_v11_SR = "11"
 transition_timestamp_v11_MR = "12"
 transition_timestamp_v11_LR = "00"
+
+transition_date_v12 = "20180306"
+transition_timestamp_v12_AA = "16"
+transition_timestamp_v12_SR = "15"
+transition_timestamp_v12_MR = "12"
+transition_timestamp_v12_LR = "00"
 
 nwm_viewer_subsetting_soft_time_limit = int(getattr(settings, "NWM_VIEWER_SUBSETTING_SOFT_TIME_LIMIT", 1200))  # in seconds
 nwm_viewer_subsetting_time_limit = int(getattr(settings, "NWM_VIEWER_SUBSETTING_TIME_LIMIT", 1800))  # in seconds

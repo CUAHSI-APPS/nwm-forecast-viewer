@@ -1,0 +1,11 @@
+Terminal 1:
+t
+start tethys server
+
+Terminal 2:
+t
+rabbitmq-server
+
+Terminal 3:
+t
+celery -A tethys_portal.tethys_celery:app worker --loglevel=DEBUG -E
