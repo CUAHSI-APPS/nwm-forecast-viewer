@@ -1193,6 +1193,13 @@ def download_subsetting_results(request, job_id=None):
     return Http404("Can not find results for job id: {0}".format(job_id))
 
 
+def _string2bool(_str):
+    if str(_str).lower() == "true":
+        return True
+    else:
+        return False
+
+
 @csrf_exempt
 def subset_watershed_api(request):
 
@@ -1203,12 +1210,12 @@ def subset_watershed_api(request):
             request_dict = json.loads(request.body)
             watershed_geometry = request_dict['watershed_geometry']
             watershed_epsg = int(request_dict['watershed_epsg'])
-            spatial_query_only = request_dict.get('query_only', 'False')
-            if str(spatial_query_only).lower() == "true":
-                spatial_query_only = True
-            else:
-                spatial_query_only = False
+            spatial_query_only = _string2bool(request_dict.get('query_only', 'False'))
             subset_parameter_dict = request_dict.get('subset_parameter', None)
+            merge_netcdfs = False
+            if subset_parameter_dict:
+                merge_netcdfs=_string2bool(subset_parameter_dict.get('merge', "False"))
+
 
             logger.error("------START: subset_watershed_api--------")
 
@@ -1223,7 +1230,8 @@ def subset_watershed_api(request):
                                                        subset_parameter_dict),
                                                         {"job_id":job_id,
                                                          "zip_results":True,
-                                                         "query_only": spatial_query_only,},
+                                                         "query_only": spatial_query_only,
+                                                         "merge_netcdfs": merge_netcdfs},
                                                        task_id=job_id,
                                                        countdown=3,
                                                         time_limit=nwm_viewer_subsetting_time_limit,  # 30 minutes
@@ -1366,7 +1374,7 @@ def _check_latest_data():
 
 
 @shared_task
-def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None, zip_results=False, query_only=False):
+def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None, merge_netcdfs=True, zip_results=False, query_only=False):
 
     if not job_id:
         job_id = str(uuid.uuid4())
@@ -1391,7 +1399,7 @@ def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None, zip_r
     # shrink dimension size to cover subsetting domain only
     resize_dimension_grid = True
     resize_dimension_feature = True
-    merge_netcdfs = True
+
     # remove intermediate files
     cleanup = True
 
