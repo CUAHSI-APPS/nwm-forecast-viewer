@@ -46,19 +46,19 @@ if __name__ == "__main__":
     end_date_string = end_date_obj.strftime("%Y-%m-%d")
 
 
-    start_date_string = "2018-03-06"
-    end_date_string = "2018-03-06"
+    start_date_string = "2018-03-05"
+    end_date_string = "2018-03-08"
 
     # prepare the data sent to api endpoint
     JSON_payload = {
         'subset_parameter': {
-            'config': "short_range",  # AA: analysis_assim, SR: short_range, MR: medium_range, LR: long_range
+            'config': "analysis_assim",  # AA: analysis_assim, SR: short_range, MR: medium_range, LR: long_range
             'startDate': start_date_string,  # YYYY-MM-DD for SR, MR & LR; Also set 'endDate' for AA;  Also accept "latest", see Help page
             'endDate': end_date_string,  # YYYY-MM-DD (only for AA); Also accept "latest", see Help page
             'geom': "forcing",  # forcing, channel_rt, reservoir, land
             'time': "00",  # 00, 01 ...23 (only for SR, MR and LR)
             'mem': "1",  # 1, 2, 3, 4 (LR ensemble member)
-            'merge': True  # True or False
+            'merge': "True"  # True or False
         },
         'watershed_epsg': 4326,  # keep this unchanged as latest GeoJSON standard requires coordinates in WGS84/EPSG:4326 projection
                                  # see: https://tools.ietf.org/html/rfc7946#section-4
@@ -84,7 +84,7 @@ if __name__ == "__main__":
     resp = requests.post('{0}://{1}/apps/nwm-forecasts/api/submit-subsetting-job/'.format(http_protocl, server_name),
                             data=json.dumps(JSON_payload),
                             verify=False,
-                            headers={'Authorization': 'Token {0}'.format(api_token)},
+                            #headers={'Authorization': 'Token {0}'.format(api_token)},
                          )
     resp_json_obj = json.loads(resp.content)
     job_id = resp_json_obj['job_id']

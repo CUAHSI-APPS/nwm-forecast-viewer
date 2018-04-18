@@ -11,7 +11,7 @@ from django.shortcuts import render_to_response
 from rest_framework.authentication import TokenAuthentication, SessionAuthentication
 from rest_framework.decorators import api_view, authentication_classes, throttle_classes
 
-from .subset_utilities import _do_spatial_query, _perform_subset, _check_latest_data
+from .subset_utilities import _do_spatial_query, _perform_subset, _check_latest_data, _string2bool
 from .timeseries_utilities import format_time_series, get_site_name, getTimeSeries, _get_netcdf_data
 from .controllers_ajax import get_netcdf_data
 from .apis_settings import *
@@ -184,6 +184,9 @@ def spatial_query_api(request):
         return HttpResponse(status=500, content=ex.message)
 
 
+
+
+
 @api_view(['POST'])
 @authentication_classes((TokenAuthentication, SessionAuthentication))
 @throttle_classes([SubsetWatershedApiRateThrottle_User, SubsetWatershedApiRateThrottle_Anon])
@@ -192,12 +195,12 @@ def subset_watershed_api(request):
         request_dict = json.loads(request.body)
         watershed_geometry = request_dict['watershed_geometry']
         watershed_epsg = int(request_dict['watershed_epsg'])
-        spatial_query_only = request_dict.get('query_only', 'False')
-        if str(spatial_query_only).lower() == "true":
-            spatial_query_only = True
-        else:
-            spatial_query_only = False
+        spatial_query_only = _string2bool(request_dict.get('query_only', 'False'))
+
         subset_parameter_dict = request_dict.get('subset_parameter', None)
+        merge_results = False
+        if subset_parameter_dict:
+            merge_results = _string2bool(subset_parameter_dict.get('merge', 'False'))
 
         logger.info("------START: subset_watershed_api--------")
 
@@ -212,7 +215,8 @@ def subset_watershed_api(request):
                                            subset_parameter_dict),
                                            {"job_id":job_id,
                                              "zip_results":True,
-                                             "query_only": spatial_query_only,},
+                                             "query_only": spatial_query_only,
+                                             "merge_netcdfs": merge_results},
                                            task_id=job_id,
                                            countdown=3,)
                                            # time_limit=nwm_viewer_subsetting_time_limit,  # 30 minutes

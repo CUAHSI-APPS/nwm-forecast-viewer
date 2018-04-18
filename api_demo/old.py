@@ -39,8 +39,8 @@ if __name__ == "__main__":
     end_date_obj = date.today() + timedelta(days=-1)
     end_date_string = end_date_obj.strftime("%Y-%m-%d")
 
-    start_date_string = "2018-03-06"
-    end_date_string = "2018-03-06"
+    start_date_string = "2018-03-05"
+    end_date_string = "2018-03-08"
 
     # prepare the data sent to api endpoint
     JSON_payload = {
@@ -51,7 +51,7 @@ if __name__ == "__main__":
             'geom': "channel_rt",  # forcing, channel_rt, reservoir, land
             'time': "00",  # 00, 01 ...23 (only for SR, MR and LR)
             'mem': "1",  # 1, 2, 3, 4 (LR ensemble member)
-            'merge': True  # True or False
+            'merge': False  # True or False
         },
         'watershed_epsg': 4326,  # keep this unchanged as latest GeoJSON standard requires coordinates in WGS84/EPSG:4326 projection
                                  # see: https://tools.ietf.org/html/rfc7946#section-4

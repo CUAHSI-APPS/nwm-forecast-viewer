@@ -45,7 +45,7 @@ def _do_spatial_query(geom_str, in_epsg, job_id=None):
              time_limit=nwm_viewer_subsetting_time_limit,  # 30 minutes
              soft_time_limit=nwm_viewer_subsetting_soft_time_limit,  # 20 minutes
              )
-def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None, zip_results=False, query_only=False):
+def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None, merge_netcdfs=True, zip_results=False, query_only=False):
 
     if not job_id:
         job_id = str(uuid.uuid4())
@@ -71,7 +71,6 @@ def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None, zip_r
     # shrink dimension size to cover subsetting domain only
     resize_dimension_grid = True
     resize_dimension_feature = True
-    merge_netcdfs = True
     # remove intermediate files
     cleanup = True
 
@@ -440,3 +439,10 @@ def reproject_wkt_gdal(in_proj_type,
         logger.error("out_proj_value: {0}".format(out_proj_value))
         logger.error(str(type(ex)) + " " + ex.message)
         raise ex
+
+
+def _string2bool(_str)    :
+    if str(_str).lower() == "true":
+        return True
+    else:
+        return False
