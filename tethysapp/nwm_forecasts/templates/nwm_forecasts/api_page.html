@@ -16,6 +16,12 @@
         A Developers API is provided for those who wish to incorporate the National Water Model data into their own
         separate application or script.
     </p>
+    <p>
+        Rate Limiting and API Token: Starting on 2018-04-20 release, anonymous API calls are subject to stricter rate limiting. A HTTP status code 429 will be returned if too many API requests are made to the app during a short period of time.
+        For example, anonymous API calls on GetWaterML endpoint are allowed at the rates of 3/min and 500/day.
+        API calls with a valid API Token in HTTP request header are subject to less restricted rate limiting. For example, API calls on GetWaterML endpoint with APT Token are allowed at the rates of 60/min and unlimited/day. So we encourage all developers to star using API Token
+        ASAP as anonymous API calls will be fully restricted in the future.
+    </p>
     <br>
 
     <h3>GetWaterML</h3>

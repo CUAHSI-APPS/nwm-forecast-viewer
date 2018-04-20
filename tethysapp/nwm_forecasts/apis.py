@@ -13,7 +13,6 @@ from rest_framework.decorators import api_view, authentication_classes, throttle
 
 from .subset_utilities import _do_spatial_query, _perform_subset, _check_latest_data, _string2bool
 from .timeseries_utilities import format_time_series, get_site_name, getTimeSeries, _get_netcdf_data
-from .controllers_ajax import get_netcdf_data
 from .apis_settings import *
 
 logger = logging.getLogger(__name__)
@@ -21,7 +20,8 @@ logger = logging.getLogger(__name__)
 
 @api_view(['GET'])
 @authentication_classes((TokenAuthentication, SessionAuthentication))
-@throttle_classes([GetDataWatermlRateThrottle_User, GetDataWatermlRateThrottle_Anon])
+@throttle_classes([GetDataWatermlRateThrottle_User, GetDataWatermlRateThrottle_Anon,
+                   GetDataWatermlRateThrottle_Anon_Sustained, GetDataWatermlRateThrottle_User_Sustained])
 def get_data_waterml(request):
     """
     Controller that will show the data in WaterML 1.1 format
@@ -184,12 +184,10 @@ def spatial_query_api(request):
         return HttpResponse(status=500, content=ex.message)
 
 
-
-
-
 @api_view(['POST'])
 @authentication_classes((TokenAuthentication, SessionAuthentication))
-@throttle_classes([SubsetWatershedApiRateThrottle_User, SubsetWatershedApiRateThrottle_Anon])
+@throttle_classes([SubsetWatershedApiRateThrottle_User, SubsetWatershedApiRateThrottle_Anon,
+                   SubsetWatershedApiRateThrottle_Anon_Sustained, SubsetWatershedApiRateThrottle_User_Sustained])
 def subset_watershed_api(request):
     try:
         request_dict = json.loads(request.body)
