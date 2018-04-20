@@ -1,35 +1,65 @@
+from django.core.exceptions import ImproperlyConfigured
 from rest_framework.throttling import UserRateThrottle, AnonRateThrottle
 
 
-class GetDataWatermlRateThrottle_User(UserRateThrottle):
+class UserRateThrottle_modified(UserRateThrottle):
+
+    def __init__(self):
+        try:
+            # first try reading rate setting from settings.py
+            self.rate = self.get_rate()
+        except ImproperlyConfigured:
+            # if not set, read rate setting from class
+            pass
+
+        self.num_requests, self.duration = self.parse_rate(self.rate)
+
+class AnonRateThrottle_modified(AnonRateThrottle):
+    def __init__(self):
+        try:
+            self.rate = self.get_rate()
+        except ImproperlyConfigured:
+            pass
+
+        self.num_requests, self.duration = self.parse_rate(self.rate)
+
+
+# WML User Burst
+class GetDataWatermlRateThrottle_User(UserRateThrottle_modified):
     scope = 'GetDataWatermlRateThrottle_User'
-    # rate = "60/min"
+    rate = "60/min"
 
-class GetDataWatermlRateThrottle_User_Sustained(UserRateThrottle):
+# WML User Sustained
+class GetDataWatermlRateThrottle_User_Sustained(UserRateThrottle_modified):
     scope = 'GetDataWatermlRateThrottle_User_Sustained'
-    # rate = "3600/hour"
+    rate = "2000/day"
 
-class GetDataWatermlRateThrottle_Anon(AnonRateThrottle):
+# WML Anon Burst
+class GetDataWatermlRateThrottle_Anon(AnonRateThrottle_modified):
     scope = 'GetDataWatermlRateThrottle_Anon'
-    # rate = "30/second"
+    rate = "3/min"
 
-class GetDataWatermlRateThrottle_Anon_Sustained(AnonRateThrottle):
+# WML Anon Sustained
+class GetDataWatermlRateThrottle_Anon_Sustained(AnonRateThrottle_modified):
     scope = 'GetDataWatermlRateThrottle_Anon_Sustained'
-    # rate = "500/day"
+    rate = "200/day"
 
-
-class SubsetWatershedApiRateThrottle_User(UserRateThrottle):
+# Subset User Burst
+class SubsetWatershedApiRateThrottle_User(UserRateThrottle_modified):
     scope = 'SubsetWatershedApiRateThrottle_User'
-    #rate = "60/min"
+    rate = "60/min"
 
-class SubsetWatershedApiRateThrottle_User_Sustained(UserRateThrottle):
+# Subset User Sustained
+class SubsetWatershedApiRateThrottle_User_Sustained(UserRateThrottle_modified):
     scope = 'SubsetWatershedApiRateThrottle_User_Sustained'
-    #rate = "5000/day"
+    rate = "2000/day"
 
-class SubsetWatershedApiRateThrottle_Anon(AnonRateThrottle):
+# Subset Anon Burst
+class SubsetWatershedApiRateThrottle_Anon(AnonRateThrottle_modified):
     scope = 'SubsetWatershedApiRateThrottle_Anon'
-    #rate = "3/min"
+    rate = "3/min"
 
-class SubsetWatershedApiRateThrottle_Anon_Sustained(AnonRateThrottle):
+# Subset Anon Sustained
+class SubsetWatershedApiRateThrottle_Anon_Sustained(AnonRateThrottle_modified):
     scope = 'SubsetWatershedApiRateThrottle_Anon_Sustained'
-    #rate = "500/day"
+    rate = "200/day"

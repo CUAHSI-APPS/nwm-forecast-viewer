@@ -16,11 +16,30 @@
         A Developers API is provided for those who wish to incorporate the National Water Model data into their own
         separate application or script.
     </p>
+    <h3>Rate Limiting and API Token</h3>
     <p>
-        Rate Limiting and API Token: Starting on 2018-04-20 release, anonymous API calls are subject to stricter rate limiting. A HTTP status code 429 will be returned if too many API requests are made to the app during a short period of time.
-        For example, anonymous API calls on GetWaterML endpoint are allowed at the rates of 3/min and 500/day.
-        API calls with a valid API Token in HTTP request header are subject to less restricted rate limiting. For example, API calls on GetWaterML endpoint with APT Token are allowed at the rates of 60/min and unlimited/day. So we encourage all developers to star using API Token
-        ASAP as anonymous API calls will be fully restricted in the future.
+        Starting on 2018-04-20 release, anonymous/unauthenticated API calls are subject to stricter rate limiting. A HTTP status code 429 will be returned if too many API requests are made to the app once certain limit is exceeded.
+        For example, anonymous API calls on GetWaterML endpoint are only allowed at a rate no greater than 3/min or 200/day.
+        Authenticated APU call (with a valid API Token in HTTP request header) are subject to less restricted rate limiting. For example, the rates of authenticated API calls on GetWaterML endpoint are 60/min and 2000/day.<br>
+<b>We encourage all developers to use API Token ASAP as anonymous/unauthenticated API calls will be fully forbidden in near future.</b>
+    </p>
+
+    <h3>Obtain API Token</h3>
+    <p>
+         Developer should sign in Tethys portal with a valid HydroShare account. Click USER_NAME in the upper-right corner and select "User Settings" to open user's profile page.
+        The API Token is listed as "API Key". API Token should be kept safe.
+    </p>
+    <h3>Add API Token to HTTP request header</h3>
+    <p>
+        API Token should be included in http request header in the following format.<br>
+        Header Name:        Header Value<br>
+        Authorization: Token API_TOKEN<br>
+        If use requests module in Python:<br>
+        <pre>
+        r = requests.get("https://.......api_endpoint/",
+                         headers={'Authorization': 'Token API_TOKEN'},
+                        )
+        </pre>
     </p>
     <br>
 
