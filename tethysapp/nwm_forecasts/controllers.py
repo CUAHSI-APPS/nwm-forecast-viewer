@@ -221,7 +221,7 @@ def home(request):
     request_url = request.build_absolute_uri()
     new_request_url = request_url.replace("apps.hydroshare.org", "hs-apps.hydroshare.org")
 
-    return redirect(new_request_url)
+    return redirect(new_request_url, permanent=True)
 
 
 
@@ -243,7 +243,7 @@ def subset(request):
     request_url = request.build_absolute_uri()
     new_request_url = request_url.replace("apps.hydroshare.org", "hs-apps.hydroshare.org")
 
-    return redirect(new_request_url)
+    return redirect(new_request_url, permanent=True)
 
 
 def timestamp_early_than_transition_v11(fn, transition_timestamp):
@@ -1909,7 +1909,7 @@ def get_data_waterml(request):
     request_url = request.build_absolute_uri()
     new_request_url = request_url.replace("apps.hydroshare.org", "hs-apps.hydroshare.org")
 
-    return redirect(new_request_url)
+    return redirect(new_request_url, permanent=True)
 
 
 # def api_page(request):
@@ -1930,4 +1930,4 @@ def api_page(request):
     request_url = request.build_absolute_uri()
     new_request_url = request_url.replace("apps.hydroshare.org", "hs-apps.hydroshare.org")
 
-    return redirect(new_request_url)
+    return redirect(new_request_url, permanent=True)
