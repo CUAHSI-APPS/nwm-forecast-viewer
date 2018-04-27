@@ -12,6 +12,11 @@
 
 {% block app_content %}
 <h1>Developers API</h1>
+<h3 style="color:red;">Updates: </h3>
+    <ol style="color:red;">
+        <li> The domain of API endpoints has been temporarily changed to https://hs-apps.hydroshare.org/;</li>
+        <li> API Token and Rate Limiting are in place;</li>
+    </ol>
     <p>
         A Developers API is provided for those who wish to incorporate the National Water Model data into their own
         separate application or script.
@@ -19,10 +24,18 @@
     <h3>Rate Limiting and API Token</h3>
     <p>
         Starting on 2018-04-20 release, anonymous/unauthenticated API calls are subject to stricter rate limiting. A HTTP status code 429 will be returned if too many API requests are made to the app once certain limit is exceeded.
-        For example, anonymous API calls on GetWaterML endpoint are only allowed at a rate no greater than 3/min or 200/day.
-        Authenticated APU call (with a valid API Token in HTTP request header) are subject to less restricted rate limiting. For example, the rates of authenticated API calls on GetWaterML endpoint are 60/min and 2000/day.<br>
+        For example, anonymous API calls on GetWaterML endpoint are only allowed at a rate no greater than 6/min or 180/day.
+        Authenticated API call (with a valid API Token in HTTP request header) are subject to less restricted rate limiting. For example, the rates of authenticated API calls on GetWaterML endpoint are 60/min and 1800/day.<br>
 <b>We encourage all developers to use API Token ASAP as anonymous/unauthenticated API calls will be fully forbidden in near future.</b>
     </p>
+<p>
+<h3>Avoid Hitting the Limit</h3>
+There are two common ways to avoid hitting the rate limit.
+    <ol>
+        <li> Use API Token to make authenticated API calls as it gives you more allocation; </li>
+        <li> Understand how rate limiting works and make arrangement to control api call frequency. Current implementation of rate limiting uses a <b>Rolling Window</b> approach. For example, a endpoint has limit 6/min. Any call made to this endpoint will be blocked if 6 successful calls have already occurred in the preceding 60 seconds. So the window is rolling as new api call occurs.</li>
+    </ol>
+</p>
 
     <h3>Obtain API Token</h3>
     <p>
@@ -176,8 +189,8 @@ Variable: SNOWH<br>
 Start Date:{{date_string_minus_2}}<br>
 End Date: {{date_string_minus_3}}<br>
 Cell Index/Location (south_north, west_east): 1635,2030<br>
- <a href="https://apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=analysis_assim&geom=land&variable=SNOWH&COMID=1635,2030&startDate={{date_string_minus_3}}&endDate={{date_string_minus_2}}" target="_blank">
-     <code>https://apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=analysis_assim&geom=land&variable=SNOWH&COMID=1635,2030&startDate={{date_string_minus_3}}&endDate={{date_string_minus_2}}</code>
+ <a href="https://hs-apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=analysis_assim&geom=land&variable=SNOWH&COMID=1635,2030&startDate={{date_string_minus_3}}&endDate={{date_string_minus_2}}" target="_blank">
+     <code>https://hs-apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=analysis_assim&geom=land&variable=SNOWH&COMID=1635,2030&startDate={{date_string_minus_3}}&endDate={{date_string_minus_2}}</code>
  </a>
 <br>
 <h5>Example 2:</h5>
@@ -187,8 +200,8 @@ Variable: RAINRATE <br>
 Date:{{date_string_minus_2}} <br>
 Timestamp: 04 <br>
 Cell Index/Location (south_north, west_east): 1636,2036<br>
-<a href="https://apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=short_range&geom=forcing&variable=RAINRATE&COMID=1636,2036&startDate={{date_string_minus_2}}&time=04" target="_blank">
-    <code>https://apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=short_range&geom=forcing&variable=RAINRATE&COMID=1636,2036&startDate={{date_string_minus_2}}&time=04</code>
+<a href="https://hs-apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=short_range&geom=forcing&variable=RAINRATE&COMID=1636,2036&startDate={{date_string_minus_2}}&time=04" target="_blank">
+    <code>https://hs-apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=short_range&geom=forcing&variable=RAINRATE&COMID=1636,2036&startDate={{date_string_minus_2}}&time=04</code>
 </a>
 <br>
 <h5>Example 3:</h5>
@@ -198,8 +211,8 @@ Variable: streamflow <br>
 Date:{{date_string_minus_2}} <br>
 Timestamp: 06 <br>
 Channel COMID: 11359107<br>
-<a href="https://apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=medium_range&geom=channel_rt&variable=streamflow&COMID=11359107&startDate={{date_string_minus_2}}&time=06" target="_blank">
-    <code>https://apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=medium_range&geom=channel_rt&variable=streamflow&COMID=11359107&startDate={{date_string_minus_2}}&time=06</code>
+<a href="https://hs-apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=medium_range&geom=channel_rt&variable=streamflow&COMID=11359107&startDate={{date_string_minus_2}}&time=06" target="_blank">
+    <code>https://hs-apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=medium_range&geom=channel_rt&variable=streamflow&COMID=11359107&startDate={{date_string_minus_2}}&time=06</code>
 </a>
 <h5>Example 4:</h5>
 Configuration: Long Range <br>
@@ -208,8 +221,8 @@ Variable: inflow <br>
 Date:{{date_string_minus_2}} <br>
 Reservoir COMID: 3501837<br>
 Lag: t00z <br>
-<a href="https://apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=long_range&geom=reservoir&variable=inflow&COMID=3501837&startDate={{date_string_minus_2}}&lag=t00z" target="_blank">
-    <code>https://apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=long_range&geom=reservoir&variable=inflow&COMID=3501837&startDate={{date_string_minus_2}}&lag=t00z</code>
+<a href="https://hs-apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=long_range&geom=reservoir&variable=inflow&COMID=3501837&startDate={{date_string_minus_2}}&lag=t00z" target="_blank">
+    <code>https://hs-apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=long_range&geom=reservoir&variable=inflow&COMID=3501837&startDate={{date_string_minus_2}}&lag=t00z</code>
 </a>
 <br>
 <h3>Subsetting</h3>
@@ -414,7 +427,7 @@ Expected response:
 <br>
 5) <b>Spatial Query: check what NWM features are covered by a polygon</b>
 <br>
-Send a <b>HTTP POST Request</b> with the following JSON payload to <b>/apps/api/nwm-forecasts/spatial-query/</b>.
+Send a <b>HTTP POST Request</b> with the following JSON payload to <b>/apps/nwm-forecasts/api/spatial-query/</b>.
 <br>
 <pre>
     # prepare the data sent to api endpoint
