@@ -12,11 +12,17 @@ if __name__ == "__main__":
     ########################## Subsetting API ################################
 
     server_name = "hs-apps.hydroshare.org"
+    with_token = True
+    api_token = "ABC123_YOUR_API_TOKEN_456DEF"
+
+    sess = requests.Session()
+    if with_token:
+        sess.headers.update({"Authorization": "Token {}".format(api_token)})
 
     workspace_path = "/tmp"
 
     #  Check "latest" data list (Optional)
-    resp = requests.get('https://{0}/apps/nwm-forecasts/api/latest-data-info/'.format(server_name))
+    resp = sess.get('https://{0}/apps/nwm-forecasts/api/latest-data-info/'.format(server_name))
     resp_json_obj = json.loads(resp.content)
     print resp_json_obj
 
@@ -48,7 +54,7 @@ if __name__ == "__main__":
     }
 
     # 0) Check what NWM features are covered by this Polygon (Optional)
-    resp = requests.post('https://{0}/apps/nwm-forecasts/api/spatial-query/'.format(server_name),
+    resp = sess.post('https://{0}/apps/nwm-forecasts/api/spatial-query/'.format(server_name),
                          data=json.dumps(JSON_payload),
                          verify=False)
     resp_json_obj = json.loads(resp.content)
@@ -57,7 +63,7 @@ if __name__ == "__main__":
     # Note: URL API endpoint must end with a slash '/'
     # 1) submit a job and get job_id
     print "Submit job:"
-    resp = requests.post('https://{0}/apps/nwm-forecasts/api/submit-subsetting-job/'.format(server_name),
+    resp = sess.post('https://{0}/apps/nwm-forecasts/api/submit-subsetting-job/'.format(server_name),
                             data=json.dumps(JSON_payload),
                             verify=False)
     resp_json_obj = json.loads(resp.content)
@@ -72,7 +78,7 @@ if __name__ == "__main__":
     job_done = False
     while not job_done:
         retry_counter += 1
-        resp_check_status = requests.get(
+        resp_check_status = sess.get(
             'https://{0}/apps/nwm-forecasts/api/check-subsetting-job-status/?job_id={1}'.format(server_name, job_id),
             # data=json.dumps({"job_id": job_id}),
             verify=False)
@@ -93,7 +99,7 @@ if __name__ == "__main__":
     #  save api response as a local zip file
     if job_done:
         print "Downloading result:"
-        resp = requests.get('https://{0}/apps/nwm-forecasts/api/download-subsetting-results/?job_id={1}'.format(server_name, job_id),
+        resp = sess.get('https://{0}/apps/nwm-forecasts/api/download-subsetting-results/?job_id={1}'.format(server_name, job_id),
                                               verify=False)
         netcdf_file_list = []
         if resp.status_code == 200:
