@@ -106,24 +106,24 @@ $('#archive').on('change', function ()
     else if ($('#archive').val() == 'harvey')
     {
          // set earliest date user can select
-        $('#startDate').datepicker("setStartDate", "2010-01-01");
-        $('#startDate').datepicker("setEndDate", "2010-12-31");
-        $('#startDate').datepicker("setDate", "2010-01-01");
+        $('#startDate').datepicker("setStartDate", "2017-08-18");
+        $('#startDate').datepicker("setEndDate", "2017-09-06");
+        $('#startDate').datepicker("setDate", "2017-08-18");
 
-        $('#endDate').datepicker("setStartDate", "2010-01-01");
-        $('#endDate').datepicker("setEndDate", "2010-12-31");
-        $('#endDate').datepicker("setDate", "2010-12-31");
+        $('#endDate').datepicker("setStartDate", "2017-08-18");
+        $('#endDate').datepicker("setEndDate", "2017-09-06");
+        $('#endDate').datepicker("setDate", "2017-09-06");
     }
     else if ($('#archive').val() == 'irma')
     {
          // set earliest date user can select
-        $('#startDate').datepicker("setStartDate", "2017-01-01");
-        $('#startDate').datepicker("setEndDate", "2017-12-31");
-        $('#startDate').datepicker("setDate", "2017-01-01");
+        $('#startDate').datepicker("setStartDate", "2017-08-29");
+        $('#startDate').datepicker("setEndDate", "2017-09-15");
+        $('#startDate').datepicker("setDate", "2017-08-29");
 
-        $('#endDate').datepicker("setStartDate", "2017-01-01");
-        $('#endDate').datepicker("setEndDate", "2017-12-31");
-        $('#endDate').datepicker("setDate", "2017-12-31");
+        $('#endDate').datepicker("setStartDate", "2017-08-29");
+        $('#endDate').datepicker("setEndDate", "2017-09-15");
+        $('#endDate').datepicker("setDate", "2017-09-15");
     }
 
     // set client sessionStorage
@@ -2140,6 +2140,13 @@ function _render_str_template(template_str, replace_dict)
 
 function _prepare_watershed_data()
 {
+    // archive
+    var archive=$('#archive').val();
+    if (archive==null || archive=="")
+    {
+        archive="rolling"
+    }
+
     // check watershed_layer has a feature
     var watershed_fea_list = watershed_layer.getSource().getFeatures();
     if (watershed_fea_list.length == 0)
@@ -2190,7 +2197,8 @@ function _prepare_watershed_data()
     var geoJSON = new ol.format.GeoJSON();
     var geom_json = geoJSON.writeGeometry(watershed_fea.getGeometry());
 
-    var data = {watershed_geometry: geom_json, watershed_epsg: 3857, subset_parameter: parameter};
+
+    var data = {archive: archive, watershed_geometry: geom_json, watershed_epsg: 3857, subset_parameter: parameter};
     return data
 }
 

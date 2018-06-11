@@ -45,7 +45,9 @@ def _do_spatial_query(geom_str, in_epsg, job_id=None):
              time_limit=nwm_viewer_subsetting_time_limit,  # 30 minutes
              soft_time_limit=nwm_viewer_subsetting_soft_time_limit,  # 20 minutes
              )
-def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None, merge_netcdfs=True, zip_results=False, query_only=False):
+def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None, merge_netcdfs=True, zip_results=False, query_only=False, archive="rolling"):
+
+    netcdf_folder_path = nwm_data_path_dict["subsetting"][archive]
 
     if not job_id:
         job_id = str(uuid.uuid4())
@@ -282,7 +284,8 @@ def clean_up_subsetting_results():
 
 def _check_latest_data():
 
-    nomads_root = netcdf_folder_path
+    #nomads_root = netcdf_folder_path
+    nomads_root = nwm_data_path_dict["subsetting"]["rolling"]
 
     # get latest date:
     r = re.compile(r"nwm\.20\d\d\d\d\d\d")
