@@ -48,6 +48,7 @@ def _do_spatial_query(geom_str, in_epsg, job_id=None):
 def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None, merge_netcdfs=True, zip_results=False, query_only=False, archive="rolling"):
 
     netcdf_folder_path = nwm_data_path_dict["subsetting"][archive]
+    logger.info(netcdf_folder_path)
 
     if not job_id:
         job_id = str(uuid.uuid4())

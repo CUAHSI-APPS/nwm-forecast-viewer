@@ -179,7 +179,7 @@ def subset_watershed(request):
 
             archive=None
             if "archive" in request_dict:
-                archive=archive
+                archive=request_dict["archive"]
             if archive is None or archive=="":
                 archive="rolling"
 

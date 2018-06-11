@@ -17,7 +17,7 @@ nwm_data_path_dict = {"view":
                      "subsetting":
                          {"rolling": "/projects/water/nwm/data/nomads/",
                           "harvey": "/projects/water/harvey/",
-                          "irma": "/projects/water/harvey/"
+                          "irma": "/projects/water/irma/"
                           },
                      }
 
@@ -48,7 +48,7 @@ date_string_AA_oldest = "2016-06-09"
 # path to sqlite spatial db file
 db_file_path = "/projects/hydroshare/apps/apps_common_files/nwm.sqlite"
 # full path to original NWM output folder (for subsetting)
-netcdf_folder_path = "/projects/water/nwm/data/nomads/"
+#netcdf_folder_path = "/projects/water/nwm/data/nomads/"
 
 # how many days of data is stored in nomads folder
 nomads_data_days = 40
