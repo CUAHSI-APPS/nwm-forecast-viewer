@@ -152,7 +152,9 @@ def get_site_name(config, geom, var, lat, lon, lag='', member=''):
     return conf_name + ', ' + geom_name + ' (' + var + '). ' + lag_name + mem_name + lat_name  + lon_name
 
 
-def getTimeSeries(config, geom, var, comid, date, endDate, time, member=''):
+def getTimeSeries(archive, config, geom, var, comid, date, endDate, time, member=''):
+
+    app_dir=nwm_data_path_dict["view"][archive]
 
     if config != 'long_range':
         timeCheck = ''.join(['t', time, 'z'])
@@ -225,6 +227,8 @@ def _get_netcdf_data(request):
         ts_pairs_data = {}
 
         try:
+            archive = get_data.get("archive", "rolling")
+            app_dir = nwm_data_path_dict["view"][archive]
             config = get_data['config']
             geom = get_data['geom']
             var = get_data['variable']

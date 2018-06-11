@@ -26,11 +26,13 @@ def get_data_waterml(request):
     """
     Controller that will show the data in WaterML 1.1 format
     """
+
     if request.GET:
         resp = _get_netcdf_data(request)
         resp_dict = json.loads(resp.content)
         print resp_dict
 
+        archive = request.GET.get("archive", "rolling")
         config = request.GET["config"]
         geom = request.GET['geom']
         var = request.GET['variable']
@@ -139,7 +141,7 @@ def get_data_waterml(request):
                     return Http404("Failed to retrieve wml")
 
             elif config == 'long_range':
-                ts = getTimeSeries(config, geom, var, comid, start, end, lag, member)
+                ts = getTimeSeries(archive, config, geom, var, comid, start, end, lag, member)
                 time_series = format_time_series(config, start, ts, time, nodata_value)
                 site_name = get_site_name(config, geom, var, lat, lon, lag, member)
 

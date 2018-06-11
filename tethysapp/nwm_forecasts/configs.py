@@ -7,7 +7,20 @@ app_workspace = app.get_app_workspace()
 local_vm_test = False
 local_vm_test_data_date = "20170419"
 
-app_dir = '/projects/water/nwm/data/'
+#app_dir = '/projects/water/nwm/data/'
+
+nwm_data_path_dict = {"view":
+                         {"rolling": "/projects/water/nwm/data/",
+                          "harvey": "/projects/hydroshare/apps/apps_common_files/nwm/hurricane/harvey/",
+                          "irma": "/projects/hydroshare/apps/apps_common_files/nwm/hurricane/harvey/"
+                          },
+                     "subsetting":
+                         {"rolling": "/projects/water/nwm/data/nomads/",
+                          "harvey": "/projects/water/harvey/",
+                          "irma": "/projects/water/harvey/"
+                          },
+                     }
+
 if local_vm_test:
     transition_date_v11 = '20170418'  # local vm
 else:

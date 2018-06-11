@@ -87,6 +87,51 @@ else if (map_source == "BYU")
 /**********************************
  ********Config & Geom dropdowns OnChange Event *********
  **********************************/
+$('#archive').on('change', function ()
+{
+    // disable "Forcing" in Geometry dropdown for long range
+    if ($('#archive').val() == 'rolling')
+    {
+        // set earliest date user can select
+        $('#startDate').datepicker("setStartDate", $("#date_string_oldest").html());
+        $('#startDate').datepicker("setEndDate", $("#date_string_today").html());
+        $('#startDate').datepicker("setDate", $("#date_string_today").html());
+
+
+        $('#endDate').datepicker("setStartDate", $("#date_string_oldest").html());
+        $('#endDate').datepicker("setEndDate", $("#date_string_today").html());
+        $('#endDate').datepicker("setDate", $("#date_string_today").html());
+
+    }
+    else if ($('#archive').val() == 'harvey')
+    {
+         // set earliest date user can select
+        $('#startDate').datepicker("setStartDate", "2010-01-01");
+        $('#startDate').datepicker("setEndDate", "2010-12-31");
+        $('#startDate').datepicker("setDate", "2010-01-01");
+
+        $('#endDate').datepicker("setStartDate", "2010-01-01");
+        $('#endDate').datepicker("setEndDate", "2010-12-31");
+        $('#endDate').datepicker("setDate", "2010-12-31");
+    }
+    else if ($('#archive').val() == 'irma')
+    {
+         // set earliest date user can select
+        $('#startDate').datepicker("setStartDate", "2017-01-01");
+        $('#startDate').datepicker("setEndDate", "2017-12-31");
+        $('#startDate').datepicker("setDate", "2017-01-01");
+
+        $('#endDate').datepicker("setStartDate", "2017-01-01");
+        $('#endDate').datepicker("setEndDate", "2017-12-31");
+        $('#endDate').datepicker("setDate", "2017-12-31");
+    }
+
+    // set client sessionStorage
+    sessionStorage.archive = $('#archive').val();
+
+    $("#config").trigger("change");
+});
+
 
 $('#config').on('change', function ()
 {
@@ -116,7 +161,11 @@ $('#config').on('change', function ()
         }
 
         // set earliest date user can select
-        $('#startDate').datepicker("setStartDate", $("#date_string_oldest").html())
+        if ($('#archive').val() == 'rolling')
+        {
+            $('#startDate').datepicker("setStartDate", $("#date_string_oldest").html())
+            $('#startDate').datepicker("setEndDate", $("#date_string_today").html())
+        }
     }
     else if ($('#config').val() === 'long_range')
     {
@@ -125,7 +174,11 @@ $('#config').on('change', function ()
         $('#timeLag').removeClass('hidden');
 
         // set earliest date user can select
-        $('#startDate').datepicker("setStartDate", $("#date_string_oldest").html())
+        if ($('#archive').val() == 'rolling')
+        {
+            $('#startDate').datepicker("setStartDate", $("#date_string_oldest").html())
+            $('#startDate').datepicker("setEndDate", $("#date_string_today").html())
+        }
     }
     else if ($('#config').val() === 'short_range')
     {
@@ -138,7 +191,10 @@ $('#config').on('change', function ()
         }
 
         // set earliest date user can select
-        $('#startDate').datepicker("setStartDate", $("#date_string_oldest").html())
+        if ($('#archive').val() == 'rolling') {
+            $('#startDate').datepicker("setStartDate", $("#date_string_oldest").html())
+            $('#startDate').datepicker("setEndDate", $("#date_string_today").html())
+        }
     }
     else if ($('#config').val() === 'analysis_assim')
     {
@@ -150,18 +206,25 @@ $('#config').on('change', function ()
             $('#velocVar').removeClass('hidden');
         }
 
-        // set earliest date user can select
-        if (window.location.href.includes("/subset"))
-        {
-           // $('#startDate').datepicker("setStartDate", $("#date_string_oldest").html());
-            $('#startDate').datepicker("setStartDate", "2017-05-09");
-            $('#endDate').datepicker("setStartDate", "2017-05-09");
-        }
-        else
-        {
-            $('#startDate').datepicker("setStartDate", $("#date_string_AA_oldest").html());
-        }
+        if ($('#archive').val() == 'rolling') {
+            // set earliest date user can select
+            if (window.location.href.includes("/subset")) {
+                // $('#startDate').datepicker("setStartDate", $("#date_string_oldest").html());
 
+                $('#startDate').datepicker("setStartDate", "2017-05-09");
+                $('#startDate').datepicker("setEndDate", $("#date_string_today").html());
+
+                $('#endDate').datepicker("setStartDate", "2017-05-09");
+                $('#endDate').datepicker("setEndDate", $("#date_string_today").html());
+            }
+            else {
+                $('#startDate').datepicker("setStartDate", $("#date_string_AA_oldest").html());
+                $('#startDate').datepicker("setEndDate", $("#date_string_today").html());
+
+                $('#endDate').datepicker("setStartDate", $("#date_string_AA_oldest").html());
+                $('#endDate').datepicker("setEndDate", $("#date_string_today").html());
+            }
+        }
     }
 
     // set client sessionStorage
@@ -562,7 +625,7 @@ function init_restore_ui_map()
     // olGM.activate();
     mapView = map.getView();
 
-    var qLong, qLat, qConfig, qGeom, qVar, qDate, qTime, qCOMID, qDateEnd;
+    var qLong, qLat, qConfig, qGeom, qVar, qDate, qTime, qCOMID, qDateEnd, qArchive;
 
     // Restore UI
     var parse_url = false;
@@ -570,6 +633,23 @@ function init_restore_ui_map()
     {
         parse_url = true;
     }
+
+    // archive UI
+    if (parse_url)
+    {
+        qArchive = getUrlParameter("archive", null);
+    }
+    else
+    {
+        qArchive = sessionStorage.archive;
+    }
+    if (!qArchive) // not null & not ""
+    {
+        qArchive="rolling"
+    }
+    $('#archive').val(qArchive);
+    sessionStorage.archive = qArchive;
+
 
     // config UI
     if (parse_url)
@@ -788,7 +868,7 @@ function init_restore_ui_map()
     if (window.location.search.includes('?'))
     {
         initChart(qConfig, startDate, seriesData);
-        get_netcdf_chart_data(qConfig, qGeom, qVar, qCOMID, qDate, qTime, qLag, qDateEnd);
+        get_netcdf_chart_data(qArchive, qConfig, qGeom, qVar, qCOMID, qDate, qTime, qLag, qDateEnd);
     }
 
     /**********************************
@@ -989,7 +1069,7 @@ function init_restore_ui_map()
         CenterMap(center_map_at_pnt_3857[0], center_map_at_pnt_3857[1], 3857);
         mapView.setZoom(12);
     }
-    $("#config").trigger("change");
+    $("#archive").trigger("change");
 
     // if (qLong && qLat)
     // {
@@ -1293,13 +1373,14 @@ function run_point_indexing_service_byu(comid, pnt_coordinate, pnt_epsg, output_
  *******BUILD CHART FUNCTIONALITY********
  ****************************************/
 
-function get_netcdf_chart_data(config, geom, variable, comid, date, time, lag, endDate)
+function get_netcdf_chart_data(archive, config, geom, variable, comid, date, time, lag, endDate)
 {
     $.ajax({
         type: 'GET',
         url: '/apps/nwm-forecasts/get-netcdf-data/',
         dataType: 'json',
         data: {
+            'archive': archive,
             'config': config,
             'geom': geom,
             'variable': variable,

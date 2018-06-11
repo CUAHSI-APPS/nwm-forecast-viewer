@@ -24,6 +24,16 @@
 
 <form id="paramForm" method="get">
 
+     <div class="form-group ">
+        <label class="control-label" for="archive" data-toggle="tooltip"
+               data-placement="bottom" title="Select the archive to query">Archive</label>
+        <select id="archive" class="form-control" name="archive">
+            <option value="rolling" selected="selected" title="40-day rolling window archive">Rolling Window</option>
+            <option value="harvey" title="historical archive for the Harvey hurricane (20170818-20170906)">Harvey</option>
+            <option value="irma" title="historical archive for Irma hurricane (20170829-20170915)">Irma</option>
+        </select>
+    </div>
+
     <div class="form-group ">
         <label class="control-label" for="config" data-toggle="tooltip"
                data-placement="bottom" title="NWM has 4 model configurations: Analysis & Assimilation, Short Range, Medium Range and Long Range">Model Configuration</label>
