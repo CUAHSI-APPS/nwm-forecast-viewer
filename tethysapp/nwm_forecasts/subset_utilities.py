@@ -56,9 +56,9 @@ def _check_hurricane_start_end_dates(startDate_str, endDate_str, event_period):
     if start_date > end_date:
         start_date = event_period[0]
         end_date = event_period[1]
-    elif start_date < event_period[0]:
+    elif start_date < event_period[0] or start_date > event_period[1]:
         start_date = event_period[0]
-    elif end_date > event_period[1]:
+    elif end_date < event_period[0] or end_date > event_period[1]:
         end_date = event_period[1]
 
     return [start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d")]
@@ -115,7 +115,7 @@ def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None,
 
     logger.info(startDate_str)
     logger.info(endDate_str)
-    
+
     if subset_parameter_dict["config"] == "analysis_assim":
         if endDate_str.lower() == "latest":
             latest_data_info_dict = _check_latest_data()
