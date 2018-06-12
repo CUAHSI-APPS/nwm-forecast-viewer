@@ -56,9 +56,9 @@ def _check_hurricane_start_end_dates(startDate_str, endDate_str, event_period):
     if start_date > end_date:
         start_date = event_period[0]
         end_date = event_period[1]
-    elif start_date < event_period[0] or start_date > event_period[1]:
+    if start_date < event_period[0] or start_date > event_period[1]:
         start_date = event_period[0]
-    elif end_date < event_period[0] or end_date > event_period[1]:
+    if end_date < event_period[0] or end_date > event_period[1]:
         end_date = event_period[1]
 
     return [start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d")]
