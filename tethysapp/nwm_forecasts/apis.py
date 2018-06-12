@@ -196,7 +196,7 @@ def subset_watershed_api(request):
         watershed_geometry = request_dict['watershed_geometry']
         watershed_epsg = int(request_dict['watershed_epsg'])
         spatial_query_only = _string2bool(request_dict.get('query_only', 'False'))
-
+        archive = request_dict.get("archive", "rolling")
         subset_parameter_dict = request_dict.get('subset_parameter', None)
         merge_results = False
         if subset_parameter_dict:
@@ -216,7 +216,8 @@ def subset_watershed_api(request):
                                            {"job_id":job_id,
                                              "zip_results":True,
                                              "query_only": spatial_query_only,
-                                             "merge_netcdfs": merge_results},
+                                             "merge_netcdfs": merge_results,
+                                             "archive": archive},
                                            task_id=job_id,
                                            countdown=3,)
                                            # time_limit=nwm_viewer_subsetting_time_limit,  # 30 minutes

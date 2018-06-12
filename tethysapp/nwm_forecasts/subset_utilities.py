@@ -41,11 +41,35 @@ def _do_spatial_query(geom_str, in_epsg, job_id=None):
     return query_result_dict
 
 
+def _check_hurricane_start_end_dates(startDate_str, endDate_str, event_period):
+
+    try:
+        start_date = datetime.datetime.strptime(startDate_str, "%Y-%m-%d")
+    except Exception:
+        start_date = event_period[0]
+
+    try:
+        end_date = datetime.datetime.strptime(endDate_str, "%Y-%m-%d")
+    except Exception:
+        end_date = event_period[1]
+
+    if start_date > end_date:
+        start_date = event_period[0]
+        end_date = event_period[1]
+    elif start_date < event_period[0]:
+        start_date = event_period[0]
+    elif end_date > event_period[1]:
+        end_date = event_period[1]
+
+    return [start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d")]
+
+
 @shared_task(rate_limit=nwm_viewer_subsetting_rate_limit,  # 10 request/min
              time_limit=nwm_viewer_subsetting_time_limit,  # 30 minutes
              soft_time_limit=nwm_viewer_subsetting_soft_time_limit,  # 20 minutes
              )
-def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None, merge_netcdfs=True, zip_results=False, query_only=False, archive="rolling"):
+def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None,
+                    merge_netcdfs=True, zip_results=False, query_only=False, archive="rolling"):
 
     netcdf_folder_path = nwm_data_path_dict["subsetting"][archive]
     logger.info(netcdf_folder_path)
@@ -81,6 +105,10 @@ def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None, merge
     simulation_date_list = []
     startDate_str = subset_parameter_dict.get("startDate", "")
     endDate_str = subset_parameter_dict.get("endDate", "")
+
+    if archive != "rolling":
+        startDate_str, endDate_str =_check_hurricane_start_end_dates(
+            startDate_str, endDate_str, harricane_period_dict[archive])        
 
     if subset_parameter_dict["config"] == "analysis_assim":
         if endDate_str.lower() == "latest":
@@ -123,7 +151,6 @@ def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None, merge
         dateRange_obj_list = [startDate_obj + datetime.timedelta(days=x) for x in
                               range(0, dateDelta_obj.days + 1)]
         simulation_date_list = [x.strftime("%Y%m%d") for x in dateRange_obj_list]
-
     else:  # non-"analysis_assim"
         if not startDate_str:
             raise Exception("startDate is not set")

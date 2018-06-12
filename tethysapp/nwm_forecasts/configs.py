@@ -1,5 +1,7 @@
+import datetime
 from django.conf import settings
 from .app import nwmForecasts as app
+
 
 app_workspace = app.get_app_workspace()
 # comid = 18228725
@@ -19,7 +21,14 @@ nwm_data_path_dict = {"view":
                           "harvey": "/projects/water/harvey/",
                           "irma": "/projects/water/irma/"
                           },
+
                      }
+
+harricane_period_dict = {"harvey":
+                             [datetime.datetime(2017, 8, 18), datetime.datetime(2017, 9, 6)],
+                         "irma":
+                             [datetime.datetime(2017, 8, 29), datetime.datetime(2017, 9, 15)]
+                         }
 
 if local_vm_test:
     transition_date_v11 = '20170418'  # local vm
