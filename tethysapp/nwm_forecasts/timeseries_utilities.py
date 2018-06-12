@@ -4,9 +4,12 @@ import re
 import netCDF4 as nc
 import numpy as np
 import json
+import logging
 
 from configs import *
 from django.http import JsonResponse
+
+logger = logging.getLogger(__name__)
 
 def timestamp_early_than_transition_v11(fn, transition_timestamp):
 
@@ -525,7 +528,7 @@ def _get_netcdf_data(request):
                 })
 
         except Exception as e:
-            print str(e)
+            logger.error(str(e))
             return JsonResponse({'error': 'No data found for the selected reach.'})
     else:
         return JsonResponse({'error': "Bad request. Must be a GET request."})

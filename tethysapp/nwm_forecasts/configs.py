@@ -14,7 +14,7 @@ local_vm_test_data_date = "20170419"
 nwm_data_path_dict = {"view":
                          {"rolling": "/projects/water/nwm/data/",
                           "harvey": "/projects/hydroshare/apps/apps_common_files/nwm/hurricane/harvey/",
-                          "irma": "/projects/hydroshare/apps/apps_common_files/nwm/hurricane/harvey/"
+                          "irma": "/projects/hydroshare/apps/apps_common_files/nwm/hurricane/irma/"
                           },
                      "subsetting":
                          {"rolling": "/projects/water/nwm/data/nomads/",
