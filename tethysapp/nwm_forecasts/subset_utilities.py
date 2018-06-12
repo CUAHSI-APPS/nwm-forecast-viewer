@@ -106,10 +106,16 @@ def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None,
     startDate_str = subset_parameter_dict.get("startDate", "")
     endDate_str = subset_parameter_dict.get("endDate", "")
 
+    logger.info(startDate_str)
+    logger.info(endDate_str)
+
     if archive != "rolling":
         startDate_str, endDate_str =_check_hurricane_start_end_dates(
-            startDate_str, endDate_str, harricane_period_dict[archive])        
+            startDate_str, endDate_str, harricane_period_dict[archive])
 
+    logger.info(startDate_str)
+    logger.info(endDate_str)
+    
     if subset_parameter_dict["config"] == "analysis_assim":
         if endDate_str.lower() == "latest":
             latest_data_info_dict = _check_latest_data()
