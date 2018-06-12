@@ -739,7 +739,8 @@ function init_restore_ui_map()
     if (qDate)
     {
         sessionStorage.startDate = qDate;
-        $('#startDate').val(qDate);
+        //$('#startDate').val(qDate);
+        $('#startDate').datepicker("setDate",qDate)
     }
 
     // time UI
@@ -806,7 +807,7 @@ function init_restore_ui_map()
     if (qDateEnd)
     {
         sessionStorage.endDate = qDateEnd;
-        $('#endDate').val(qDateEnd);
+        $('#endDate').datepicker("setDate",qDateEnd)
     }
 
     var qLag = [];
@@ -1069,7 +1070,7 @@ function init_restore_ui_map()
         CenterMap(center_map_at_pnt_3857[0], center_map_at_pnt_3857[1], 3857);
         mapView.setZoom(12);
     }
-    $("#archive").trigger("change");
+    $("#config").trigger("change");
 
     // if (qLong && qLat)
     // {
