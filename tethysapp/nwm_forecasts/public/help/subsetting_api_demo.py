@@ -1,4 +1,6 @@
-#  Created by: Dr. Zhiyu (Drew) Li: zyli2004@gmail.com, zy.li@byu.edu
+#  2018 Brigham Young University
+#  Created by: Dr. Zhiyu (Drew) Li
+#  zyli2004@gmail.com, zhiyu.li@byu.edu
 
 import os
 import json
