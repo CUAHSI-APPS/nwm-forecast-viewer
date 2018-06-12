@@ -1,4 +1,5 @@
-#  Zhiyu (Drew) Li: zyli2004@gmail.com, zy.li@byu.edu
+#  Created by: Dr. Zhiyu (Drew) Li: zyli2004@gmail.com, zy.li@byu.edu
+
 import os
 import json
 import requests
@@ -39,6 +40,7 @@ if __name__ == "__main__":
 
     # prepare the data sent to api endpoint
     JSON_payload = {
+        'archive': 'rolling',  # optional, default is rolling. rolling: 40-day rolling window archive; harvey: harvey hurricane archive (20170818-0906); irma: irma hurricane archive (20170829-0915)
         'subset_parameter': {
             'config': "analysis_assim",  # AA: analysis_assim, SR: short_range, MR: medium_range, LR: long_range
             'startDate': start_date_string,  # YYYY-MM-DD for SR, MR & LR; Also set 'endDate' for AA;  Also accept "latest", see Help page
@@ -53,12 +55,12 @@ if __name__ == "__main__":
         'watershed_geometry': geojson_polygon_str_4326  # the polygon geojson string in WGS84/EPSG:4326 extracted from shapefile
     }
 
-    # 0) Check what NWM features are covered by this Polygon (Optional)
-    resp = sess.post('https://{0}/apps/nwm-forecasts/api/spatial-query/'.format(server_name),
-                         data=json.dumps(JSON_payload),
-                         verify=False)
-    resp_json_obj = json.loads(resp.content)
-    print resp_json_obj
+    # # 0) Check what NWM features are covered by this Polygon (Optional)
+    # resp = sess.post('https://{0}/apps/nwm-forecasts/api/spatial-query/'.format(server_name),
+    #                      data=json.dumps(JSON_payload),
+    #                      verify=False)
+    # resp_json_obj = json.loads(resp.content)
+    # print resp_json_obj
 
     # Note: URL API endpoint must end with a slash '/'
     # 1) submit a job and get job_id

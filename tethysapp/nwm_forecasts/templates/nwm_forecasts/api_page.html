@@ -13,10 +13,26 @@
 {% block app_content %}
 <h1>Developers API</h1>
 <h3 style="color:red;">Updates: </h3>
-    <ol style="color:red;">
-        <li> The domain of API endpoints has been temporarily changed to https://hs-apps.hydroshare.org/;</li>
-        <li> API Token and Rate Limiting are in place;</li>
-    </ol>
+
+    <p style="color:red;">
+     2018-06-12:
+        <ol style="color:red;">
+            <li> Hurricane archive has been integrated; Current release supports query and subsetting on Harvey and Irma data</li>
+            <li> A new optional parameter "archive" is added to both GetWaterML and submit-subsetting-job endpoints to differentiate archives (see Example 5 below)</li>
+            <ol style="color:red;">
+                <li>rolling: 40-day rolling window (default)</li>
+                <li>harvey: Hurrican Harvey (2017-08-18 to 2017-09-06)</li>
+                <li>irma: Hurricane Irma (2017-08-29 to 2017-09-15)</li>
+            </ol>
+        </ol>
+    </p>
+    <p style="color:red;">
+     2018-04-20:
+        <ol style="color:red;">
+            <li> The domain of API endpoints has been temporarily changed to https://hs-apps.hydroshare.org/;</li>
+            <li> API Token and Rate Limiting are in place;</li>
+        </ol>
+    </p>
     <p>
         A Developers API is provided for those who wish to incorporate the National Water Model data into their own
         separate application or script.
@@ -77,12 +93,19 @@ There are two common ways to avoid hitting the rate limit.
             <td colspan="5">A WaterML file of the specified forecast.</td>
         </tr>
         <tr>
-            <td rowspan="12"><b>Params</b></td>
+            <td rowspan="13"><b>Params</b></td>
             <td><b>Name</b></td>
             <td><b>Description</b></td>
             <td><b>Valid Values</b></td>
             <td><b>Required</b></td>
             <td><b>Default if omitted</b></td>
+        </tr>
+        <tr>
+            <td>archive</td>
+            <td>The archive (data source) of the forecast.</td>
+            <td>Indicate the archive (data source) used for query; Accepted value: "rolling", "harvey" and "irma"</td>
+            <td>No</td>
+            <td>Default value: "rolling"</td>
         </tr>
         <tr>
             <td>config</td>
@@ -184,17 +207,19 @@ There are two common ways to avoid hitting the rate limit.
     </table>
     <br>
 <h5>Example 1:</h5>
-Configuration: Analysis & Assimilation<br>
+    Archive: 40-day rolling window<br>
+    Configuration: Analysis & Assimilation<br>
 Geometry: Land<br>
 Variable: SNOWH<br>
 Start Date:{{date_string_minus_2}}<br>
 End Date: {{date_string_minus_3}}<br>
 Cell Index/Location (south_north, west_east): 1635,2030<br>
- <a href="https://hs-apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=analysis_assim&geom=land&variable=SNOWH&COMID=1635,2030&startDate={{date_string_minus_3}}&endDate={{date_string_minus_2}}" target="_blank">
-     <code>https://hs-apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=analysis_assim&geom=land&variable=SNOWH&COMID=1635,2030&startDate={{date_string_minus_3}}&endDate={{date_string_minus_2}}</code>
+ <a href="https://hs-apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=archive=rolling&analysis_assim&geom=land&variable=SNOWH&COMID=1635,2030&startDate={{date_string_minus_3}}&endDate={{date_string_minus_2}}" target="_blank">
+     <code>https://hs-apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?archive=rolling&config=analysis_assim&geom=land&variable=SNOWH&COMID=1635,2030&startDate={{date_string_minus_3}}&endDate={{date_string_minus_2}}</code>
  </a>
 <br>
 <h5>Example 2:</h5>
+    Archive: 40-day rolling window<br>
 Configuration: Short Range <br>
 Geometry: Forcing <br>
 Variable: RAINRATE <br>
@@ -206,6 +231,7 @@ Cell Index/Location (south_north, west_east): 1636,2036<br>
 </a>
 <br>
 <h5>Example 3:</h5>
+    Archive: 40-day rolling window<br>
 Configuration: Medium Range <br>
 Geometry: Channel <br>
 Variable: streamflow <br>
@@ -216,6 +242,7 @@ Channel COMID: 11359107<br>
     <code>https://hs-apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=medium_range&geom=channel_rt&variable=streamflow&COMID=11359107&startDate={{date_string_minus_2}}&time=06</code>
 </a>
 <h5>Example 4:</h5>
+    Archive: 40-day rolling window<br>
 Configuration: Long Range <br>
 Geometry: Reservoir <br>
 Variable: inflow <br>
@@ -224,6 +251,16 @@ Reservoir COMID: 3501837<br>
 Lag: t00z <br>
 <a href="https://hs-apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=long_range&geom=reservoir&variable=inflow&COMID=3501837&startDate={{date_string_minus_2}}&lag=t00z" target="_blank">
     <code>https://hs-apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=long_range&geom=reservoir&variable=inflow&COMID=3501837&startDate={{date_string_minus_2}}&lag=t00z</code>
+</a>
+    <h5>Example 5:</h5>
+    Archive: Hurricane Harvey (2017-08-23 to 2017-09-06)<br>
+Configuration: Short Range <br>
+Geometry: Channel <br>
+Variable: streamflow<br>
+Date:2017-08-27 <br>
+Reach COMID: 5781915<br>
+<a href="https://hs-apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?archive=harvey&config=short_range&geom=channel_rt&variable=streamflow&COMID=5781915&startDate=2017-08-27&time=04" target="_blank">
+    <code>https://hs-apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?archive=harvey&config=short_range&geom=channel_rt&variable=streamflow&COMID=5781915&startDate=2017-08-27&time=04</code>
 </a>
 <br>
 <h3>Subsetting</h3>
@@ -247,6 +284,7 @@ Send a <b>HTTP POST Request</b> with the following JSON payload to <b>/apps/nwm-
 <pre>
     # prepare the data sent to api endpoint
     JSON_payload = {
+        'archive': 'rolling'  # optional, Accepted value: rolling, harvey, irma; Default is rolling
         'subset_parameter': {
             'config': "analysis_assim",  # AA: analysis_assim, SR: short_range, MR: medium_range, LR: long_range
             'startDate': "2017-09-20",  # YYYY-MM-DD for SR, MR & LR; Also set 'endDate' for AA
@@ -267,7 +305,7 @@ Expected response: <br>
 {"job_id": JOB_ID, "status": JOB_STATUS}
 <br>
 <pre>
-<b>Get "latest" data without specifying "startDate", "endDate" or "time"</b>
+<b>Get "latest" data without specifying "startDate", "endDate" or "time" (only works when archive='rolling')</b>
 
 <b>For AA:</b>
     a) Subset data starting from t00z of day "YYYY-MM-DD" to Today(UTC)'s latest data
