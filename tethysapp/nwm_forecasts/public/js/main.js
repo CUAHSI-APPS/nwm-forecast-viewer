@@ -2179,14 +2179,14 @@ function _prepare_watershed_data()
         merge: merge_netcdf
     };
 
-    // analysis_assim date range no more than 7 days
+    // analysis_assim date range no more than 3 weeks (21 days)
     if (parameter.config == "analysis_assim")
     {
-        if (!_check_datetime_range($("#startDate").val(), $("#endDate").val(), 7))
+        if (!_check_datetime_range($("#startDate").val(), $("#endDate").val(), 21))
         {
-            alert("Invalid start/end date; You may subset Analysis & Assimilation data for 7 days or less");
+            alert("Invalid start/end date; You may subset Analysis & Assimilation data for 3 weeks (21 days) or less");
             $("#subsetBtn, #watershedBtn, #submitBtn").removeAttr('disabled');
-            return;
+            return null;
         }
     }
 
@@ -2206,6 +2206,10 @@ function _prepare_watershed_data()
 function subset_watershed_hydroshare()
 {
     var data = _prepare_watershed_data();
+    if (!date)
+    {
+        return ;
+    }
     var hydroshare_data = {"title": $('#resource-title-subset').val(),
         "abstract": $('#resource-abstract-subset').val(),
         "keywords": $('#resource-keywords-subset').val(),
