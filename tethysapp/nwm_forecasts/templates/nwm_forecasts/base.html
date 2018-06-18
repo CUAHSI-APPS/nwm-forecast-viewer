@@ -22,6 +22,9 @@
 {#{% endblock %}#}
 
 {% block header_buttons %}
+    <div class="header-button glyphicon-button" data-toggle="tooltip" data-placement="bottom" title="What's New">
+        <a data-toggle="modal" data-target="#" onclick="$('#updates-popup').modal('show');"><span class="glyphicon glyphicon-info-sign"></span></a>
+    </div>
     <div class="header-button glyphicon-button" data-toggle="tooltip" data-placement="bottom" title="Help">
         <a data-toggle="modal" data-target="#" onclick="if(!window.location.href.includes('/subset/')) {$('#welcome-popup').modal('show');}else{$('#welcome-popup-subset').modal('show');}"><span class="glyphicon glyphicon-question-sign"></span></a>
     </div>
@@ -94,6 +97,14 @@
           </p>
               <h5>Home Mode</h5>
               <li class="modalList"><b>Add Watershed (optional)</b> - Add a watershed polygon from HydroShare or local files (geojson or shapefile)</li>
+              <li class="modalList"><b>Archive</b> <br>
+                  Select one of the archives to query against:
+                    <ol>
+                        <li><b>40-Day Rolling Window</b> NWM daily outputs on a 40-day rolling windows + historical Analysis_Assim data back to 20160609</li>
+                        <li><b>Harvey Data</b> NWM 1.1 outputs for Hurricane Harvey period (20170818 - 20170906)</li>
+                        <li><b>Irma Data</b> NWM 1.1 outputs for Hurricane Irma period (20170829 - 20170915)</li>
+                  </ol>
+              </li>
               <li class="modalList"><b>Model Configuration</b> <br>
                   NWM has 4 model configurations:
                     <ol>
@@ -123,7 +134,7 @@
                   <ol>
                       <li> <b>Begin/End Date</b>: a string YYYY-MM-DD to indicate model run date for SR, MR and LR configurations or a date range for AA configuration.
                           <br>
-                          <b>Data Availability</b> (Current UTC Time {{date_string_today}})<br>
+                          <b>Data Availability for 40-Day Rolling Window archive</b> (Current UTC Time {{date_string_today}})<br>
                           <ol>
                             <b>AA</b>: {{date_string_AA_oldest}} to {{date_string_today}}<br>
                             <b>SR</b>: {{date_string_oldest}} to {{date_string_today}}<br>
@@ -145,6 +156,69 @@
           <img src="{% static 'nwm_forecasts/images/byu-logo.png' %}"/>
         </div>
         <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        <!--<input type="checkbox" name="help-page-checkbox" id="help-page-checkbox" onclick="sessionStorage.welcome_popup_checkbox=this.checked;" >Display Help page at startup<br>-->
+      </div>
+    </div>
+  </div>
+</div>
+<!-- End Modal -->
+
+<!-- Updates Help popup-->
+<div class="modal fade" id="updates-popup" role="dialog">
+  <div class="modal-dialog">
+    <div class="modal-content" style="width: 150%;">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <center><h4 class="modal-title">What's New in the National Water Model Forecast Viewer App</h4></center>
+      </div>
+      <div class="modal-body">
+          <div id="welcome-info">
+              <p style="color:red;">
+                2018-06-18: Data loss for date 20180614
+                <ol>
+                    <li> A recent network interruption incident caused failure of transferring and archiving some files for date 20180614 on HydroShare NWM server, which are hard to recover as they have been permanently wiped from upstream NOMADS server. See below for details:</li>
+                    <ol>
+                        <li>analysis_assim: not affected</li>
+                        <li>forcing_analysis_assim: timestamp 20Z to 23Z</li>
+                        <li>short_range: timestamp 00Z to 23Z</li>
+                        <li>forcing_short_range: not affected</li>
+                        <li>medium_range: timestamp 18Z</li>
+                        <li>forcing_medium_range: timestamp 18Z</li>
+                        <li>long_range_mem1: not affected</li>
+                        <li>long_range_mem2: timestamp 12Z & 18Z</li>
+                        <li>long_range_mem3: timestamp 12Z & 18Z</li>
+                        <li>long_range_mem4: timestamp 12Z & 18Z</li>
+                        <li>usgs_timeslices: timestamp 20:30 to 23:45</li>
+                    </ol>
+                </ol>
+              </p>
+              <p style="color:red;">
+                2018-06-12: Hurricane data available
+                <ol>
+                    <li> Hurricane archive has been integrated; Current release supports query and subsetting on Harvey and Irma data</li>
+                    <li> A new optional parameter "archive" is added to both GetWaterML and submit-subsetting-job endpoints to differentiate archives (see Example 5)</li>
+                    <ol>
+                        <li>rolling: 40-day rolling window (default)</li>
+                        <li>harvey: Hurrican Harvey (2017-08-18 to 2017-09-06)</li>
+                        <li>irma: Hurricane Irma (2017-08-29 to 2017-09-15)</li>
+                    </ol>
+                </ol>
+              </p>
+                <p style="color:red;">
+                 2018-04-20: APIs updated
+                    <ol>
+                        <li> The domain of API endpoints has been temporarily changed to https://hs-apps.hydroshare.org/;</li>
+                        <li> API Token and Rate Limiting are in place;</li>
+                    </ol>
+                </p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <div class="byu-logo-container">
+          <span><i>Developed at the BYU Hydroinformatics Lab</i></span>
+          <img src="{% static 'nwm_forecasts/images/byu-logo.png' %}"/>
+        </div>
+        <button type="button" class="btn btn-default"  data-dismiss="modal">Close</button>
         <!--<input type="checkbox" name="help-page-checkbox" id="help-page-checkbox" onclick="sessionStorage.welcome_popup_checkbox=this.checked;" >Display Help page at startup<br>-->
       </div>
     </div>
@@ -177,6 +251,14 @@
           </p>
               <h5>Subset Mode</h5>
               <li class="modalList"><b>Add Watershed</b>: Add a watershed polygon from HydroShare or local files (geojson or shapefile).</li>
+              <li class="modalList"><b>Archive</b> <br>
+                  Select one of the archives to query against:
+                    <ol>
+                        <li><b>40-Day Rolling Window</b> NWM daily outputs on a 40-day rolling windows + historical Analysis_Assim data back to 20160609</li>
+                        <li><b>Harvey Data</b> NWM 1.1 outputs for Hurricane Harvey period (20170818 - 20170906)</li>
+                        <li><b>Irma Data</b> NWM 1.1 outputs for Hurricane Irma period (20170829 - 20170915)</li>
+                  </ol>
+              </li>
               <li class="modalList"><b>Model Configuration</b> <br>
                   NWM has 4 model configurations:
                     <ol>
@@ -200,7 +282,7 @@
                   <ol>
                       <li> <b>Begin/End Date</b>: a string YYYY-MM-DD to indicate model run date for SR, MR and LR configurations or a date range for AA configuration.
                           <br>
-                          <b>Data Availability</b> (Current UTC Time {{date_string_today}})<br>
+                          <b>Data Availability for 40-Day Rolling Window archive</b> (Current UTC Time {{date_string_today}})<br>
                           <ol>
                             <b>AA</b>: 2017-05-09 to {{date_string_today}}<br>
                             <b>SR</b>: {{date_string_oldest}} to {{date_string_today}}<br>

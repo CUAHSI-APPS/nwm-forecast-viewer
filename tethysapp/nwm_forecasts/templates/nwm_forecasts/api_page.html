@@ -49,7 +49,7 @@
 There are two common ways to avoid hitting the rate limit.
     <ol>
         <li> Use API Token to make authenticated API calls as it gives you more allocation; </li>
-        <li> Understand how rate limiting works and make arrangement to control api call frequency. Current implementation of rate limiting uses a <b>Rolling Window</b> approach. For example, a endpoint has limit 6/min. Any call made to this endpoint will be blocked if 6 successful calls have already occurred in the preceding 60 seconds. So the window is rolling as new api call occurs.</li>
+        <li> Understand how rate limiting works and make arrangement to control api call frequency. Current implementation of rate limiting uses a <b>Rolling Window</b> approach (not to be confused with 40-day rolling window data archive, rolling window approach is a rate limiting algorithm). For example, a endpoint has limit 6/min. Any call made to this endpoint will be blocked if 6 successful calls have already occurred in the preceding 60 seconds. So the window is rolling as new api call occurs.</li>
     </ol>
 </p>
 
