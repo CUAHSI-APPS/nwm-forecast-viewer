@@ -2141,6 +2141,9 @@ function _render_str_template(template_str, replace_dict)
 
 function _prepare_watershed_data()
 {
+
+    var data = null;
+
     // archive
     var archive=$('#archive').val();
     if (archive==null || archive=="")
@@ -2199,14 +2202,14 @@ function _prepare_watershed_data()
     var geom_json = geoJSON.writeGeometry(watershed_fea.getGeometry());
 
 
-    var data = {archive: archive, watershed_geometry: geom_json, watershed_epsg: 3857, subset_parameter: parameter};
+    data = {archive: archive, watershed_geometry: geom_json, watershed_epsg: 3857, subset_parameter: parameter};
     return data
 }
 
 function subset_watershed_hydroshare()
 {
     var data = _prepare_watershed_data();
-    if (!date)
+    if (!data)
     {
         return ;
     }
