@@ -56,7 +56,7 @@ def _init_page(request):
         config = request.GET['config']
         geom = request.GET['geom']
         variable = request.GET['variable']
-        if geom != 'land' and geom != 'forcing':
+        if geom != 'land' and geom != 'forcing' and geom != 'terrain':
             comid = request.GET['COMID']
         else:
             comid = ','.join([request.GET['Y'], request.GET['X']])

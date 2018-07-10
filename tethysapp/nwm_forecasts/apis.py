@@ -36,7 +36,7 @@ def get_data_waterml(request):
         config = request.GET["config"]
         geom = request.GET['geom']
         var = request.GET['variable']
-        if geom != 'land' and geom != "forcing":
+        if geom != 'land' and geom != "forcing" and geom != "terrain":
             comid = int(request.GET['COMID'])
         else:
             comid = request.GET['COMID']
@@ -108,6 +108,10 @@ def get_data_waterml(request):
             units = {'name': '10-m U-component of wind', 'short': 'm/s', 'long': 'm/s'}
         elif var in ['V2D']:
             units = {'name': '10-m V-component of wind', 'short': 'm/s', 'long': 'm/s'}
+        elif var in ['sfcheadsubrt']:
+            units = {'name': 'Surface Head', 'short': 'mm', 'long': 'mm'}
+        elif var in ['zwattablrt']:
+            units = {'name': 'Water Table Depth', 'short': 'm', 'long': 'm'}
 
         nodata_value = -9999
 

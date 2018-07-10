@@ -1,4 +1,5 @@
-#  2018 Brigham Young University
+#  2016-2018
+#  Brigham Young University
 #  Created by: Dr. Zhiyu (Drew) Li
 #  zyli2004@gmail.com, zhiyu.li@byu.edu
 
@@ -16,7 +17,7 @@ if __name__ == "__main__":
 
     server_name = "hs-apps.hydroshare.org"
     with_token = True
-    api_token = "ABC123_YOUR_API_TOKEN_456DEF"
+    api_token = "e7922a7bfeb4257c8a718d9dd441cd96ef9d6a4c"
 
     sess = requests.Session()
     if with_token:
@@ -42,12 +43,12 @@ if __name__ == "__main__":
 
     # prepare the data sent to api endpoint
     JSON_payload = {
-        'archive': 'rolling',  # optional, default is rolling. rolling: 40-day rolling window archive; harvey: harvey hurricane archive (20170818-0906); irma: irma hurricane archive (20170829-0915)
+        'archive': 'harvey',  # optional, default is rolling. rolling: 40-day rolling window archive; harvey: harvey hurricane archive (20170818-0906); irma: irma hurricane archive (20170829-0915)
         'subset_parameter': {
             'config': "analysis_assim",  # AA: analysis_assim, SR: short_range, MR: medium_range, LR: long_range
-            'startDate': start_date_string,  # YYYY-MM-DD for SR, MR & LR; Also set 'endDate' for AA;  Also accept "latest", see Help page
-            'endDate': end_date_string,  # YYYY-MM-DD (only for AA); Also accept "latest", see Help page
-            'geom': "land",  # forcing, channel_rt, reservoir, land
+            # 'startDate': start_date_string,  # YYYY-MM-DD for SR, MR & LR; Also set 'endDate' for AA;  Also accept "latest", see Help page
+            # 'endDate': end_date_string,  # YYYY-MM-DD (only for AA); Also accept "latest", see Help page
+            'geom': "channel_rt",  # forcing, channel_rt, reservoir, land
             'time': "00",  # 00, 01 ...23 (only for SR, MR and LR)
             'mem': "1",  # 1, 2, 3, 4 (LR ensemble member)
             'merge': True  # True or False
@@ -75,7 +76,7 @@ if __name__ == "__main__":
     print "Job id: " + job_id
 
     # 2) check job status
-    retry_max = 200  # max retry times
+    retry_max = 500  # max retry times
     retry_interval = 2  # retry interval (second)
 
     retry_counter = 0

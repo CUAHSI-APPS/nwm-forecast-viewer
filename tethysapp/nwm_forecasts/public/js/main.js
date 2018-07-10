@@ -3,7 +3,7 @@ var target, observer, config;
 // OpenLayer3 variables
 var map, mapView;
 var base_layer, grid_layer, reservoir_layer, all_streams_layer, selected_streams_layer, watershed_layer,
-    usgs_gauges_layer;
+    usgs_gauges_layer, terrain_layer;
 var map_source = "CUAHSI"; // CUAHSI or BYU
 
 var toggle_layers;
@@ -135,11 +135,13 @@ $('#archive').on('change', function ()
 
 $('#config').on('change', function ()
 {
-    // disable "Forcing" in Geometry dropdown for long range
+    // disable "Forcing" and "Terrain" in Geometry dropdown for long range
     if ($('#config').val() == 'long_range')
     {
         $("#geom option[value='forcing']").attr('disabled','disabled');
-        if ($("#geom option:selected").val() == "forcing" ||  $("#geom").val()=="forcing")
+        $("#geom option[value='terrain']").attr('disabled','disabled');
+        if ($("#geom option:selected").val() == "forcing" ||  $("#geom").val()=="forcing"
+            || $("#geom option:selected").val() == "terrain" ||  $("#geom").val()=="terrain")
         {
             $("#geom option[value='channel_rt']").attr("selected", "selected");
             $("#geom").val('channel_rt');
@@ -148,6 +150,7 @@ $('#config').on('change', function ()
     else
     {
         $("#geom option[value='forcing']").removeAttr('disabled');
+        $("#geom option[value='terrain']").removeAttr('disabled');
     }
 
     if ($('#config').val() === 'medium_range')
@@ -364,6 +367,21 @@ $('#geom').on('change', function ()
             $('#variable').val('RAINRATE');
         }
         $('#rainrateVar, #lwdownVar, #psfcVar, #q2dVar, #swdownVar, #t2dVar, #u2dVar, #v2dVar').removeClass('hidden');
+    }
+    else if ($('#geom').val() === 'terrain' && $('#config').val() != 'long_range')
+    {
+        $('#gridDiv').removeClass('hidden');
+        $('#gridInputY').attr('disabled', false);
+        $('#gridInputX').attr('disabled', false);
+        // if (window.location.search.includes('terrain') && window.location.search.includes('analysis_assim'))
+        // {
+        //     $('#variable').val(getUrlParameter('variable', null));
+        // }
+        // else
+        {
+            $('#variable').val('sfcheadsubrt');
+        }
+        $('#sfhVar, #wtdVar').removeClass('hidden');
     }
 
     sessionStorage.geom = $('#geom').val();
@@ -1001,7 +1019,27 @@ function init_restore_ui_map()
         $("#subsetBtn").prop('disabled', true);
     });
 
+
+    var terrain_Source = new ol.source.TileWMS({
+        url: "http://geoserver2.byu.edu/arcgis/services/drew/NWM_terrain/MapServer/WMSServer?",
+        params: {
+            'LAYERS': "0"
+        },
+        //see: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img#attr-crossorigin
+        //http://openlayers.org/en/v3.12.1/apidoc/ol.source.TileWMS.html
+        crossOrigin: 'anonymous' //This is necessary for CORS security in the browser
+
+    });
+
+    terrain_layer = new ol.layer.Tile({
+        source: terrain_Source,
+        keyword: "terrain",
+        opacity: 0,
+    });
+
+
     map.addLayer(base_layer);
+    map.addLayer(terrain_layer);
     map.addLayer(watershed_layer);
     map.addLayer(grid_layer);
     map.addLayer(reservoir_layer);
@@ -1009,7 +1047,7 @@ function init_restore_ui_map()
     map.addLayer(selected_streams_layer);
     map.addLayer(usgs_gauges_layer);
 
-    toggle_layers = [grid_layer, reservoir_layer, all_streams_layer, selected_streams_layer];
+    toggle_layers = [grid_layer, reservoir_layer, all_streams_layer, selected_streams_layer, terrain_layer];
 
     popup_div = document.getElementById('popup');
     popup_overlay = new ol.Overlay({
@@ -1184,10 +1222,38 @@ function map_singleclick(evt)
             popup_point_3857 = stream_info.mid_point;
         }
     }
+    else if (terrain_layer.getVisible())
+    {
+         var grid_url = terrain_layer.getSource().getGetFeatureInfoUrl(evt.coordinate, viewResolution, view.getProjection(), {
+            'INFO_FORMAT': 'text/xml',
+            'FEATURE_COUNT': 1
+        });
+
+        var grid_Data = dataCall(grid_url);
+        var grid_Count = grid_Data.documentElement.childElementCount;
+
+        if (grid_Count != 1)
+        {
+            return;
+        }
+
+        var south_north = grid_Data.documentElement.children[0].attributes['Green'].value;
+        var west_east = grid_Data.documentElement.children[0].attributes['Red'].value;
+
+        $("#gridInputY").val(south_north).change(); //trigger change event so value saved to sessionStorage
+        $("#gridInputX").val(west_east).change();
+
+
+        displayContent += '<tr><td>south_north: ' + south_north + '</td><td>west_east: ' + west_east + '</td></tr>';
+
+        // popup shows at center of cell
+        popup_point_3857 = evt.coordinate;
+    }
     else
     {
         return;
     }
+
 
     displayContent += '</table>';
     var lonlat = reproject_point(popup_point_3857[0], popup_point_3857[1], 3857, 4326);
@@ -1696,6 +1762,18 @@ var plotData = function(config, geom, variable, data, start, colorIndex, seriesD
     else if (variable === 'V2D')
     {
         var units = '10-m V-component of wind (m/s)';
+        nc_chart.yAxis[0].setTitle({text: units});
+        $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
+    }
+    else if (variable === 'sfcheadsubrt')
+    {
+        var units = 'Sruface Head (mm)';
+        nc_chart.yAxis[0].setTitle({text: units});
+        $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
+    }
+    else if (variable === 'zwattablrt')
+    {
+        var units = 'Water Table Depth (m)';
         nc_chart.yAxis[0].setTitle({text: units});
         $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
     }

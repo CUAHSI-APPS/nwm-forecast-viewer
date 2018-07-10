@@ -35,6 +35,9 @@ def loopThroughFiles(localFileDir, q_out, nc_files, var, comidIndex=None, comidI
         elif var == 'SNOWH':
             q_outT = prediction_dataTemp.variables[var][0, comidIndexY, comidIndexX].tolist()
             q_out.append(round(q_outT * 3.28084, 4))
+        elif var == "zwattablrt" or var == "sfcheadsubrt":
+            q_outT = prediction_dataTemp.variables[var][0, comidIndexY, comidIndexX].tolist()
+            q_out.append(q_outT)
         elif var == 'SNEQV':
             q_outT = prediction_dataTemp.variables[var][0, comidIndexY, comidIndexX].tolist()
             q_out.append(round((q_outT / 1000) * 3.28084, 4))
@@ -82,7 +85,7 @@ def processNCFiles(localFileDir, nc_files, geom, comid, var, version="v1.1", con
             comidList = prediction_data.variables['feature_id'][:]
         comidIndex = int(np.where(comidList == comid)[0])
         loopThroughFiles(localFileDir, q_out, nc_files, var, comidIndex)
-    elif geom == 'land' or 'forcing':
+    elif geom == 'land' or geom =='forcing' or geom == "terrain":
         comidList = comid.split(',')
         comidIndexY = int(comidList[0])
         comidIndexX = int(comidList[1])
@@ -236,7 +239,7 @@ def _get_netcdf_data(request):
             geom = get_data['geom']
             var = get_data['variable']
 
-            if geom != 'land' and geom != 'forcing':
+            if geom != 'land' and geom != 'forcing' and geom != 'terrain':
                 comid = int(get_data['COMID'])
             else:
                 comid = get_data['COMID']
