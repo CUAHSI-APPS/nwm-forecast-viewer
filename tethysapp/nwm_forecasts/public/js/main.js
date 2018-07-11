@@ -1021,7 +1021,8 @@ function init_restore_ui_map()
 
 
     var terrain_Source = new ol.source.TileWMS({
-        url: "http://geoserver2.byu.edu/arcgis/services/drew/NWM_terrain/MapServer/WMSServer?",
+        //url: "http://geoserver2.byu.edu/arcgis/services/drew/NWM_terrain/MapServer/WMSServer?",
+        url: "https://arcgis.cuahsi.org/arcgis/services/NWM/grid_terrain/MapServer/WmsServer",
         params: {
             'LAYERS': "0"
         },
