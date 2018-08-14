@@ -1080,6 +1080,8 @@ function init_restore_ui_map()
     var center_map_at_pnt_3857 = null;
     if (qLong && qLat && !window.location.href.includes("/subset"))
     {
+        $("#longInput").val(qLong);
+        $("#latInput").val(qLat);
         if (parseFloat(qLong) != -98 && parseFloat(qLat) != 38.5 && qCOMID != "")
         {
             center_map_at_pnt_3857 = reproject_point(qLong, qLat, 4326, 3857);
@@ -1768,7 +1770,7 @@ var plotData = function(config, geom, variable, data, start, colorIndex, seriesD
     }
     else if (variable === 'sfcheadsubrt')
     {
-        var units = 'Sruface Head (mm)';
+        var units = 'Surface Head (mm)';
         nc_chart.yAxis[0].setTitle({text: units});
         $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
     }
