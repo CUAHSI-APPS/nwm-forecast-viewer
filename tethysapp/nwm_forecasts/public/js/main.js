@@ -2,7 +2,7 @@ var target, observer, config;
 
 // OpenLayer3 variables
 var map, mapView;
-var base_layer, grid_layer, reservoir_layer, all_streams_layer, selected_streams_layer, watershed_layer,
+var base_layer, grid_layer, reservoir_layer, all_streams_layer, user_draw_layer, watershed_layer,
     usgs_gauges_layer, terrain_layer;
 var map_source = "CUAHSI"; // CUAHSI or BYU
 
@@ -247,11 +247,8 @@ $('#geom').on('change', function ()
         layer.setVisible($("#geom").val() === layer.get('keyword'));
     });
 
-    if ($("#geom").val() == 'channel_rt')
-    {
-        selected_streams_layer.setVisible(true);
-    }
-    else if ($("#geom").val() == 'forcing')
+
+    if ($("#geom").val() == 'forcing')
     {
         grid_layer.setVisible(true);
     }
@@ -609,7 +606,7 @@ function init_restore_ui_map()
      **********INITIALIZE MAP *********
      **********************************/
 
-    // show mouse position on map
+    //show mouse position on map
     // var mousePositionControl = new ol.control.MousePosition({
     //         coordinateFormat: ol.coordinate.createStringXY(2),
     //         projection: 'EPSG:4326',
@@ -984,16 +981,23 @@ function init_restore_ui_map()
                 stroke: new ol.style.Stroke({
                     color: '#ffff00',
                     width: 3
-                })
+                }),
+                fill: new ol.style.Fill({color: [255, 0, 255, 0.5]}),
+                // for point geometry
+                image: new ol.style.Circle({
+                                        radius: 3,
+                                        fill: new ol.style.Fill({color: 'red'}),
+                                        stroke: new ol.style.Stroke({color: [255,0,0], width: 1})
+                                        })
             });
             return [style];
         };
     };
 
-    selected_streams_layer = new ol.layer.Vector({
+    user_draw_layer = new ol.layer.Vector({
         source: new ol.source.Vector(),
         style: createLineStyleFunction(),
-        keyword: 'selected_streams_layer'
+        keyword: 'user_draw_layer'
     });
 
     watershed_layer = new ol.layer.Vector(
@@ -1038,17 +1042,17 @@ function init_restore_ui_map()
         opacity: 0,
     });
 
-
     map.addLayer(base_layer);
     map.addLayer(terrain_layer);
     map.addLayer(watershed_layer);
     map.addLayer(grid_layer);
     map.addLayer(reservoir_layer);
     map.addLayer(all_streams_layer);
-    map.addLayer(selected_streams_layer);
     map.addLayer(usgs_gauges_layer);
+    map.addLayer(user_draw_layer);
 
-    toggle_layers = [grid_layer, reservoir_layer, all_streams_layer, selected_streams_layer, terrain_layer];
+    //toggle_layers = [grid_layer, reservoir_layer, all_streams_layer, user_draw_layer, terrain_layer];
+    toggle_layers = [grid_layer, reservoir_layer, all_streams_layer, terrain_layer];
 
     popup_div = document.getElementById('popup');
     popup_overlay = new ol.Overlay({
@@ -1085,6 +1089,10 @@ function init_restore_ui_map()
         if (parseFloat(qLong) != -98 && parseFloat(qLat) != 38.5 && qCOMID != "")
         {
             center_map_at_pnt_3857 = reproject_point(qLong, qLat, 4326, 3857);
+            var pnt_fea = new ol.Feature({geometry: new ol.geom.Point(center_map_at_pnt_3857),
+                                          id: "clickpnt"
+                                        });
+            user_draw_layer.getSource().addFeature(pnt_fea);
         }
     }
     // highlight selected stream
@@ -1093,7 +1101,7 @@ function init_restore_ui_map()
         var stream_info = run_point_indexing_service_byu(qCOMID, null, null, 3857);
         if (stream_info != null && stream_info.feature != null && stream_info.mid_point != null)
         {
-            selected_streams_layer.getSource().clear();
+            user_draw_layer.getSource().clear();
             // OL3GM lib doesn't support MULTI* geometry, so have to convert MultiLineString to LineString
             // see https://github.com/mapgears/ol3-google-maps/blob/master/LIMITATIONS.md
             var geom_obj = stream_info.feature.getGeometry();
@@ -1102,7 +1110,7 @@ function init_restore_ui_map()
                 var geom_lingstring_obj = stream_info.feature.getGeometry().getLineString(0);
                 stream_info.feature.setGeometry(geom_lingstring_obj);
             }
-            selected_streams_layer.getSource().addFeature(stream_info.feature);
+            user_draw_layer.getSource().addFeature(stream_info.feature);
             center_map_at_pnt_3857 = stream_info.mid_point;
         }
     }
@@ -1128,8 +1136,13 @@ function init_restore_ui_map()
 
 function map_singleclick(evt)
 {
+
+    // 8/15/2018
+    // commented out as it caused disapperance of popup in consecutive clicks
     // destroy existing popup
-    $(popup_div).popover('destroy');
+    //$(popup_div).popover('destroy');
+
+    user_draw_layer.getSource().clear();
     var view = map.getView();
     var viewResolution = view.getResolution();
 
@@ -1207,8 +1220,6 @@ function map_singleclick(evt)
         }
         if (stream_info.feature != null)
         {
-            selected_streams_layer.getSource().clear();
-
             // OL3GM lib doesn't support MULTI* geometry, so have to convert MultiLineString to LineString
             // see https://github.com/mapgears/ol3-google-maps/blob/master/LIMITATIONS.md
             var geom_obj = stream_info.feature.getGeometry();
@@ -1217,7 +1228,7 @@ function map_singleclick(evt)
                 var geom_lingstring_obj = stream_info.feature.getGeometry().getLineString(0);
                 stream_info.feature.setGeometry(geom_lingstring_obj);
             }
-            selected_streams_layer.getSource().addFeature(stream_info.feature);
+            user_draw_layer.getSource().addFeature(stream_info.feature);
         }
         if (stream_info.mid_point != null)
         {
@@ -1257,11 +1268,20 @@ function map_singleclick(evt)
         return;
     }
 
-
     displayContent += '</table>';
+
+
     var lonlat = reproject_point(popup_point_3857[0], popup_point_3857[1], 3857, 4326);
     $('#longInput').val(lonlat[0]);
     $('#latInput').val(lonlat[1]);
+
+
+    var pnt_fea = new ol.Feature({geometry: new ol.geom.Point(popup_point_3857),
+                                  id: "clickpnt"
+    });
+
+    user_draw_layer.getSource().addFeature(pnt_fea);
+
 
     popup_overlay.setPosition(popup_point_3857);
     $(popup_div).popover({
@@ -1269,6 +1289,8 @@ function map_singleclick(evt)
         'html': true,
         'content': displayContent
     });
+
+    $(popup_div).attr("data-content", displayContent);
 
     $(popup_div).popover('show');
     $(popup_div).next().css('cursor', 'text');
@@ -1821,9 +1843,9 @@ var plotData = function(config, geom, variable, data, start, colorIndex, seriesD
 
 function clearErrorSelection()
 {
-    var numFeatures = selected_streams_layer.getSource().getFeatures().length;
-    var lastFeature = selected_streams_layer.getSource().getFeatures()[numFeatures-1];
-    selected_streams_layer.getSource().removeFeature(lastFeature);
+    var numFeatures = user_draw_layer.getSource().getFeatures().length;
+    var lastFeature = user_draw_layer.getSource().getFeatures()[numFeatures-1];
+    user_draw_layer.getSource().removeFeature(lastFeature);
 }
 
 function changeUnits(config)
