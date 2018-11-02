@@ -243,7 +243,6 @@ def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None,
     simulation_date_list_int = [int(d) for d in simulation_date_list]
     simulation_date_list_int.sort()
 
-
     start_subset_nwm_netcdf_job(job_id=job_id,
                                 input_netcdf_folder_path=netcdf_folder_path,
                                 output_netcdf_folder_path=output_netcdf_folder_path,
