@@ -15,6 +15,17 @@
 <h3 style="color:red;">Updates: </h3>
 
     <p style="color:red;">
+     2018-11-02:
+        <ol style="color:red;">
+            <li> Subset over a simple Bounding Box</li>
+            <ol style="color:red;">
+                <li>Replace watershed polygon geojson string with a bounding box json string: '{"west": -100, "south": 38, "east": -99, "north": 39}'</li>
+                <li>Set 'bbox': True</li>
+            </ol>
+            <li> Query on Terrain output is supported</li>
+        </ol>
+    </p>
+    <p style="color:red;">
      2018-06-12:
         <ol style="color:red;">
             <li> Hurricane archive has been integrated; Current release supports query and subsetting on Harvey and Irma data</li>
@@ -57,6 +68,14 @@ There are two common ways to avoid hitting the rate limit.
     <p>
          Developer should sign in Tethys portal with a valid HydroShare account. Click USER_NAME in the upper-right corner and select "User Settings" to open user's profile page.
         The API Token is listed as "API Key". API Token should be kept safe.
+        <ol>
+            <li> Sign in <a href="https://hs-apps.hydroshare.org">https://hs-apps.hydroshare.org</a> with HydroShare account</li>
+            <li> Click USER_NAME in the upper-right corner and select "User Settings"</li>
+             <img height="50%" width="50%" src="{% static "nwm_forecasts/images/token1.png" %}">
+            <li> Copy the "API Key" and put it your code</li>
+            <img height="50%" width="50%" src="{% static "nwm_forecasts/images/token2.png" %}">
+
+        </ol>
     </p>
     <h3>Add API Token to HTTP request header</h3>
     <p>
@@ -296,7 +315,8 @@ Send a <b>HTTP POST Request</b> with the following JSON payload to <b>/apps/nwm-
         },
         'watershed_epsg': 4326,  # keep this unchanged as latest GeoJSON standard requires coordinates in WGS84/EPSG:4326 projection
                                  # see: https://tools.ietf.org/html/rfc7946#section-4
-        'watershed_geometry': geojson_polygon_str_4326  # the polygon geojson string in WGS84/EPSG:4326 extracted from shapefile
+        'watershed_geometry': geojson_polygon_str_4326,  # the polygon geojson string or a bounding box json string in WGS84/EPSG:4326
+        'bbox': False,  # Optional, default: False; Set to True if watershed_geometry is a bounding box json string
     }
 
 </pre>

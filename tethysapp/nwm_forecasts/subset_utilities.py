@@ -483,3 +483,21 @@ def _string2bool(_str)    :
         return True
     else:
         return False
+
+
+def _bbox2geojson_polygon_str(west=None, south=None, east=None, north=None):
+
+    west = float(west)
+    south = float(south)
+    east = float(east)
+    north = float(north)
+    point1 = (west, south)
+    point2 = (west, north)
+    point3 = (east, north)
+    point4 = (east, south)
+    import geojson
+    from geojson import Polygon
+
+    geojson_polygon = Polygon([[point1, point2, point3, point4, point1]])
+    geojson_polygon_str = geojson.dumps(geojson_polygon)
+    return geojson_polygon_str

@@ -11,7 +11,8 @@ from django.shortcuts import render_to_response
 from rest_framework.authentication import TokenAuthentication, SessionAuthentication
 from rest_framework.decorators import api_view, authentication_classes, throttle_classes
 
-from .subset_utilities import _do_spatial_query, _perform_subset, _check_latest_data, _string2bool
+from .subset_utilities import _do_spatial_query, _perform_subset, _check_latest_data, _string2bool, \
+    _bbox2geojson_polygon_str
 from .timeseries_utilities import format_time_series, get_site_name, getTimeSeries, _get_netcdf_data
 from .apis_settings import *
 
@@ -176,6 +177,12 @@ def spatial_query_api(request):
         request_dict = json.loads(request.body)
         watershed_geometry = request_dict['watershed_geometry']
         watershed_epsg = int(request_dict['watershed_epsg'])
+        bbox = _string2bool(request_dict.get('bbox', 'False'))
+        if bbox:
+            if type(watershed_geometry) is not dict:
+                watershed_geometry = json.loads(watershed_geometry)
+            watershed_geometry = _bbox2geojson_polygon_str(**watershed_geometry)
+
         start = time.time()
         query_result_dict = _do_spatial_query(watershed_geometry, watershed_epsg)
         end = time.time()
@@ -200,6 +207,12 @@ def subset_watershed_api(request):
         watershed_geometry = request_dict['watershed_geometry']
         watershed_epsg = int(request_dict['watershed_epsg'])
         spatial_query_only = _string2bool(request_dict.get('query_only', 'False'))
+        bbox = _string2bool(request_dict.get('bbox', 'False'))
+        if bbox:
+            if type(watershed_geometry) is not dict:
+                watershed_geometry = json.loads(watershed_geometry)
+            watershed_geometry = _bbox2geojson_polygon_str(**watershed_geometry)
+
         archive = request_dict.get("archive", "rolling")
         subset_parameter_dict = request_dict.get('subset_parameter', None)
         merge_results = False
