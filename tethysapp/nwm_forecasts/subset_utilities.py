@@ -20,6 +20,7 @@ from celery.schedules import crontab
 from subset_nwm_netcdf.subset import start_subset_nwm_netcdf_job
 from subset_nwm_netcdf.merge import start_merge_nwm_netcdf_job
 from subset_nwm_netcdf.query import query_comids_and_grid_indices
+from wrf_renaming import rename_nwm_AA_forcing
 
 from .configs import *
 
@@ -260,6 +261,9 @@ def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None,
                                 cleanup=cleanup,
                                 include_AA_tm12=False)
 
+
+    rename_nwm_AA_forcing(simulation_date_list, output_netcdf_folder_path, output_netcdf_folder_path)
+
     if merge_netcdfs:
         start_merge_nwm_netcdf_job(job_id=job_id,
                                    simulation_date_list=simulation_date_list,
@@ -269,7 +273,7 @@ def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None,
                                    time_stamp_list=time_stamp_list,
                                    netcdf_folder_path=output_netcdf_folder_path,
                                    cleanup=cleanup)
-
+    #
     # zip_path = os.path.join(output_folder_path, job_id)
     # shutil.make_archive(zip_path, 'zip', output_folder_path, job_id)
 
@@ -424,10 +428,11 @@ def _find_all_files_in_folder(directory, searching_text, match_pattern="endswith
                     found_f = file
             else:
                 continue
-            if full_path:
-                files_list.append(os.path.join(root, found_f))
-            else:
-                files_list.append(found_f)
+            if found_f:
+                if full_path:
+                    files_list.append(os.path.join(root, found_f))
+                else:
+                    files_list.append(found_f)
     return files_list
 
 

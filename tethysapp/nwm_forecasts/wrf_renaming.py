@@ -7,10 +7,16 @@ from datetime import datetime, timedelta
 def rename_nwm_AA_forcing(date_list, nwm_focring_base_dir, out_dir_path):
 
 
-    wrf_hydro_forcing_path = out_dir_path
+    wrf_hydro_forcing_path = os.path.join(out_dir_path, "wrfhydro", "FORCINGS")
+    if not os.path.exists(wrf_hydro_forcing_path):
+        os.makedirs(wrf_hydro_forcing_path)
+
     for date_obj in date_list:
 
-        date_str = date_obj.strftime("%Y%m%d")
+        if type(date_obj) is datetime:
+            date_str = date_obj.strftime("%Y%m%d")
+        else:
+            date_str = date_obj
         nwm_focring_path = os.path.join(nwm_focring_base_dir, "nwm.{date}/forcing_analysis_assim".format(date=date_str))
 
 
@@ -58,28 +64,27 @@ def rename_nwm_MR_forcing(nwm_forcing_base_dir, run_date, run_cycle, out_dir_pat
 
 
 
-# start date
-date_start = datetime.strptime("20181001", "%Y%m%d")
-# end date
-date_end = datetime.strptime("20181003", "%Y%m%d")
-days = (date_end - date_start).days + 1
+# # start date
+# date_start = datetime.strptime("20181001", "%Y%m%d")
+# # end date
+# date_end = datetime.strptime("20181003", "%Y%m%d")
+# days = (date_end - date_start).days + 1
+#
+# date_list = [date_start + timedelta(days=x) for x in range(0, days)]
+# date_list.sort()
+#
+#
+# # Source: Where is the NWM style subsetted files
+# nwm_focring_base_dir = "/home/drew/AA_subsetted/nwm"
+#
+# # Target: output renamed files (wrfhydro style) to
+# wrf_hydro_forcing_path = "/home/drew/AA_subsetted/wrfhydro"
+# # run rename function
+# rename_nwm_AA_forcing(date_list, nwm_focring_base_dir, wrf_hydro_forcing_path)
+#
+#
+# #nwm_forcing_base_dir = "/home/drew/croton_NY/New_data/mr/"
+# #wrf_hydro_forcing_path = "/home/drew/croton_NY/New_data/mr/nwm.20180514/renamed_forcing"
+# #rename_nwm_MR_forcing(nwm_forcing_base_dir, "20180514", "12", wrf_hydro_forcing_path)
+#
 
-date_list = [date_start + timedelta(days=x) for x in range(0, days)]
-date_list.sort()
-
-
-# Source: Where is the NWM style subsetted files
-nwm_focring_base_dir = "/home/drew/AA_subsetted/nwm"
-
-# Target: output renamed files (wrfhydro style) to
-wrf_hydro_forcing_path = "/home/drew/AA_subsetted/wrfhydro"
-# run rename function
-rename_nwm_AA_forcing(date_list, nwm_focring_base_dir, wrf_hydro_forcing_path)
-
-
-#nwm_forcing_base_dir = "/home/drew/croton_NY/New_data/mr/"
-#wrf_hydro_forcing_path = "/home/drew/croton_NY/New_data/mr/nwm.20180514/renamed_forcing"
-#rename_nwm_MR_forcing(nwm_forcing_base_dir, "20180514", "12", wrf_hydro_forcing_path)
-
-
-exit(1)
