@@ -2373,7 +2373,7 @@ function subset_watershed_hydroshare()
     });
 }
 
-function subset_watershed_download()
+function subset_watershed_download_old()
 {
     var data = _prepare_watershed_data();
 
@@ -2406,7 +2406,6 @@ function subset_watershed_download()
     }; //xhttp.onreadystatechange
     // Post data to URL which handles post request
     xhttp.open("POST", '/apps/nwm-forecasts/subset-watershed/');
-    //xhttp.open("POST", '/apps/nwm-forecasts/api/submit-subsetting-job/');
 
     xhttp.setRequestHeader("Content-Type", "application/json");
     var csrf_token = getCookie('csrftoken');
@@ -2414,6 +2413,105 @@ function subset_watershed_download()
     // You should set responseType as blob for binary responses
     xhttp.responseType = 'blob';
     xhttp.send(JSON.stringify(data));
+}
+
+function _download_job_result(job_id)
+{
+    xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        var a;
+        if (xhttp.readyState === 4 && xhttp.status === 200)
+        {
+            // Trick for making downloadable link
+            a = document.createElement('a');
+            a.href = window.URL.createObjectURL(xhttp.response);
+            // Give filename you wish to download
+            a.download = xhttp.getResponseHeader('Content-Disposition').split(";")[1].split("=")[1].replace(/"/g, '');
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            $("#subsetBtn, #watershedBtn, #submitBtn").removeAttr('disabled');
+            $('#subset_watershed_loading').prop('disabled', true).addClass('hidden');
+        }
+        else if  (xhttp.status != 200 && xhttp.status != 0)
+        {
+            xhttp.abort();
+            alert("Failed to subset this watershed");
+            $("#subsetBtn, #watershedBtn, #submitBtn").removeAttr('disabled');
+            $('#subset_watershed_loading').prop('disabled', true).addClass('hidden');
+        }
+
+    }; //xhttp.onreadystatechange
+    // Post data to URL which handles post request
+    xhttp.open("GET", '/apps/nwm-forecasts/api/download-subsetting-results/?job_id=' + job_id);
+
+    // You should set responseType as blob for binary responses
+    xhttp.responseType = 'blob';
+    xhttp.send();
+}
+
+var check_job_timer;
+
+function subset_watershed_download()
+{
+    var data = _prepare_watershed_data();
+
+    //http://stackoverflow.com/questions/28165424/download-file-via-jquery-ajax-post
+    // Use XMLHttpRequest instead of Jquery $ajax
+    xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+
+        if (xhttp.readyState === 4 && xhttp.status === 200)
+        {
+            var body = xhttp.response;
+            var job_id = body.job_id;
+            check_job_timer =setInterval(_check_job_status, 500, job_id);
+        }
+        else if  (xhttp.status != 200 && xhttp.status != 0)
+        {
+            xhttp.abort();
+            alert("Failed to subset this watershed");
+            $("#subsetBtn, #watershedBtn, #submitBtn").removeAttr('disabled');
+            $('#subset_watershed_loading').prop('disabled', true).addClass('hidden');
+        }
+
+    }; //xhttp.onreadystatechange
+    // Post data to URL which handles post request
+    //xhttp.open("POST", '/apps/nwm-forecasts/subset-watershed/');
+    xhttp.open("POST", '/apps/nwm-forecasts/api/submit-subsetting-job/');
+
+    xhttp.setRequestHeader("Content-Type", "application/json");
+    var csrf_token = getCookie('csrftoken');
+    xhttp.setRequestHeader("X-CSRFToken", csrf_token);
+    // You should set responseType as blob for binary responses
+    xhttp.responseType = 'json';
+    xhttp.send(JSON.stringify(data));
+}
+
+function _check_job_status(job_id)
+{
+    var csrf_token = getCookie('csrftoken');
+    $.ajax({
+        type: 'GET',
+        url: '/apps/nwm-forecasts/api/check-subsetting-job-status/?job_id=' + job_id,
+        headers: {'X-CSRFToken': csrf_token},
+        dataType: 'json',
+        success: function (data) {
+            console.log(data);
+            var job_status = data.status;
+            if (job_status.toLowerCase() == "success" || job_status.toLowerCase() == "failure")
+            {
+                clearInterval(check_job_timer);
+                if (job_status.toLowerCase() == "success")
+                {
+                    _download_job_result(job_id);
+                }
+            }
+        },
+        error: function (jqXHR, textStatus, errorThrown) {
+            console.log("error");
+        }
+    });
 }
 
 function _check_datetime_range(startDate, endDate, delta_days)

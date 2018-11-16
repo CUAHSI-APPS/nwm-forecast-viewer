@@ -203,7 +203,13 @@ def spatial_query_api(request):
                    SubsetWatershedApiRateThrottle_Anon_Sustained, SubsetWatershedApiRateThrottle_User_Sustained])
 def subset_watershed_api(request):
     try:
-        request_dict = json.loads(request.body)
+        try:
+            # Need to look into why these two behave differently
+            # request received from rest api client
+            request_dict = json.loads(request.body)
+        except Exception:
+            # request received from UI/JS
+            request_dict = request.data
         watershed_geometry = request_dict['watershed_geometry']
         watershed_epsg = int(request_dict['watershed_epsg'])
         spatial_query_only = _string2bool(request_dict.get('query_only', 'False'))
@@ -257,8 +263,14 @@ def check_subsetting_job_status(request):
     job_id = request.GET.get("job_id", None)
     try:
         if job_id:
+            resp_dict = {"job_id": job_id}
             result = _perform_subset.AsyncResult(job_id)
-            return JsonResponse({"status": result.state})
+            job_status = result.state
+            resp_dict["status"] = job_status
+            if job_status.lower() == "success":
+                resp_dict["download_url"] = "/apps/nwm-forecasts/api/download-subsetting-results/?job_id=" + job_id
+
+            return JsonResponse(resp_dict)
         else:
             JsonResponse({"error": "No job_id is provided"})
     except Exception as ex:
