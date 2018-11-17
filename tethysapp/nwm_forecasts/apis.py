@@ -12,11 +12,13 @@ from rest_framework.authentication import TokenAuthentication, SessionAuthentica
 from rest_framework.decorators import api_view, authentication_classes, throttle_classes
 
 from .subset_utilities import _do_spatial_query, _perform_subset, _check_latest_data, _string2bool, \
-    _bbox2geojson_polygon_str
+    _bbox2geojson_polygon_str, _dummy_task
 from .timeseries_utilities import format_time_series, get_site_name, getTimeSeries, _get_netcdf_data
 from .apis_settings import *
 
 logger = logging.getLogger(__name__)
+
+from celery import chain
 
 
 @api_view(['GET'])
@@ -233,21 +235,49 @@ def subset_watershed_api(request):
         else:
             job_id = "subset-" + job_id
 
-        task = _perform_subset.apply_async((watershed_geometry,
-                                           watershed_epsg,
-                                           subset_parameter_dict),
-                                           {"job_id":job_id,
-                                             "zip_results":True,
-                                             "query_only": spatial_query_only,
-                                             "merge_netcdfs": merge_results,
-                                             "archive": archive},
-                                           task_id=job_id,
-                                           countdown=3,)
-                                           # time_limit=nwm_viewer_subsetting_time_limit,  # 30 minutes
-                                           # soft_time_limit=nwm_viewer_subsetting_soft_time_limit,  # 20 minutes
-                                           # rate_limit=nwm_viewer_subsetting_rate_limit)  # 10 request/min
+        # task = _perform_subset.apply_async((watershed_geometry,
+        #                                    watershed_epsg,
+        #                                    subset_parameter_dict),
+        #                                    {"job_id":job_id,
+        #                                      "zip_results":True,
+        #                                      "query_only": spatial_query_only,
+        #                                      "merge_netcdfs": merge_results,
+        #                                      "archive": archive},
+        #                                    task_id=job_id,
+        #                                    countdown=3,)
+        #                                    # time_limit=nwm_viewer_subsetting_time_limit,  # 30 minutes
+        #                                    # soft_time_limit=nwm_viewer_subsetting_soft_time_limit,  # 20 minutes
+        #                                    # rate_limit=nwm_viewer_subsetting_rate_limit)  # 10 request/min
 
-        response = JsonResponse({"job_id": task.task_id, "status": task.state})
+        dt_start = datetime.datetime.utcnow()
+        from tethys_services.backends.hs_restclient_helper import get_oauth_hs
+        # hs obj is not serializable
+        hs = get_oauth_hs(request)
+        # extract oauth info
+        hs_host_url = hs.hostname
+        client_id = hs.auth.client_id
+        client_secret = hs.auth.client_secret
+        oauth_token_dict = hs.auth.token
+        auth_info = dict(hs_host_url=hs_host_url,
+                         client_id=client_id,
+                         client_secret=client_secret,
+                         oauth_token_dict=oauth_token_dict
+                         )
+
+
+        # chained tasks
+        task = chain(_perform_subset.s(watershed_geometry,
+                                       watershed_epsg,
+                                       subset_parameter_dict,
+                                       job_id=job_id,
+                                       zip_results=True,
+                                       query_only=spatial_query_only,
+                                       merge_netcdfs=merge_results,
+                                       archive=archive).set(task_id=job_id, countdown=3),
+                    _dummy_task.s(dt_start, auth_info).set(task_id="AAABBBCCCDDD")
+                    ).apply_async()
+
+        response = JsonResponse({"job_id": job_id, "status": task.state})
         logger.info("------END: subset_watershed_api--------")
         return response
 

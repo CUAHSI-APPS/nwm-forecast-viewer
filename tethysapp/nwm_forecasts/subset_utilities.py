@@ -65,6 +65,24 @@ def _check_hurricane_start_end_dates(startDate_str, endDate_str, event_period):
     return [start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d")]
 
 
+@shared_task
+def _dummy_task(task_result, dt_start, auth_info):
+    import hs_restclient as hs_r
+    auth = hs_r.HydroShareAuthOAuth2(auth_info["client_id"],
+                                     auth_info["client_secret"],
+                                     token=auth_info["oauth_token_dict"])
+    hs = hs_r.HydroShare(auth=auth,
+                         hostname=auth_info["hs_host_url"])
+    resource_id = hs.createResource("CompositeResource",
+                                    "dummy res")
+
+    # print(task_result)
+    # raise Exception(type(task_result))
+    task_result.append(str(dt_start))
+    task_result.append(resource_id)
+    return task_result
+
+
 @shared_task(rate_limit=nwm_viewer_subsetting_rate_limit,  # 10 request/min
              time_limit=nwm_viewer_subsetting_time_limit,  # 30 minutes
              soft_time_limit=nwm_viewer_subsetting_soft_time_limit,  # 20 minutes
