@@ -11,8 +11,10 @@ from django.shortcuts import render_to_response
 from rest_framework.authentication import TokenAuthentication, SessionAuthentication
 from rest_framework.decorators import api_view, authentication_classes, throttle_classes
 
+from tethys_services.backends.hs_restclient_helper import get_oauth_hs
+
 from .subset_utilities import _do_spatial_query, _perform_subset, _check_latest_data, _string2bool, \
-    _bbox2geojson_polygon_str, _dummy_task
+    _bbox2geojson_polygon_str, _create_HS_resource
 from .timeseries_utilities import format_time_series, get_site_name, getTimeSeries, _get_netcdf_data
 from .apis_settings import *
 
@@ -235,6 +237,9 @@ def subset_watershed_api(request):
         else:
             job_id = "subset-" + job_id
 
+        hs_job_id = None
+        if "hydroshare" in request_dict:
+            hs_job_id = "hydroshare-" + job_id
         # task = _perform_subset.apply_async((watershed_geometry,
         #                                    watershed_epsg,
         #                                    subset_parameter_dict),
@@ -249,35 +254,46 @@ def subset_watershed_api(request):
         #                                    # soft_time_limit=nwm_viewer_subsetting_soft_time_limit,  # 20 minutes
         #                                    # rate_limit=nwm_viewer_subsetting_rate_limit)  # 10 request/min
 
-        dt_start = datetime.datetime.utcnow()
-        from tethys_services.backends.hs_restclient_helper import get_oauth_hs
-        # hs obj is not serializable
-        hs = get_oauth_hs(request)
-        # extract oauth info
-        hs_host_url = hs.hostname
-        client_id = hs.auth.client_id
-        client_secret = hs.auth.client_secret
-        oauth_token_dict = hs.auth.token
-        auth_info = dict(hs_host_url=hs_host_url,
-                         client_id=client_id,
-                         client_secret=client_secret,
-                         oauth_token_dict=oauth_token_dict
-                         )
+        if not hs_job_id:
+            task = _perform_subset.apply_async((watershed_geometry,
+                                               watershed_epsg,
+                                               subset_parameter_dict),
+                                               {"job_id": job_id,
+                                                 "zip_results": True,
+                                                 "merge_netcdfs": merge_results,
+                                                 "archive": archive},
+                                               task_id=job_id,
+                                               countdown=3,)
+            response = JsonResponse({"job_id": job_id, "status": task.state})
+        else:  # upload to hydroshare
 
+            # hs obj is not serializable
+            hs = get_oauth_hs(request)
+            # extract oauth info
+            hs_host_url = hs.hostname
+            client_id = hs.auth.client_id
+            client_secret = hs.auth.client_secret
+            oauth_token_dict = hs.auth.token
+            auth_info = dict(hs_host_url=hs_host_url,
+                             client_id=client_id,
+                             client_secret=client_secret,
+                             oauth_token_dict=oauth_token_dict
+                             )
 
-        # chained tasks
-        task = chain(_perform_subset.s(watershed_geometry,
-                                       watershed_epsg,
-                                       subset_parameter_dict,
-                                       job_id=job_id,
-                                       zip_results=True,
-                                       query_only=spatial_query_only,
-                                       merge_netcdfs=merge_results,
-                                       archive=archive).set(task_id=job_id, countdown=3),
-                    _dummy_task.s(dt_start, auth_info).set(task_id="AAABBBCCCDDD")
-                    ).apply_async()
+            # chained tasks
+            task = chain(_perform_subset.s(watershed_geometry,
+                                           watershed_epsg,
+                                           subset_parameter_dict,
+                                           job_id=job_id,
+                                           zip_results=True,
+                                           merge_netcdfs=True,
+                                           archive=archive).set(task_id=job_id, countdown=3),
+                         _create_HS_resource
+                            .s(request_dict["hydroshare"], auth_info)
+                            .set(task_id=hs_job_id)
+                         ).apply_async()
 
-        response = JsonResponse({"job_id": job_id, "status": task.state})
+            response = JsonResponse({"job_id": hs_job_id, "status": task.state})
         logger.info("------END: subset_watershed_api--------")
         return response
 
@@ -295,11 +311,13 @@ def check_subsetting_job_status(request):
         if job_id:
             resp_dict = {"job_id": job_id}
             result = _perform_subset.AsyncResult(job_id)
-            job_status = result.state
+            job_status = result.state.lower()
             resp_dict["status"] = job_status
-            if job_status.lower() == "success":
-                resp_dict["download_url"] = "/apps/nwm-forecasts/api/download-subsetting-results/?job_id=" + job_id
-
+            if job_status == "success":
+                if job_id.startswith("subset"):
+                    resp_dict["download_url"] = "/apps/nwm-forecasts/api/download-subsetting-results/?job_id=" + job_id
+                elif job_id.startswith("hydroshare"):
+                    resp_dict["res_id"] = result.get()[2]
             return JsonResponse(resp_dict)
         else:
             JsonResponse({"error": "No job_id is provided"})

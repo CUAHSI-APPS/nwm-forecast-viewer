@@ -183,7 +183,6 @@ def subset_watershed(request):
             if archive is None or archive=="":
                 archive="rolling"
 
-
             job_id, job_folder_path = _perform_subset(request_dict['watershed_geometry'],
                                                       int(request_dict['watershed_epsg']),
                                                       request_dict['subset_parameter'],

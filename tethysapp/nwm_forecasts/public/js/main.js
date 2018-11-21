@@ -2309,7 +2309,7 @@ function _prepare_watershed_data()
     return data
 }
 
-function subset_watershed_hydroshare()
+function subset_watershed_hydroshare_old()
 {
     var data = _prepare_watershed_data();
     if (!data)
@@ -2371,6 +2371,86 @@ function subset_watershed_hydroshare()
             $("#subsetBtn, #watershedBtn, #submitBtn").removeAttr('disabled');
         }
     });
+}
+
+function subset_watershed_hydroshare()
+{
+    var data = _prepare_watershed_data();
+    if (!data)
+    {
+        return ;
+    }
+    var hydroshare_data = {"title": $('#resource-title-subset').val(),
+        "abstract": $('#resource-abstract-subset').val(),
+        "keywords": $('#resource-keywords-subset').val(),
+        "res_type": $('#resource-type-subset').val()
+    };
+    data["hydroshare"] = hydroshare_data;
+
+    var displayStatus = $('#display-status-subset');
+    displayStatus.removeClass('error');
+    displayStatus.addClass('uploading');
+    displayStatus.html('<em>Uploading...</em>');
+
+     if (hydroshare_data.title.length==0 || hydroshare_data.keywords.length==0 || hydroshare_data.abstract.length==0)
+     {
+            displayStatus.removeClass('uploading');
+            displayStatus.addClass('error');
+            displayStatus.html('<em>All metadata information should be provided.</em>');
+            return;
+     }
+
+    $('#hydroshare-proceed-subset').prop('disabled', true);
+    var csrf_token = getCookie('csrftoken');
+    $.ajax({
+        type: 'POST',
+        //url: '/apps/nwm-forecasts/subset-watershed/',
+        url: '/apps/nwm-forecasts/api/submit-subsetting-job/',
+        headers: {'X-CSRFToken': csrf_token},
+        dataType: 'json',
+        contentType: 'application/json',
+        data: JSON.stringify(data),
+        success: function (data) {
+            $('#hydroshare-proceed-subset').prop('disabled', false);
+            check_job_timer =setInterval(_check_job_status, 500, data.job_id);
+
+            // if (data.status == "success")
+            // {
+            //
+            //
+            //      var job_id = data.job_id;
+            //      check_job_timer =setInterval(_check_job_status, 500, job_id);
+            //      displayStatus.removeClass('uploading');
+            //      displayStatus.addClass('success');
+            //      displayStatus.html('<em>' + data.status.toUpperCase() + ' View in HydroShare <a href="https://www.hydroshare.org/resource/' + data.res_id +
+            //       '" target="_blank" style="color:red">HERE</a></em>');
+            // }
+            // else
+            // {
+            //     displayStatus.removeClass('uploading');
+            //     displayStatus.addClass('error');
+            //     displayStatus.html('<em>' + data.msg + '</em>');
+            // }
+            // $("#subsetBtn, #watershedBtn, #submitBtn").removeAttr('disabled');
+        },
+        error: function (jqXHR, textStatus, errorThrown) {
+            $('#subset_watershed_loading').prop('disabled', true).addClass('hidden');
+            $('#hydroshare-proceed-subset').prop('disabled', false);
+            displayStatus.removeClass('uploading');
+            displayStatus.addClass('error');
+            displayStatus.html('<em>' + errorThrown + '</em>');
+            $("#subsetBtn, #watershedBtn, #submitBtn").removeAttr('disabled');
+        }
+    });
+}
+
+function _set_ui_hydroshare_success(res_id)
+{
+    var displayStatus = $('#display-status-subset');
+    displayStatus.removeClass('uploading');
+    displayStatus.addClass('success');
+    displayStatus.html('<em>' + 'SUCCESS' + ' View in HydroShare <a href="https://www.hydroshare.org/resource/' + res_id +
+        '" target="_blank" style="color:red">HERE</a></em>');
 }
 
 function subset_watershed_download_old()
@@ -2504,7 +2584,15 @@ function _check_job_status(job_id)
                 clearInterval(check_job_timer);
                 if (job_status.toLowerCase() == "success")
                 {
-                    _download_job_result(job_id);
+                    if (job_id.indexOf("hydroshare") !== -1)
+                    {
+                        console.log(data.res_id);
+                        _set_ui_hydroshare_success(data.res_id);
+                    }
+                    else {
+                        _download_job_result(job_id);
+                    }
+
                 }
             }
         },

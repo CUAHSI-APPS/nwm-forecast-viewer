@@ -66,19 +66,35 @@ def _check_hurricane_start_end_dates(startDate_str, endDate_str, event_period):
 
 
 @shared_task
-def _dummy_task(task_result, dt_start, auth_info):
+def _create_HS_resource(task_result, hydroshare_dict, auth_info):
+
+    job_id = task_result[0]
+    # more than one nc file --> composite resource type
+    hs_res_type = "CompositeResource"
+    # zip it up first
+    zip_file_path = task_result[1]
+    #_zip_folder_contents(zip_file_path, job_folder_path)
+
     import hs_restclient as hs_r
     auth = hs_r.HydroShareAuthOAuth2(auth_info["client_id"],
                                      auth_info["client_secret"],
                                      token=auth_info["oauth_token_dict"])
     hs = hs_r.HydroShare(auth=auth,
                          hostname=auth_info["hs_host_url"])
-    resource_id = hs.createResource("CompositeResource",
-                                    "dummy res")
 
-    # print(task_result)
-    # raise Exception(type(task_result))
-    task_result.append(str(dt_start))
+    resource_id = hs.createResource(hs_res_type,
+                                    hydroshare_dict["title"],
+                                    keywords=hydroshare_dict["keywords"].split(','),
+                                    abstract=hydroshare_dict["abstract"])
+    zip_file_path = str(zip_file_path)
+    resource_id = hs.addResourceFile(resource_id, zip_file_path)
+
+    options = {
+        "zip_with_rel_path": os.path.basename(zip_file_path),
+        "remove_original_zip": True
+    }
+
+    unzipping_resp = hs.resource(resource_id).functions.unzip(options)
     task_result.append(resource_id)
     return task_result
 
@@ -138,7 +154,7 @@ def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None,
     if subset_parameter_dict["config"] == "analysis_assim":
         if endDate_str.lower() == "latest":
             latest_data_info_dict = _check_latest_data()
-            if local_vm_test:
+            if False and local_vm_test: # disable this
                 endDate_obj = datetime.datetime.strptime(local_vm_test_data_date, "%Y%m%d")
             else:
                 #endDate_obj = datetime.datetime.utcnow()
@@ -416,7 +432,8 @@ def _zip_folder_contents(zip_file_path, source_folder_path, skip_list=[]):
 def _get_current_utc_date():
 
     if local_vm_test:
-        return "2017-04-19", "2017-04-19", "2017-04-19", "2017-04-19"
+        #return "2017-04-19", "2017-04-19", "2017-04-19", "2017-04-19"
+        return "2018-03-07", "2018-03-05", "2018-03-05", "2018-03-05"
 
     date_string_today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
     date_string_oldest = (datetime.datetime.utcnow() + datetime.timedelta(days=-1*nomads_data_days)).strftime("%Y-%m-%d")
