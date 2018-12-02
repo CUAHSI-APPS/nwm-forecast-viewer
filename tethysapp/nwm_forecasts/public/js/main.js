@@ -2285,12 +2285,12 @@ function _prepare_watershed_data()
         merge: merge_netcdf
     };
 
-    // analysis_assim date range no more than 3 weeks (21 days)
+    // analysis_assim date range no more than 40 days)
     if (parameter.config == "analysis_assim")
     {
-        if (!_check_datetime_range($("#startDate").val(), $("#endDate").val(), 21))
+        if (!_check_datetime_range($("#startDate").val(), $("#endDate").val(), 40))
         {
-            alert("Invalid start/end date; You may subset Analysis & Assimilation data for 3 weeks (21 days) or less");
+            alert("Invalid start/end date; You may subset Analysis & Assimilation data for 40 days or less");
             $("#subsetBtn, #watershedBtn, #submitBtn").removeAttr('disabled');
             return null;
         }
