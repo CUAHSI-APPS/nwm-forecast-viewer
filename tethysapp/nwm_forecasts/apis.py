@@ -14,13 +14,13 @@ from rest_framework.decorators import api_view, authentication_classes, throttle
 from tethys_services.backends.hs_restclient_helper import get_oauth_hs
 
 from .subset_utilities import _do_spatial_query, _perform_subset, _check_latest_data, _string2bool, \
-    _bbox2geojson_polygon_str, _create_HS_resource
+    _bbox2geojson_polygon_str, _create_HS_resource, _subset_domain_files, _zip_up_files
 from .timeseries_utilities import format_time_series, get_site_name, getTimeSeries, _get_netcdf_data
 from .apis_settings import *
 
 logger = logging.getLogger(__name__)
 
-from celery import chain
+from celery import chain, group, chord
 
 
 @api_view(['GET'])
@@ -255,15 +255,31 @@ def subset_watershed_api(request):
         #                                    # rate_limit=nwm_viewer_subsetting_rate_limit)  # 10 request/min
 
         if not hs_job_id:
-            task = _perform_subset.apply_async((watershed_geometry,
-                                               watershed_epsg,
-                                               subset_parameter_dict),
-                                               {"job_id": job_id,
-                                                 "zip_results": True,
-                                                 "merge_netcdfs": merge_results,
-                                                 "archive": archive},
-                                               task_id=job_id,
-                                               countdown=3,)
+            # task = _perform_subset.apply_async((watershed_geometry,
+            #                                    watershed_epsg,
+            #                                    subset_parameter_dict),
+            #                                    {"job_id": job_id,
+            #                                      "zip_results": True,
+            #                                      "merge_netcdfs": merge_results,
+            #                                      "archive": archive},
+            #                                    task_id=job_id,
+            #                                    countdown=3,)
+
+            task = chord(group(_perform_subset.s(watershed_geometry,
+                                    watershed_epsg,
+                                    subset_parameter_dict,
+                                    job_id=job_id,
+                                    zip_results=False,
+                                    merge_netcdfs=merge_results,
+                                    archive=archive)
+                  ,
+                  _subset_domain_files.s(watershed_geometry, watershed_epsg, bag_fn_new=job_id)
+                  ),
+                  _zip_up_files.s()
+                  ).apply_async(task_id=job_id,
+                                countdown=3)
+
+
             response = JsonResponse({"job_id": job_id, "status": task.state})
         else:  # upload to hydroshare
 
