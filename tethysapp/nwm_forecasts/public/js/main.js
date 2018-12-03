@@ -2271,6 +2271,12 @@ function _prepare_watershed_data()
     // function getUrlParameter() requires a valid url: http + domain + query string
     // make a fake url
     url = "http://www.hydroshare.org/?" + url;
+
+    var subset_domain = false;
+    if ($('#chkbox-subset-domain').prop('checked'))
+    {
+        subset_domain = true;
+    }
     var parameter = {
         config: getUrlParameter("config", url),
         geom: getUrlParameter("geom", url),
@@ -2282,7 +2288,7 @@ function _prepare_watershed_data()
         lag_06z: getUrlParameter("06z", url),
         lag_12z: getUrlParameter("12z", url),
         lag_18z: getUrlParameter("18z",url),
-        merge: merge_netcdf
+        merge: merge_netcdf,
     };
 
     // analysis_assim date range no more than 40 days)
@@ -2305,7 +2311,11 @@ function _prepare_watershed_data()
     var geom_json = geoJSON.writeGeometry(watershed_fea.getGeometry());
 
 
-    data = {archive: archive, watershed_geometry: geom_json, watershed_epsg: 3857, subset_parameter: parameter};
+    data = {archive: archive,
+        watershed_geometry: geom_json,
+        watershed_epsg: 3857,
+        subset_parameter: parameter,
+        domain_files: subset_domain};
     return data
 }
 

@@ -223,6 +223,9 @@ def subset_watershed_api(request):
                 watershed_geometry = json.loads(watershed_geometry)
             watershed_geometry = _bbox2geojson_polygon_str(**watershed_geometry)
 
+        # wheter to subset Domain files
+        domain_files = _string2bool(request_dict.get('domain_files', 'False'))
+
         archive = request_dict.get("archive", "rolling")
         subset_parameter_dict = request_dict.get('subset_parameter', None)
         merge_results = False
@@ -271,9 +274,15 @@ def subset_watershed_api(request):
                                     job_id=job_id,
                                     zip_results=False,
                                     merge_netcdfs=merge_results,
-                                    archive=archive)
+                                    archive=archive,
+                                    ).set(task_id=job_id + "_data")
                   ,
-                  _subset_domain_files.s(watershed_geometry, watershed_epsg, bag_fn_new=job_id)
+                  _subset_domain_files.s(
+                      watershed_geometry,
+                      watershed_epsg,
+                      bag_fn_new=job_id,
+                      skip=not domain_files
+                  ).set(task_id=job_id + "_domain")
                   ),
                   _zip_up_files.s()
                   ).apply_async(task_id=job_id,
@@ -297,17 +306,41 @@ def subset_watershed_api(request):
                              )
 
             # chained tasks
-            task = chain(_perform_subset.s(watershed_geometry,
-                                           watershed_epsg,
-                                           subset_parameter_dict,
-                                           job_id=job_id,
-                                           zip_results=True,
-                                           merge_netcdfs=True,
-                                           archive=archive).set(task_id=job_id, countdown=3),
-                         _create_HS_resource
+
+            task = chain(chord(group(_perform_subset.s(watershed_geometry,
+                                              watershed_epsg,
+                                              subset_parameter_dict,
+                                              job_id=job_id,
+                                              zip_results=False,
+                                              merge_netcdfs=merge_results,
+                                              archive=archive,
+                                          ).set(task_id=job_id + "_data")
+                                ,
+                                _subset_domain_files.s(
+                                        watershed_geometry,
+                                        watershed_epsg,
+                                        bag_fn_new=job_id,
+                                        skip=not domain_files
+                                    ).set(task_id=job_id + "_domain")
+                                ),
+                                _zip_up_files.s()
+                        ),  _create_HS_resource
                             .s(request_dict["hydroshare"], auth_info)
-                            .set(task_id=hs_job_id)
-                         ).apply_async()
+                        ).apply_async(task_id=hs_job_id,
+                                      countdown=3)
+
+
+            # task = chain(_perform_subset.s(watershed_geometry,
+            #                                watershed_epsg,
+            #                                subset_parameter_dict,
+            #                                job_id=job_id,
+            #                                zip_results=True,
+            #                                merge_netcdfs=True,
+            #                                archive=archive).set(task_id=job_id, countdown=3),
+            #              _create_HS_resource
+            #                 .s(request_dict["hydroshare"], auth_info)
+            #                 .set(task_id=hs_job_id)
+            #              ).apply_async()
 
             response = JsonResponse({"job_id": hs_job_id, "status": task.state})
         logger.info("------END: subset_watershed_api--------")

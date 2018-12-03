@@ -130,6 +130,8 @@
 
 {% if hs_ready|lower == "true" %}
 <br>
+    <input type="checkbox" id="chkbox-subset-domain" name="chkbox-subset-domain" data-toggle="tooltip"
+               data-placement="bottom" title="Subset WRF-Hydro Domain files to facilitate a local model run">Include WRF-Hydro Domain files<br>
 <!--<input type="checkbox" id="chkbox-subset-merge" name="chkbox-subset-merge">Merge results<br>-->
 <input type="checkbox" id="chkbox-upload-subset-to-hs" name="chkbox-upload-subset-to-hs" data-toggle="tooltip"
                data-placement="bottom" title="Upload subsetting results to hydroshare">Upload to HydroShare<br>

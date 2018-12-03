@@ -72,9 +72,10 @@ def _zip_up_files(file_list, target_zip_file_path=None):
     data_subset_folder = str(file_list[0][1])
     # try:
     domain_subset_file = str(file_list[1])
-    print (domain_subset_file)
-    print (os.path.join(data_subset_folder, "wrfhydro_domain.tar.gz"))
-    shutil.move(domain_subset_file, os.path.join(data_subset_folder, "wrfhydro_domain.tar.gz"))
+    if os.path.isfile(domain_subset_file):
+        print (domain_subset_file)
+        print (os.path.join(data_subset_folder, "wrfhydro_domain.tar.gz"))
+        shutil.move(domain_subset_file, os.path.join(data_subset_folder, "wrfhydro_domain.tar.gz"))
     # except Exception as e:
     #     pass
     final_zip_file = data_subset_folder + ".zip"
@@ -86,8 +87,10 @@ def _zip_up_files(file_list, target_zip_file_path=None):
 
 
 @shared_task
-def _subset_domain_files(watershed_geometry, watershed_epsg, bag_fn_new=None):
+def _subset_domain_files(watershed_geometry, watershed_epsg, bag_fn_new=None, skip=False):
 
+    if skip:
+        return None
     query_result_dict = _do_spatial_query(watershed_geometry, watershed_epsg)
     print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa")
 
