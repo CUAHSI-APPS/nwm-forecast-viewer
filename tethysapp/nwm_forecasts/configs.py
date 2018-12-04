@@ -13,18 +13,22 @@ local_vm_test_data_date = "20170419"
 
 nwm_data_path_dict = {"view":
                          {"rolling": "/projects/water/nwm/data/",
+                          "florence": "/projects/hydroshare/apps/apps_common_files/nwm/hurricane/florence/",
                           "harvey": "/projects/hydroshare/apps/apps_common_files/nwm/hurricane/harvey/",
                           "irma": "/projects/hydroshare/apps/apps_common_files/nwm/hurricane/irma/"
                           },
                      "subsetting":
                          {"rolling": "/projects/water/nwm/data/nomads/",
+                          "florence": "/projects/water/florence/",
                           "harvey": "/projects/water/harvey/",
                           "irma": "/projects/water/irma/"
                           },
 
                      }
 
-harricane_period_dict = {"harvey":
+harricane_period_dict = {"florence":
+                             [datetime.datetime(2018, 9, 1), datetime.datetime(2018, 10, 19)],
+                         "harvey":
                              [datetime.datetime(2017, 8, 18), datetime.datetime(2017, 9, 6)],
                          "irma":
                              [datetime.datetime(2017, 8, 29), datetime.datetime(2017, 9, 15)]

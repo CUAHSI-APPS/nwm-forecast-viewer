@@ -125,6 +125,18 @@ $('#archive').on('change', function ()
         $('#endDate').datepicker("setEndDate", "2017-09-15");
         $('#endDate').datepicker("setDate", "2017-09-15");
     }
+    else if ($('#archive').val() == 'florence')
+    {
+         // set earliest date user can select
+        $('#startDate').datepicker("setStartDate", "2018-09-01");
+        $('#startDate').datepicker("setEndDate", "2018-10-19");
+        $('#startDate').datepicker("setDate", "2018-09-01");
+
+        $('#endDate').datepicker("setStartDate", "2018-09-01");
+        $('#endDate').datepicker("setEndDate", "2018-10-19");
+        $('#endDate').datepicker("setDate", "2018-10-19");
+    }
+
 
     // set client sessionStorage
     sessionStorage.archive = $('#archive').val();
