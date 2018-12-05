@@ -2434,7 +2434,7 @@ function subset_watershed_hydroshare()
         data: JSON.stringify(data),
         success: function (data) {
             $('#hydroshare-proceed-subset').prop('disabled', false);
-            check_job_timer =setInterval(_check_job_status, 500, data.job_id);
+            check_job_timer =setInterval(_check_job_status, 2000, data.job_id);
 
             // if (data.status == "success")
             // {
@@ -2567,7 +2567,7 @@ function subset_watershed_download()
         {
             var body = xhttp.response;
             var job_id = body.job_id;
-            check_job_timer =setInterval(_check_job_status, 500, job_id);
+            check_job_timer =setInterval(_check_job_status, 2000, job_id);
         }
         else if  (xhttp.status != 200 && xhttp.status != 0)
         {
