@@ -101,7 +101,7 @@ def _subset_domain_files(watershed_geometry, watershed_epsg, bag_fn_new=None, sk
     ulon=float(query_result_dict["grid_land"]["maxX_coord"])
     print(query_result_dict)
 
-    service_url = "http://subset.cuahsi.org:8080"
+    service_url = "http://subset.cuahsi.org"
     job_id = None
     domain_bag_url = None
     r_submit = requests.get(
