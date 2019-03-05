@@ -125,6 +125,18 @@ $('#archive').on('change', function ()
         $('#endDate').datepicker("setEndDate", "2017-09-15");
         $('#endDate').datepicker("setDate", "2017-09-15");
     }
+    else if ($('#archive').val() == 'florence')
+    {
+         // set earliest date user can select
+        $('#startDate').datepicker("setStartDate", "2018-09-01");
+        $('#startDate').datepicker("setEndDate", "2018-10-19");
+        $('#startDate').datepicker("setDate", "2018-09-01");
+
+        $('#endDate').datepicker("setStartDate", "2018-09-01");
+        $('#endDate').datepicker("setEndDate", "2018-10-19");
+        $('#endDate').datepicker("setDate", "2018-10-19");
+    }
+
 
     // set client sessionStorage
     sessionStorage.archive = $('#archive').val();
@@ -2271,6 +2283,12 @@ function _prepare_watershed_data()
     // function getUrlParameter() requires a valid url: http + domain + query string
     // make a fake url
     url = "http://www.hydroshare.org/?" + url;
+
+    var subset_domain = false;
+    if ($('#chkbox-subset-domain').prop('checked'))
+    {
+        subset_domain = true;
+    }
     var parameter = {
         config: getUrlParameter("config", url),
         geom: getUrlParameter("geom", url),
@@ -2282,15 +2300,15 @@ function _prepare_watershed_data()
         lag_06z: getUrlParameter("06z", url),
         lag_12z: getUrlParameter("12z", url),
         lag_18z: getUrlParameter("18z",url),
-        merge: merge_netcdf
+        merge: merge_netcdf,
     };
 
-    // analysis_assim date range no more than 3 weeks (21 days)
+    // analysis_assim date range no more than 40 days)
     if (parameter.config == "analysis_assim")
     {
-        if (!_check_datetime_range($("#startDate").val(), $("#endDate").val(), 21))
+        if (!_check_datetime_range($("#startDate").val(), $("#endDate").val(), 40))
         {
-            alert("Invalid start/end date; You may subset Analysis & Assimilation data for 3 weeks (21 days) or less");
+            alert("Invalid start/end date; You may subset Analysis & Assimilation data for 40 days or less");
             $("#subsetBtn, #watershedBtn, #submitBtn").removeAttr('disabled');
             return null;
         }
@@ -2305,11 +2323,15 @@ function _prepare_watershed_data()
     var geom_json = geoJSON.writeGeometry(watershed_fea.getGeometry());
 
 
-    data = {archive: archive, watershed_geometry: geom_json, watershed_epsg: 3857, subset_parameter: parameter};
+    data = {archive: archive,
+        watershed_geometry: geom_json,
+        watershed_epsg: 3857,
+        subset_parameter: parameter,
+        domain_files: subset_domain};
     return data
 }
 
-function subset_watershed_hydroshare()
+function subset_watershed_hydroshare_old()
 {
     var data = _prepare_watershed_data();
     if (!data)
@@ -2373,7 +2395,87 @@ function subset_watershed_hydroshare()
     });
 }
 
-function subset_watershed_download()
+function subset_watershed_hydroshare()
+{
+    var data = _prepare_watershed_data();
+    if (!data)
+    {
+        return ;
+    }
+    var hydroshare_data = {"title": $('#resource-title-subset').val(),
+        "abstract": $('#resource-abstract-subset').val(),
+        "keywords": $('#resource-keywords-subset').val(),
+        "res_type": $('#resource-type-subset').val()
+    };
+    data["hydroshare"] = hydroshare_data;
+
+    var displayStatus = $('#display-status-subset');
+    displayStatus.removeClass('error');
+    displayStatus.addClass('uploading');
+    displayStatus.html('<em>Uploading...</em>');
+
+     if (hydroshare_data.title.length==0 || hydroshare_data.keywords.length==0 || hydroshare_data.abstract.length==0)
+     {
+            displayStatus.removeClass('uploading');
+            displayStatus.addClass('error');
+            displayStatus.html('<em>All metadata information should be provided.</em>');
+            return;
+     }
+
+    $('#hydroshare-proceed-subset').prop('disabled', true);
+    var csrf_token = getCookie('csrftoken');
+    $.ajax({
+        type: 'POST',
+        //url: '/apps/nwm-forecasts/subset-watershed/',
+        url: '/apps/nwm-forecasts/api/submit-subsetting-job/',
+        headers: {'X-CSRFToken': csrf_token},
+        dataType: 'json',
+        contentType: 'application/json',
+        data: JSON.stringify(data),
+        success: function (data) {
+            $('#hydroshare-proceed-subset').prop('disabled', false);
+            check_job_timer =setInterval(_check_job_status, 2000, data.job_id);
+
+            // if (data.status == "success")
+            // {
+            //
+            //
+            //      var job_id = data.job_id;
+            //      check_job_timer =setInterval(_check_job_status, 500, job_id);
+            //      displayStatus.removeClass('uploading');
+            //      displayStatus.addClass('success');
+            //      displayStatus.html('<em>' + data.status.toUpperCase() + ' View in HydroShare <a href="https://www.hydroshare.org/resource/' + data.res_id +
+            //       '" target="_blank" style="color:red">HERE</a></em>');
+            // }
+            // else
+            // {
+            //     displayStatus.removeClass('uploading');
+            //     displayStatus.addClass('error');
+            //     displayStatus.html('<em>' + data.msg + '</em>');
+            // }
+            // $("#subsetBtn, #watershedBtn, #submitBtn").removeAttr('disabled');
+        },
+        error: function (jqXHR, textStatus, errorThrown) {
+            $('#subset_watershed_loading').prop('disabled', true).addClass('hidden');
+            $('#hydroshare-proceed-subset').prop('disabled', false);
+            displayStatus.removeClass('uploading');
+            displayStatus.addClass('error');
+            displayStatus.html('<em>' + errorThrown + '</em>');
+            $("#subsetBtn, #watershedBtn, #submitBtn").removeAttr('disabled');
+        }
+    });
+}
+
+function _set_ui_hydroshare_success(res_id)
+{
+    var displayStatus = $('#display-status-subset');
+    displayStatus.removeClass('uploading');
+    displayStatus.addClass('success');
+    displayStatus.html('<em>' + 'SUCCESS' + ' View in HydroShare <a href="https://www.hydroshare.org/resource/' + res_id +
+        '" target="_blank" style="color:red">HERE</a></em>');
+}
+
+function subset_watershed_download_old()
 {
     var data = _prepare_watershed_data();
 
@@ -2406,7 +2508,6 @@ function subset_watershed_download()
     }; //xhttp.onreadystatechange
     // Post data to URL which handles post request
     xhttp.open("POST", '/apps/nwm-forecasts/subset-watershed/');
-    //xhttp.open("POST", '/apps/nwm-forecasts/api/submit-subsetting-job/');
 
     xhttp.setRequestHeader("Content-Type", "application/json");
     var csrf_token = getCookie('csrftoken');
@@ -2414,6 +2515,113 @@ function subset_watershed_download()
     // You should set responseType as blob for binary responses
     xhttp.responseType = 'blob';
     xhttp.send(JSON.stringify(data));
+}
+
+function _download_job_result(job_id)
+{
+    xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        var a;
+        if (xhttp.readyState === 4 && xhttp.status === 200)
+        {
+            // Trick for making downloadable link
+            a = document.createElement('a');
+            a.href = window.URL.createObjectURL(xhttp.response);
+            // Give filename you wish to download
+            a.download = xhttp.getResponseHeader('Content-Disposition').split(";")[1].split("=")[1].replace(/"/g, '');
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            $("#subsetBtn, #watershedBtn, #submitBtn").removeAttr('disabled');
+            $('#subset_watershed_loading').prop('disabled', true).addClass('hidden');
+        }
+        else if  (xhttp.status != 200 && xhttp.status != 0)
+        {
+            xhttp.abort();
+            alert("Failed to subset this watershed");
+            $("#subsetBtn, #watershedBtn, #submitBtn").removeAttr('disabled');
+            $('#subset_watershed_loading').prop('disabled', true).addClass('hidden');
+        }
+
+    }; //xhttp.onreadystatechange
+    // Post data to URL which handles post request
+    xhttp.open("GET", '/apps/nwm-forecasts/api/download-subsetting-results/?job_id=' + job_id);
+
+    // You should set responseType as blob for binary responses
+    xhttp.responseType = 'blob';
+    xhttp.send();
+}
+
+var check_job_timer;
+
+function subset_watershed_download()
+{
+    var data = _prepare_watershed_data();
+
+    //http://stackoverflow.com/questions/28165424/download-file-via-jquery-ajax-post
+    // Use XMLHttpRequest instead of Jquery $ajax
+    xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+
+        if (xhttp.readyState === 4 && xhttp.status === 200)
+        {
+            var body = xhttp.response;
+            var job_id = body.job_id;
+            check_job_timer =setInterval(_check_job_status, 2000, job_id);
+        }
+        else if  (xhttp.status != 200 && xhttp.status != 0)
+        {
+            xhttp.abort();
+            alert("Failed to subset this watershed");
+            $("#subsetBtn, #watershedBtn, #submitBtn").removeAttr('disabled');
+            $('#subset_watershed_loading').prop('disabled', true).addClass('hidden');
+        }
+
+    }; //xhttp.onreadystatechange
+    // Post data to URL which handles post request
+    //xhttp.open("POST", '/apps/nwm-forecasts/subset-watershed/');
+    xhttp.open("POST", '/apps/nwm-forecasts/api/submit-subsetting-job/');
+
+    xhttp.setRequestHeader("Content-Type", "application/json");
+    var csrf_token = getCookie('csrftoken');
+    xhttp.setRequestHeader("X-CSRFToken", csrf_token);
+    // You should set responseType as blob for binary responses
+    xhttp.responseType = 'json';
+    xhttp.send(JSON.stringify(data));
+}
+
+function _check_job_status(job_id)
+{
+    var csrf_token = getCookie('csrftoken');
+    $.ajax({
+        type: 'GET',
+        url: '/apps/nwm-forecasts/api/check-subsetting-job-status/?job_id=' + job_id,
+        headers: {'X-CSRFToken': csrf_token},
+        dataType: 'json',
+        success: function (data) {
+            console.log(data);
+            var job_status = data.status;
+            if (job_status.toLowerCase() == "success" || job_status.toLowerCase() == "failure")
+            {
+                clearInterval(check_job_timer);
+                if (job_status.toLowerCase() == "success")
+                {
+                    if (job_id.indexOf("hydroshare") !== -1)
+                    {
+                        console.log(data.res_id);
+                        _set_ui_hydroshare_success(data.res_id);
+                    }
+                    else {
+                        _download_job_result(job_id);
+                    }
+
+                }
+            }
+        },
+        error: function (jqXHR, textStatus, errorThrown) {
+            console.log("error");
+        }
+    });
 }
 
 function _check_datetime_range(startDate, endDate, delta_days)

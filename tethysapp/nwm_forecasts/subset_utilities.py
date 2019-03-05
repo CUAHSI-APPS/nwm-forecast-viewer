@@ -6,9 +6,12 @@ import re
 import shutil
 import zipfile
 import json
+import time
+import tempfile
 import pytz
 from osgeo import ogr
 from osgeo import osr
+import requests
 
 from django_celery_results.models import TaskResult
 from django.db.models import Q
@@ -63,6 +66,116 @@ def _check_hurricane_start_end_dates(startDate_str, endDate_str, event_period):
         end_date = event_period[1]
 
     return [start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d")]
+
+@shared_task
+def _zip_up_files(file_list, target_zip_file_path=None):
+    data_subset_folder = str(file_list[0][1])
+    # try:
+    domain_subset_file = str(file_list[1])
+    if os.path.isfile(domain_subset_file):
+        print (domain_subset_file)
+        print (os.path.join(data_subset_folder, "wrfhydro_domain.tar.gz"))
+        shutil.move(domain_subset_file, os.path.join(data_subset_folder, "wrfhydro_domain.tar.gz"))
+    # except Exception as e:
+    #     pass
+    final_zip_file = data_subset_folder + ".zip"
+    _zip_folder_contents(final_zip_file, data_subset_folder)
+
+    print (final_zip_file)
+    return "", final_zip_file
+
+
+
+@shared_task
+def _subset_domain_files(watershed_geometry, watershed_epsg, bag_fn_new=None, skip=False):
+
+    if skip:
+        return None
+    query_result_dict = _do_spatial_query(watershed_geometry, watershed_epsg)
+    print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa")
+
+
+    llat=float(query_result_dict["grid_land"]["minY_coord"])
+    llon=float(query_result_dict["grid_land"]["minX_coord"])
+    ulat=float(query_result_dict["grid_land"]["maxY_coord"])
+    ulon=float(query_result_dict["grid_land"]["maxX_coord"])
+    print(query_result_dict)
+
+    service_url = "http://subset.cuahsi.org"
+    job_id = None
+    domain_bag_url = None
+    r_submit = requests.get(
+        #service_url + "/nwm/v1_2_2/subset?llat=-258370.2041000016&llon=-231074.10140000284&ulat=-240680.0077000016&ulon=-218551.78150000283",
+        service_url + "/nwm/v1_2_2/subset?llat={llat}&llon={llon}&ulat={ulat}&ulon={ulon}".format(llat=llat, llon=llon, ulat=ulat, ulon=ulon),
+        allow_redirects=False)
+    if r_submit.status_code == 302:
+        check_job_url = r_submit.headers["Location"]
+        job_id = check_job_url.split('/')[-1]
+        for i in range(201):  # time out after 20 minutes
+            try:
+                r_job_status = requests.get(service_url + "/jobs/" + job_id)
+                job_status = json.loads(r_job_status.content)
+            except Exception as e:
+                print(i, r_job_status.content, e)
+            print (i, job_status)
+            if job_status["status"] == "finished":
+                domain_bag_url = str(job_status["file"])
+                break
+            time.sleep(3)  # 3 sec
+
+    domain_bag_path = None
+    if domain_bag_url:
+        temp_dir = tempfile.mkdtemp()
+        fn_original = domain_bag_url.split('/')[-1]
+        if not bag_fn_new:
+            domain_bag_fn = "domain_" + fn_original
+        else:
+            domain_bag_fn = "domain_" + bag_fn_new + ".tar.gz"
+        domain_bag_path = os.path.join(temp_dir, domain_bag_fn)
+
+        r_download = requests.get(domain_bag_url, stream=True)
+        with open(domain_bag_path, 'wb') as f:
+            for chunk in r_download.iter_content(chunk_size=1024):
+                if chunk:  # filter out keep-alive new chunks
+                    f.write(chunk)
+    print("SSSSSSSSSSSSSSSSSSSSSSSSSSSSs")
+    print(domain_bag_path)
+
+    return domain_bag_path
+
+
+@shared_task
+def _create_HS_resource(task_result, hydroshare_dict, auth_info):
+
+    job_id = task_result[0]
+    # more than one nc file --> composite resource type
+    hs_res_type = "CompositeResource"
+    # zip it up first
+    zip_file_path = task_result[1]
+    #_zip_folder_contents(zip_file_path, job_folder_path)
+
+    import hs_restclient as hs_r
+    auth = hs_r.HydroShareAuthOAuth2(auth_info["client_id"],
+                                     auth_info["client_secret"],
+                                     token=auth_info["oauth_token_dict"])
+    hs = hs_r.HydroShare(auth=auth,
+                         hostname=auth_info["hs_host_url"])
+
+    resource_id = hs.createResource(hs_res_type,
+                                    hydroshare_dict["title"],
+                                    keywords=hydroshare_dict["keywords"].split(','),
+                                    abstract=hydroshare_dict["abstract"])
+    zip_file_path = str(zip_file_path)
+    resource_id = hs.addResourceFile(resource_id, zip_file_path)
+
+    options = {
+        "zip_with_rel_path": os.path.basename(zip_file_path),
+        "remove_original_zip": True
+    }
+
+    unzipping_resp = hs.resource(resource_id).functions.unzip(options)
+    task_result.append(resource_id)
+    return task_result
 
 
 @shared_task(rate_limit=nwm_viewer_subsetting_rate_limit,  # 10 request/min
@@ -120,7 +233,7 @@ def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None,
     if subset_parameter_dict["config"] == "analysis_assim":
         if endDate_str.lower() == "latest":
             latest_data_info_dict = _check_latest_data()
-            if local_vm_test:
+            if False and local_vm_test: # disable this
                 endDate_obj = datetime.datetime.strptime(local_vm_test_data_date, "%Y%m%d")
             else:
                 #endDate_obj = datetime.datetime.utcnow()
@@ -398,7 +511,8 @@ def _zip_folder_contents(zip_file_path, source_folder_path, skip_list=[]):
 def _get_current_utc_date():
 
     if local_vm_test:
-        return "2017-04-19", "2017-04-19", "2017-04-19", "2017-04-19"
+        #return "2017-04-19", "2017-04-19", "2017-04-19", "2017-04-19"
+        return "2018-03-07", "2018-03-05", "2018-03-05", "2018-03-05"
 
     date_string_today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
     date_string_oldest = (datetime.datetime.utcnow() + datetime.timedelta(days=-1*nomads_data_days)).strftime("%Y-%m-%d")

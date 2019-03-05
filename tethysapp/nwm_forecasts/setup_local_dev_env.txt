@@ -1,4 +1,6 @@
 1) mount NWM folder at /projects/water/nwm/data
 2) start rabbitmq-server: rabbitmq-server
-3) start celery workers: celery -A tethys_portal.tethys_celery:app worker --loglevel=DEBUG -E
+3) start celery workers: celery -A tethys_portal.tethys_celery:app worker --loglevel=DEBUG -E -n worker1
+4) start celery workers: celery -A tethys_portal.tethys_celery:app worker --loglevel=DEBUG -E -n worker2
+5) flower (run at port 5555): celery flower -A tethys_portal.tethys_celery:app
 

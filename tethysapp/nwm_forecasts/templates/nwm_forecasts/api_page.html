@@ -32,6 +32,7 @@
             <li> A new optional parameter "archive" is added to both GetWaterML and submit-subsetting-job endpoints to differentiate archives (see Example 5 below)</li>
             <ol style="color:red;">
                 <li>rolling: 40-day rolling window (default)</li>
+                <li>florence: Hurrican Florence (2018-09-01 to 2018-10-19)</li>
                 <li>harvey: Hurrican Harvey (2017-08-18 to 2017-09-06)</li>
                 <li>irma: Hurricane Irma (2017-08-29 to 2017-09-15)</li>
             </ol>
@@ -122,7 +123,7 @@ There are two common ways to avoid hitting the rate limit.
         <tr>
             <td>archive</td>
             <td>The archive (data source) of the forecast.</td>
-            <td>Indicate the archive (data source) used for query; Accepted value: "rolling", "harvey" and "irma"</td>
+            <td>Indicate the archive (data source) used for query; Accepted value: "rolling", "florence", "harvey" and "irma"</td>
             <td>No</td>
             <td>Default value: "rolling"</td>
         </tr>
@@ -303,7 +304,7 @@ Send a <b>HTTP POST Request</b> with the following JSON payload to <b>/apps/nwm-
 <pre>
     # prepare the data sent to api endpoint
     JSON_payload = {
-        'archive': 'rolling'  # optional, Accepted value: rolling, harvey, irma; Default is rolling
+        'archive': 'rolling'  # optional, Accepted value: rolling, florence, harvey, irma; Default is rolling
         'subset_parameter': {
             'config': "analysis_assim",  # AA: analysis_assim, SR: short_range, MR: medium_range, LR: long_range
             'startDate': "2017-09-20",  # YYYY-MM-DD for SR, MR & LR; Also set 'endDate' for AA
