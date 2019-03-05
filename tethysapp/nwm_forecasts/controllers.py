@@ -52,10 +52,11 @@ def _init_page(request):
 
     if request.GET:
         # Make the waterml url query string
+        archive =  request.GET.get("archive", "rolling")
         config = request.GET['config']
         geom = request.GET['geom']
         variable = request.GET['variable']
-        if geom != 'land' and geom != 'forcing':
+        if geom != 'land' and geom != 'forcing' and geom != 'terrain':
             comid = request.GET['COMID']
         else:
             comid = ','.join([request.GET['Y'], request.GET['X']])
@@ -86,8 +87,8 @@ def _init_page(request):
             lagList.append('t18z')
 
         lag = ','.join(lagList)
-        waterml_url = '?config=%s&geom=%s&variable=%s&COMID=%s&lon=%s&lat=%s&startDate=%s&endDate=%s&time=%s&lag=%s' % \
-                      (config, geom, variable, comid, lon, lat, startDate, endDate, time, lag)
+        waterml_url = '?archive=%s&config=%s&geom=%s&variable=%s&COMID=%s&lon=%s&lat=%s&startDate=%s&endDate=%s&time=%s&lag=%s' % \
+                      (archive, config, geom, variable, comid, lon, lat, startDate, endDate, time, lag)
 
         # watershed_obj_session = request.session.get("watershed", None)
 

@@ -11,30 +11,37 @@ from django.shortcuts import render_to_response
 from rest_framework.authentication import TokenAuthentication, SessionAuthentication
 from rest_framework.decorators import api_view, authentication_classes, throttle_classes
 
-from .subset_utilities import _do_spatial_query, _perform_subset, _check_latest_data, _string2bool
+from tethys_services.backends.hs_restclient_helper import get_oauth_hs
+
+from .subset_utilities import _do_spatial_query, _perform_subset, _check_latest_data, _string2bool, \
+    _bbox2geojson_polygon_str, _create_HS_resource, _subset_domain_files, _zip_up_files
 from .timeseries_utilities import format_time_series, get_site_name, getTimeSeries, _get_netcdf_data
-from .controllers_ajax import get_netcdf_data
 from .apis_settings import *
 
 logger = logging.getLogger(__name__)
 
+from celery import chain, group, chord
+
 
 @api_view(['GET'])
 @authentication_classes((TokenAuthentication, SessionAuthentication))
-@throttle_classes([GetDataWatermlRateThrottle_User, GetDataWatermlRateThrottle_Anon])
+@throttle_classes([GetDataWatermlRateThrottle_User, GetDataWatermlRateThrottle_Anon,
+                   GetDataWatermlRateThrottle_Anon_Sustained, GetDataWatermlRateThrottle_User_Sustained])
 def get_data_waterml(request):
     """
     Controller that will show the data in WaterML 1.1 format
     """
+
     if request.GET:
         resp = _get_netcdf_data(request)
         resp_dict = json.loads(resp.content)
         print resp_dict
 
+        archive = request.GET.get("archive", "rolling")
         config = request.GET["config"]
         geom = request.GET['geom']
         var = request.GET['variable']
-        if geom != 'land' and geom != "forcing":
+        if geom != 'land' and geom != "forcing" and geom != "terrain":
             comid = int(request.GET['COMID'])
         else:
             comid = request.GET['COMID']
@@ -106,6 +113,10 @@ def get_data_waterml(request):
             units = {'name': '10-m U-component of wind', 'short': 'm/s', 'long': 'm/s'}
         elif var in ['V2D']:
             units = {'name': '10-m V-component of wind', 'short': 'm/s', 'long': 'm/s'}
+        elif var in ['sfcheadsubrt']:
+            units = {'name': 'Surface Head', 'short': 'mm', 'long': 'mm'}
+        elif var in ['zwattablrt']:
+            units = {'name': 'Water Table Depth', 'short': 'm', 'long': 'm'}
 
         nodata_value = -9999
 
@@ -139,7 +150,7 @@ def get_data_waterml(request):
                     return Http404("Failed to retrieve wml")
 
             elif config == 'long_range':
-                ts = getTimeSeries(config, geom, var, comid, start, end, lag, member)
+                ts = getTimeSeries(archive, config, geom, var, comid, start, end, lag, member)
                 time_series = format_time_series(config, start, ts, time, nodata_value)
                 site_name = get_site_name(config, geom, var, lat, lon, lag, member)
 
@@ -170,6 +181,12 @@ def spatial_query_api(request):
         request_dict = json.loads(request.body)
         watershed_geometry = request_dict['watershed_geometry']
         watershed_epsg = int(request_dict['watershed_epsg'])
+        bbox = _string2bool(request_dict.get('bbox', 'False'))
+        if bbox:
+            if type(watershed_geometry) is not dict:
+                watershed_geometry = json.loads(watershed_geometry)
+            watershed_geometry = _bbox2geojson_polygon_str(**watershed_geometry)
+
         start = time.time()
         query_result_dict = _do_spatial_query(watershed_geometry, watershed_epsg)
         end = time.time()
@@ -184,19 +201,32 @@ def spatial_query_api(request):
         return HttpResponse(status=500, content=ex.message)
 
 
-
-
-
 @api_view(['POST'])
 @authentication_classes((TokenAuthentication, SessionAuthentication))
-@throttle_classes([SubsetWatershedApiRateThrottle_User, SubsetWatershedApiRateThrottle_Anon])
+@throttle_classes([SubsetWatershedApiRateThrottle_User, SubsetWatershedApiRateThrottle_Anon,
+                   SubsetWatershedApiRateThrottle_Anon_Sustained, SubsetWatershedApiRateThrottle_User_Sustained])
 def subset_watershed_api(request):
     try:
-        request_dict = json.loads(request.body)
+        try:
+            # Need to look into why these two behave differently
+            # request received from rest api client
+            request_dict = json.loads(request.body)
+        except Exception:
+            # request received from UI/JS
+            request_dict = request.data
         watershed_geometry = request_dict['watershed_geometry']
         watershed_epsg = int(request_dict['watershed_epsg'])
         spatial_query_only = _string2bool(request_dict.get('query_only', 'False'))
+        bbox = _string2bool(request_dict.get('bbox', 'False'))
+        if bbox:
+            if type(watershed_geometry) is not dict:
+                watershed_geometry = json.loads(watershed_geometry)
+            watershed_geometry = _bbox2geojson_polygon_str(**watershed_geometry)
 
+        # wheter to subset Domain files
+        domain_files = _string2bool(request_dict.get('domain_files', 'False'))
+
+        archive = request_dict.get("archive", "rolling")
         subset_parameter_dict = request_dict.get('subset_parameter', None)
         merge_results = False
         if subset_parameter_dict:
@@ -210,20 +240,109 @@ def subset_watershed_api(request):
         else:
             job_id = "subset-" + job_id
 
-        task = _perform_subset.apply_async((watershed_geometry,
-                                           watershed_epsg,
-                                           subset_parameter_dict),
-                                           {"job_id":job_id,
-                                             "zip_results":True,
-                                             "query_only": spatial_query_only,
-                                             "merge_netcdfs": merge_results},
-                                           task_id=job_id,
-                                           countdown=3,)
-                                           # time_limit=nwm_viewer_subsetting_time_limit,  # 30 minutes
-                                           # soft_time_limit=nwm_viewer_subsetting_soft_time_limit,  # 20 minutes
-                                           # rate_limit=nwm_viewer_subsetting_rate_limit)  # 10 request/min
+        hs_job_id = None
+        if "hydroshare" in request_dict:
+            hs_job_id = "hydroshare-" + job_id
+        # task = _perform_subset.apply_async((watershed_geometry,
+        #                                    watershed_epsg,
+        #                                    subset_parameter_dict),
+        #                                    {"job_id":job_id,
+        #                                      "zip_results":True,
+        #                                      "query_only": spatial_query_only,
+        #                                      "merge_netcdfs": merge_results,
+        #                                      "archive": archive},
+        #                                    task_id=job_id,
+        #                                    countdown=3,)
+        #                                    # time_limit=nwm_viewer_subsetting_time_limit,  # 30 minutes
+        #                                    # soft_time_limit=nwm_viewer_subsetting_soft_time_limit,  # 20 minutes
+        #                                    # rate_limit=nwm_viewer_subsetting_rate_limit)  # 10 request/min
 
-        response = JsonResponse({"job_id": task.task_id, "status": task.state})
+        if not hs_job_id:
+            # task = _perform_subset.apply_async((watershed_geometry,
+            #                                    watershed_epsg,
+            #                                    subset_parameter_dict),
+            #                                    {"job_id": job_id,
+            #                                      "zip_results": True,
+            #                                      "merge_netcdfs": merge_results,
+            #                                      "archive": archive},
+            #                                    task_id=job_id,
+            #                                    countdown=3,)
+
+            task = chord(group(_perform_subset.s(watershed_geometry,
+                                    watershed_epsg,
+                                    subset_parameter_dict,
+                                    job_id=job_id,
+                                    zip_results=False,
+                                    merge_netcdfs=merge_results,
+                                    archive=archive,
+                                    ).set(task_id=job_id + "_data")
+                  ,
+                  _subset_domain_files.s(
+                      watershed_geometry,
+                      watershed_epsg,
+                      bag_fn_new=job_id,
+                      skip=not domain_files
+                  ).set(task_id=job_id + "_domain")
+                  ),
+                  _zip_up_files.s()
+                  ).apply_async(task_id=job_id,
+                                countdown=3)
+
+
+            response = JsonResponse({"job_id": job_id, "status": task.state})
+        else:  # upload to hydroshare
+
+            # hs obj is not serializable
+            hs = get_oauth_hs(request)
+            # extract oauth info
+            hs_host_url = hs.hostname
+            client_id = hs.auth.client_id
+            client_secret = hs.auth.client_secret
+            oauth_token_dict = hs.auth.token
+            auth_info = dict(hs_host_url=hs_host_url,
+                             client_id=client_id,
+                             client_secret=client_secret,
+                             oauth_token_dict=oauth_token_dict
+                             )
+
+            # chained tasks
+
+            task = chain(chord(group(_perform_subset.s(watershed_geometry,
+                                              watershed_epsg,
+                                              subset_parameter_dict,
+                                              job_id=job_id,
+                                              zip_results=False,
+                                              merge_netcdfs=merge_results,
+                                              archive=archive,
+                                          ).set(task_id=job_id + "_data")
+                                ,
+                                _subset_domain_files.s(
+                                        watershed_geometry,
+                                        watershed_epsg,
+                                        bag_fn_new=job_id,
+                                        skip=not domain_files
+                                    ).set(task_id=job_id + "_domain")
+                                ),
+                                _zip_up_files.s()
+                        ),  _create_HS_resource
+                            .s(request_dict["hydroshare"], auth_info)
+                        ).apply_async(task_id=hs_job_id,
+                                      countdown=3)
+
+
+            # task = chain(_perform_subset.s(watershed_geometry,
+            #                                watershed_epsg,
+            #                                subset_parameter_dict,
+            #                                job_id=job_id,
+            #                                zip_results=True,
+            #                                merge_netcdfs=True,
+            #                                archive=archive).set(task_id=job_id, countdown=3),
+            #              _create_HS_resource
+            #                 .s(request_dict["hydroshare"], auth_info)
+            #                 .set(task_id=hs_job_id)
+            #              ).apply_async()
+
+            response = JsonResponse({"job_id": hs_job_id, "status": task.state})
         logger.info("------END: subset_watershed_api--------")
         return response
 
@@ -239,8 +358,16 @@ def check_subsetting_job_status(request):
     job_id = request.GET.get("job_id", None)
     try:
         if job_id:
+            resp_dict = {"job_id": job_id}
             result = _perform_subset.AsyncResult(job_id)
-            return JsonResponse({"status": result.state})
+            job_status = result.state.lower()
+            resp_dict["status"] = job_status
+            if job_status == "success":
+                if job_id.startswith("subset"):
+                    resp_dict["download_url"] = "/apps/nwm-forecasts/api/download-subsetting-results/?job_id=" + job_id
+                elif job_id.startswith("hydroshare"):
+                    resp_dict["res_id"] = result.get()[2]
+            return JsonResponse(resp_dict)
         else:
             JsonResponse({"error": "No job_id is provided"})
     except Exception as ex:

@@ -24,6 +24,17 @@
 
 <form id="paramForm" method="get">
 
+     <div class="form-group ">
+        <label class="control-label" for="archive" data-toggle="tooltip"
+               data-placement="bottom" title="Select the archive to query">Archive</label>
+        <select id="archive" class="form-control" name="archive">
+            <option value="rolling" selected="selected" title="40-day rolling window archive">40-Day Rolling Window</option>
+            <option value="florence" title="historical archive for the Florence hurricane (20180901-20181019)">Florence (20180901-20181019)</option>
+            <option value="harvey" title="historical archive for the Harvey hurricane (20170818-20170906)">Harvey (20170818-20170906)</option>
+            <option value="irma" title="historical archive for Irma hurricane (20170829-20170915)">Irma (20170829-20170915)</option>
+        </select>
+    </div>
+
     <div class="form-group ">
         <label class="control-label" for="config" data-toggle="tooltip"
                data-placement="bottom" title="NWM has 4 model configurations: Analysis & Assimilation, Short Range, Medium Range and Long Range">Model Configuration</label>
@@ -43,6 +54,8 @@
             <option value="land" title="Land file stores land surface processing result (1km gridded NetCDF)">Land</option>
             <option value="reservoir" title="Reservoir file stores forecasts for 1260 reservoirs (point-type NetCDF)">Reservoir</option>
             <option value="forcing" title="Forcing file stores forcing variables (1km gridded NetCDF)">Forcing</option>
+            <option value="forcing" title="Forcing file stores forcing variables (1km gridded NetCDF)">Forcing</option>
+            <option value="terrain" title="Terrain file stores routing variables (250m gridded NetCDF)">Terrain</option>
         </select>
     </div>
 
@@ -118,6 +131,8 @@
 
 {% if hs_ready|lower == "true" %}
 <br>
+    <input type="checkbox" id="chkbox-subset-domain" name="chkbox-subset-domain" data-toggle="tooltip"
+               data-placement="bottom" title="Subset WRF-Hydro Domain files to facilitate a local model run">Include WRF-Hydro Domain files<br>
 <!--<input type="checkbox" id="chkbox-subset-merge" name="chkbox-subset-merge">Merge results<br>-->
 <input type="checkbox" id="chkbox-upload-subset-to-hs" name="chkbox-upload-subset-to-hs" data-toggle="tooltip"
                data-placement="bottom" title="Upload subsetting results to hydroshare">Upload to HydroShare<br>

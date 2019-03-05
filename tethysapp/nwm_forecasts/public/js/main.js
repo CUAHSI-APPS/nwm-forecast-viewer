@@ -2,8 +2,8 @@ var target, observer, config;
 
 // OpenLayer3 variables
 var map, mapView;
-var base_layer, grid_layer, reservoir_layer, all_streams_layer, selected_streams_layer, watershed_layer,
-    usgs_gauges_layer;
+var base_layer, grid_layer, reservoir_layer, all_streams_layer, user_draw_layer, watershed_layer,
+    usgs_gauges_layer, terrain_layer;
 var map_source = "CUAHSI"; // CUAHSI or BYU
 
 var toggle_layers;
@@ -87,14 +87,73 @@ else if (map_source == "BYU")
 /**********************************
  ********Config & Geom dropdowns OnChange Event *********
  **********************************/
+$('#archive').on('change', function ()
+{
+    // disable "Forcing" in Geometry dropdown for long range
+    if ($('#archive').val() == 'rolling')
+    {
+        // set earliest date user can select
+        $('#startDate').datepicker("setStartDate", $("#date_string_oldest").html());
+        $('#startDate').datepicker("setEndDate", $("#date_string_today").html());
+        $('#startDate').datepicker("setDate", $("#date_string_today").html());
+
+
+        $('#endDate').datepicker("setStartDate", $("#date_string_oldest").html());
+        $('#endDate').datepicker("setEndDate", $("#date_string_today").html());
+        $('#endDate').datepicker("setDate", $("#date_string_today").html());
+
+    }
+    else if ($('#archive').val() == 'harvey')
+    {
+         // set earliest date user can select
+        $('#startDate').datepicker("setStartDate", "2017-08-18");
+        $('#startDate').datepicker("setEndDate", "2017-09-06");
+        $('#startDate').datepicker("setDate", "2017-08-18");
+
+        $('#endDate').datepicker("setStartDate", "2017-08-18");
+        $('#endDate').datepicker("setEndDate", "2017-09-06");
+        $('#endDate').datepicker("setDate", "2017-09-06");
+    }
+    else if ($('#archive').val() == 'irma')
+    {
+         // set earliest date user can select
+        $('#startDate').datepicker("setStartDate", "2017-08-29");
+        $('#startDate').datepicker("setEndDate", "2017-09-15");
+        $('#startDate').datepicker("setDate", "2017-08-29");
+
+        $('#endDate').datepicker("setStartDate", "2017-08-29");
+        $('#endDate').datepicker("setEndDate", "2017-09-15");
+        $('#endDate').datepicker("setDate", "2017-09-15");
+    }
+    else if ($('#archive').val() == 'florence')
+    {
+         // set earliest date user can select
+        $('#startDate').datepicker("setStartDate", "2018-09-01");
+        $('#startDate').datepicker("setEndDate", "2018-10-19");
+        $('#startDate').datepicker("setDate", "2018-09-01");
+
+        $('#endDate').datepicker("setStartDate", "2018-09-01");
+        $('#endDate').datepicker("setEndDate", "2018-10-19");
+        $('#endDate').datepicker("setDate", "2018-10-19");
+    }
+
+
+    // set client sessionStorage
+    sessionStorage.archive = $('#archive').val();
+
+    $("#config").trigger("change");
+});
+
 
 $('#config').on('change', function ()
 {
-    // disable "Forcing" in Geometry dropdown for long range
+    // disable "Forcing" and "Terrain" in Geometry dropdown for long range
     if ($('#config').val() == 'long_range')
     {
         $("#geom option[value='forcing']").attr('disabled','disabled');
-        if ($("#geom option:selected").val() == "forcing" ||  $("#geom").val()=="forcing")
+        $("#geom option[value='terrain']").attr('disabled','disabled');
+        if ($("#geom option:selected").val() == "forcing" ||  $("#geom").val()=="forcing"
+            || $("#geom option:selected").val() == "terrain" ||  $("#geom").val()=="terrain")
         {
             $("#geom option[value='channel_rt']").attr("selected", "selected");
             $("#geom").val('channel_rt');
@@ -103,6 +162,7 @@ $('#config').on('change', function ()
     else
     {
         $("#geom option[value='forcing']").removeAttr('disabled');
+        $("#geom option[value='terrain']").removeAttr('disabled');
     }
 
     if ($('#config').val() === 'medium_range')
@@ -116,7 +176,11 @@ $('#config').on('change', function ()
         }
 
         // set earliest date user can select
-        $('#startDate').datepicker("setStartDate", $("#date_string_oldest").html())
+        if ($('#archive').val() == 'rolling')
+        {
+            $('#startDate').datepicker("setStartDate", $("#date_string_oldest").html())
+            $('#startDate').datepicker("setEndDate", $("#date_string_today").html())
+        }
     }
     else if ($('#config').val() === 'long_range')
     {
@@ -125,7 +189,11 @@ $('#config').on('change', function ()
         $('#timeLag').removeClass('hidden');
 
         // set earliest date user can select
-        $('#startDate').datepicker("setStartDate", $("#date_string_oldest").html())
+        if ($('#archive').val() == 'rolling')
+        {
+            $('#startDate').datepicker("setStartDate", $("#date_string_oldest").html())
+            $('#startDate').datepicker("setEndDate", $("#date_string_today").html())
+        }
     }
     else if ($('#config').val() === 'short_range')
     {
@@ -138,7 +206,10 @@ $('#config').on('change', function ()
         }
 
         // set earliest date user can select
-        $('#startDate').datepicker("setStartDate", $("#date_string_oldest").html())
+        if ($('#archive').val() == 'rolling') {
+            $('#startDate').datepicker("setStartDate", $("#date_string_oldest").html())
+            $('#startDate').datepicker("setEndDate", $("#date_string_today").html())
+        }
     }
     else if ($('#config').val() === 'analysis_assim')
     {
@@ -150,18 +221,25 @@ $('#config').on('change', function ()
             $('#velocVar').removeClass('hidden');
         }
 
-        // set earliest date user can select
-        if (window.location.href.includes("/subset"))
-        {
-           // $('#startDate').datepicker("setStartDate", $("#date_string_oldest").html());
-            $('#startDate').datepicker("setStartDate", "2017-05-09");
-            $('#endDate').datepicker("setStartDate", "2017-05-09");
-        }
-        else
-        {
-            $('#startDate').datepicker("setStartDate", $("#date_string_AA_oldest").html());
-        }
+        if ($('#archive').val() == 'rolling') {
+            // set earliest date user can select
+            if (window.location.href.includes("/subset")) {
+                // $('#startDate').datepicker("setStartDate", $("#date_string_oldest").html());
 
+                $('#startDate').datepicker("setStartDate", "2017-05-09");
+                $('#startDate').datepicker("setEndDate", $("#date_string_today").html());
+
+                $('#endDate').datepicker("setStartDate", "2017-05-09");
+                $('#endDate').datepicker("setEndDate", $("#date_string_today").html());
+            }
+            else {
+                $('#startDate').datepicker("setStartDate", $("#date_string_AA_oldest").html());
+                $('#startDate').datepicker("setEndDate", $("#date_string_today").html());
+
+                $('#endDate').datepicker("setStartDate", $("#date_string_AA_oldest").html());
+                $('#endDate').datepicker("setEndDate", $("#date_string_today").html());
+            }
+        }
     }
 
     // set client sessionStorage
@@ -181,11 +259,8 @@ $('#geom').on('change', function ()
         layer.setVisible($("#geom").val() === layer.get('keyword'));
     });
 
-    if ($("#geom").val() == 'channel_rt')
-    {
-        selected_streams_layer.setVisible(true);
-    }
-    else if ($("#geom").val() == 'forcing')
+
+    if ($("#geom").val() == 'forcing')
     {
         grid_layer.setVisible(true);
     }
@@ -301,6 +376,21 @@ $('#geom').on('change', function ()
             $('#variable').val('RAINRATE');
         }
         $('#rainrateVar, #lwdownVar, #psfcVar, #q2dVar, #swdownVar, #t2dVar, #u2dVar, #v2dVar').removeClass('hidden');
+    }
+    else if ($('#geom').val() === 'terrain' && $('#config').val() != 'long_range')
+    {
+        $('#gridDiv').removeClass('hidden');
+        $('#gridInputY').attr('disabled', false);
+        $('#gridInputX').attr('disabled', false);
+        // if (window.location.search.includes('terrain') && window.location.search.includes('analysis_assim'))
+        // {
+        //     $('#variable').val(getUrlParameter('variable', null));
+        // }
+        // else
+        {
+            $('#variable').val('sfcheadsubrt');
+        }
+        $('#sfhVar, #wtdVar').removeClass('hidden');
     }
 
     sessionStorage.geom = $('#geom').val();
@@ -528,7 +618,7 @@ function init_restore_ui_map()
      **********INITIALIZE MAP *********
      **********************************/
 
-    // show mouse position on map
+    //show mouse position on map
     // var mousePositionControl = new ol.control.MousePosition({
     //         coordinateFormat: ol.coordinate.createStringXY(2),
     //         projection: 'EPSG:4326',
@@ -562,7 +652,7 @@ function init_restore_ui_map()
     // olGM.activate();
     mapView = map.getView();
 
-    var qLong, qLat, qConfig, qGeom, qVar, qDate, qTime, qCOMID, qDateEnd;
+    var qLong, qLat, qConfig, qGeom, qVar, qDate, qTime, qCOMID, qDateEnd, qArchive;
 
     // Restore UI
     var parse_url = false;
@@ -570,6 +660,23 @@ function init_restore_ui_map()
     {
         parse_url = true;
     }
+
+    // archive UI
+    if (parse_url)
+    {
+        qArchive = getUrlParameter("archive", null);
+    }
+    else
+    {
+        qArchive = sessionStorage.archive;
+    }
+    if (!qArchive) // not null & not ""
+    {
+        qArchive="rolling"
+    }
+    $('#archive').val(qArchive);
+    sessionStorage.archive = qArchive;
+
 
     // config UI
     if (parse_url)
@@ -659,7 +766,8 @@ function init_restore_ui_map()
     if (qDate)
     {
         sessionStorage.startDate = qDate;
-        $('#startDate').val(qDate);
+        //$('#startDate').val(qDate);
+        $('#startDate').datepicker("setDate",qDate)
     }
 
     // time UI
@@ -726,7 +834,7 @@ function init_restore_ui_map()
     if (qDateEnd)
     {
         sessionStorage.endDate = qDateEnd;
-        $('#endDate').val(qDateEnd);
+        $('#endDate').datepicker("setDate",qDateEnd)
     }
 
     var qLag = [];
@@ -788,7 +896,7 @@ function init_restore_ui_map()
     if (window.location.search.includes('?'))
     {
         initChart(qConfig, startDate, seriesData);
-        get_netcdf_chart_data(qConfig, qGeom, qVar, qCOMID, qDate, qTime, qLag, qDateEnd);
+        get_netcdf_chart_data(qArchive, qConfig, qGeom, qVar, qCOMID, qDate, qTime, qLag, qDateEnd);
     }
 
     /**********************************
@@ -885,16 +993,23 @@ function init_restore_ui_map()
                 stroke: new ol.style.Stroke({
                     color: '#ffff00',
                     width: 3
-                })
+                }),
+                fill: new ol.style.Fill({color: [255, 0, 255, 0.5]}),
+                // for point geometry
+                image: new ol.style.Circle({
+                                        radius: 3,
+                                        fill: new ol.style.Fill({color: 'red'}),
+                                        stroke: new ol.style.Stroke({color: [255,0,0], width: 1})
+                                        })
             });
             return [style];
         };
     };
 
-    selected_streams_layer = new ol.layer.Vector({
+    user_draw_layer = new ol.layer.Vector({
         source: new ol.source.Vector(),
         style: createLineStyleFunction(),
-        keyword: 'selected_streams_layer'
+        keyword: 'user_draw_layer'
     });
 
     watershed_layer = new ol.layer.Vector(
@@ -920,15 +1035,36 @@ function init_restore_ui_map()
         $("#subsetBtn").prop('disabled', true);
     });
 
+
+    var terrain_Source = new ol.source.TileWMS({
+        //url: "http://geoserver2.byu.edu/arcgis/services/drew/NWM_terrain/MapServer/WMSServer?",
+        url: "https://arcgis.cuahsi.org/arcgis/services/NWM/grid_terrain/MapServer/WmsServer",
+        params: {
+            'LAYERS': "0"
+        },
+        //see: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img#attr-crossorigin
+        //http://openlayers.org/en/v3.12.1/apidoc/ol.source.TileWMS.html
+        crossOrigin: 'anonymous' //This is necessary for CORS security in the browser
+
+    });
+
+    terrain_layer = new ol.layer.Tile({
+        source: terrain_Source,
+        keyword: "terrain",
+        opacity: 0,
+    });
+
     map.addLayer(base_layer);
+    map.addLayer(terrain_layer);
     map.addLayer(watershed_layer);
     map.addLayer(grid_layer);
     map.addLayer(reservoir_layer);
     map.addLayer(all_streams_layer);
-    map.addLayer(selected_streams_layer);
     map.addLayer(usgs_gauges_layer);
+    map.addLayer(user_draw_layer);
 
-    toggle_layers = [grid_layer, reservoir_layer, all_streams_layer, selected_streams_layer];
+    //toggle_layers = [grid_layer, reservoir_layer, all_streams_layer, user_draw_layer, terrain_layer];
+    toggle_layers = [grid_layer, reservoir_layer, all_streams_layer, terrain_layer];
 
     popup_div = document.getElementById('popup');
     popup_overlay = new ol.Overlay({
@@ -960,9 +1096,15 @@ function init_restore_ui_map()
     var center_map_at_pnt_3857 = null;
     if (qLong && qLat && !window.location.href.includes("/subset"))
     {
+        $("#longInput").val(qLong);
+        $("#latInput").val(qLat);
         if (parseFloat(qLong) != -98 && parseFloat(qLat) != 38.5 && qCOMID != "")
         {
             center_map_at_pnt_3857 = reproject_point(qLong, qLat, 4326, 3857);
+            var pnt_fea = new ol.Feature({geometry: new ol.geom.Point(center_map_at_pnt_3857),
+                                          id: "clickpnt"
+                                        });
+            user_draw_layer.getSource().addFeature(pnt_fea);
         }
     }
     // highlight selected stream
@@ -971,7 +1113,7 @@ function init_restore_ui_map()
         var stream_info = run_point_indexing_service_byu(qCOMID, null, null, 3857);
         if (stream_info != null && stream_info.feature != null && stream_info.mid_point != null)
         {
-            selected_streams_layer.getSource().clear();
+            user_draw_layer.getSource().clear();
             // OL3GM lib doesn't support MULTI* geometry, so have to convert MultiLineString to LineString
             // see https://github.com/mapgears/ol3-google-maps/blob/master/LIMITATIONS.md
             var geom_obj = stream_info.feature.getGeometry();
@@ -980,7 +1122,7 @@ function init_restore_ui_map()
                 var geom_lingstring_obj = stream_info.feature.getGeometry().getLineString(0);
                 stream_info.feature.setGeometry(geom_lingstring_obj);
             }
-            selected_streams_layer.getSource().addFeature(stream_info.feature);
+            user_draw_layer.getSource().addFeature(stream_info.feature);
             center_map_at_pnt_3857 = stream_info.mid_point;
         }
     }
@@ -1006,8 +1148,13 @@ function init_restore_ui_map()
 
 function map_singleclick(evt)
 {
+
+    // 8/15/2018
+    // commented out as it caused disapperance of popup in consecutive clicks
     // destroy existing popup
-    $(popup_div).popover('destroy');
+    //$(popup_div).popover('destroy');
+
+    user_draw_layer.getSource().clear();
     var view = map.getView();
     var viewResolution = view.getResolution();
 
@@ -1085,8 +1232,6 @@ function map_singleclick(evt)
         }
         if (stream_info.feature != null)
         {
-            selected_streams_layer.getSource().clear();
-
             // OL3GM lib doesn't support MULTI* geometry, so have to convert MultiLineString to LineString
             // see https://github.com/mapgears/ol3-google-maps/blob/master/LIMITATIONS.md
             var geom_obj = stream_info.feature.getGeometry();
@@ -1095,7 +1240,7 @@ function map_singleclick(evt)
                 var geom_lingstring_obj = stream_info.feature.getGeometry().getLineString(0);
                 stream_info.feature.setGeometry(geom_lingstring_obj);
             }
-            selected_streams_layer.getSource().addFeature(stream_info.feature);
+            user_draw_layer.getSource().addFeature(stream_info.feature);
         }
         if (stream_info.mid_point != null)
         {
@@ -1103,15 +1248,52 @@ function map_singleclick(evt)
             popup_point_3857 = stream_info.mid_point;
         }
     }
+    else if (terrain_layer.getVisible())
+    {
+         var grid_url = terrain_layer.getSource().getGetFeatureInfoUrl(evt.coordinate, viewResolution, view.getProjection(), {
+            'INFO_FORMAT': 'text/xml',
+            'FEATURE_COUNT': 1
+        });
+
+        var grid_Data = dataCall(grid_url);
+        var grid_Count = grid_Data.documentElement.childElementCount;
+
+        if (grid_Count != 1)
+        {
+            return;
+        }
+
+        var south_north = grid_Data.documentElement.children[0].attributes['Green'].value;
+        var west_east = grid_Data.documentElement.children[0].attributes['Red'].value;
+
+        $("#gridInputY").val(south_north).change(); //trigger change event so value saved to sessionStorage
+        $("#gridInputX").val(west_east).change();
+
+
+        displayContent += '<tr><td>south_north: ' + south_north + '</td><td>west_east: ' + west_east + '</td></tr>';
+
+        // popup shows at center of cell
+        popup_point_3857 = evt.coordinate;
+    }
     else
     {
         return;
     }
 
     displayContent += '</table>';
+
+
     var lonlat = reproject_point(popup_point_3857[0], popup_point_3857[1], 3857, 4326);
     $('#longInput').val(lonlat[0]);
     $('#latInput').val(lonlat[1]);
+
+
+    var pnt_fea = new ol.Feature({geometry: new ol.geom.Point(popup_point_3857),
+                                  id: "clickpnt"
+    });
+
+    user_draw_layer.getSource().addFeature(pnt_fea);
+
 
     popup_overlay.setPosition(popup_point_3857);
     $(popup_div).popover({
@@ -1119,6 +1301,8 @@ function map_singleclick(evt)
         'html': true,
         'content': displayContent
     });
+
+    $(popup_div).attr("data-content", displayContent);
 
     $(popup_div).popover('show');
     $(popup_div).next().css('cursor', 'text');
@@ -1293,13 +1477,14 @@ function run_point_indexing_service_byu(comid, pnt_coordinate, pnt_epsg, output_
  *******BUILD CHART FUNCTIONALITY********
  ****************************************/
 
-function get_netcdf_chart_data(config, geom, variable, comid, date, time, lag, endDate)
+function get_netcdf_chart_data(archive, config, geom, variable, comid, date, time, lag, endDate)
 {
     $.ajax({
         type: 'GET',
         url: '/apps/nwm-forecasts/get-netcdf-data/',
         dataType: 'json',
         data: {
+            'archive': archive,
             'config': config,
             'geom': geom,
             'variable': variable,
@@ -1617,6 +1802,18 @@ var plotData = function(config, geom, variable, data, start, colorIndex, seriesD
         nc_chart.yAxis[0].setTitle({text: units});
         $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
     }
+    else if (variable === 'sfcheadsubrt')
+    {
+        var units = 'Surface Head (mm)';
+        nc_chart.yAxis[0].setTitle({text: units});
+        $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
+    }
+    else if (variable === 'zwattablrt')
+    {
+        var units = 'Water Table Depth (m)';
+        nc_chart.yAxis[0].setTitle({text: units});
+        $('tspan:contains("Change Units")').parent().parent().attr('hidden', true);
+    }
 
     if (config !== 'long_range')
     {
@@ -1658,9 +1855,9 @@ var plotData = function(config, geom, variable, data, start, colorIndex, seriesD
 
 function clearErrorSelection()
 {
-    var numFeatures = selected_streams_layer.getSource().getFeatures().length;
-    var lastFeature = selected_streams_layer.getSource().getFeatures()[numFeatures-1];
-    selected_streams_layer.getSource().removeFeature(lastFeature);
+    var numFeatures = user_draw_layer.getSource().getFeatures().length;
+    var lastFeature = user_draw_layer.getSource().getFeatures()[numFeatures-1];
+    user_draw_layer.getSource().removeFeature(lastFeature);
 }
 
 function changeUnits(config)
@@ -2059,6 +2256,16 @@ function _render_str_template(template_str, replace_dict)
 
 function _prepare_watershed_data()
 {
+
+    var data = null;
+
+    // archive
+    var archive=$('#archive').val();
+    if (archive==null || archive=="")
+    {
+        archive="rolling"
+    }
+
     // check watershed_layer has a feature
     var watershed_fea_list = watershed_layer.getSource().getFeatures();
     if (watershed_fea_list.length == 0)
@@ -2076,6 +2283,12 @@ function _prepare_watershed_data()
     // function getUrlParameter() requires a valid url: http + domain + query string
     // make a fake url
     url = "http://www.hydroshare.org/?" + url;
+
+    var subset_domain = false;
+    if ($('#chkbox-subset-domain').prop('checked'))
+    {
+        subset_domain = true;
+    }
     var parameter = {
         config: getUrlParameter("config", url),
         geom: getUrlParameter("geom", url),
@@ -2087,17 +2300,17 @@ function _prepare_watershed_data()
         lag_06z: getUrlParameter("06z", url),
         lag_12z: getUrlParameter("12z", url),
         lag_18z: getUrlParameter("18z",url),
-        merge: merge_netcdf
+        merge: merge_netcdf,
     };
 
-    // analysis_assim date range no more than 7 days
+    // analysis_assim date range no more than 40 days)
     if (parameter.config == "analysis_assim")
     {
-        if (!_check_datetime_range($("#startDate").val(), $("#endDate").val(), 7))
+        if (!_check_datetime_range($("#startDate").val(), $("#endDate").val(), 40))
         {
-            alert("Invalid start/end date; You may subset Analysis & Assimilation data for 7 days or less");
+            alert("Invalid start/end date; You may subset Analysis & Assimilation data for 40 days or less");
             $("#subsetBtn, #watershedBtn, #submitBtn").removeAttr('disabled');
-            return;
+            return null;
         }
     }
 
@@ -2109,13 +2322,22 @@ function _prepare_watershed_data()
     var geoJSON = new ol.format.GeoJSON();
     var geom_json = geoJSON.writeGeometry(watershed_fea.getGeometry());
 
-    var data = {watershed_geometry: geom_json, watershed_epsg: 3857, subset_parameter: parameter};
+
+    data = {archive: archive,
+        watershed_geometry: geom_json,
+        watershed_epsg: 3857,
+        subset_parameter: parameter,
+        domain_files: subset_domain};
     return data
 }
 
-function subset_watershed_hydroshare()
+function subset_watershed_hydroshare_old()
 {
     var data = _prepare_watershed_data();
+    if (!data)
+    {
+        return ;
+    }
     var hydroshare_data = {"title": $('#resource-title-subset').val(),
         "abstract": $('#resource-abstract-subset').val(),
         "keywords": $('#resource-keywords-subset').val(),
@@ -2173,7 +2395,87 @@ function subset_watershed_hydroshare()
     });
 }
 
-function subset_watershed_download()
+function subset_watershed_hydroshare()
+{
+    var data = _prepare_watershed_data();
+    if (!data)
+    {
+        return ;
+    }
+    var hydroshare_data = {"title": $('#resource-title-subset').val(),
+        "abstract": $('#resource-abstract-subset').val(),
+        "keywords": $('#resource-keywords-subset').val(),
+        "res_type": $('#resource-type-subset').val()
+    };
+    data["hydroshare"] = hydroshare_data;
+
+    var displayStatus = $('#display-status-subset');
+    displayStatus.removeClass('error');
+    displayStatus.addClass('uploading');
+    displayStatus.html('<em>Uploading...</em>');
+
+     if (hydroshare_data.title.length==0 || hydroshare_data.keywords.length==0 || hydroshare_data.abstract.length==0)
+     {
+            displayStatus.removeClass('uploading');
+            displayStatus.addClass('error');
+            displayStatus.html('<em>All metadata information should be provided.</em>');
+            return;
+     }
+
+    $('#hydroshare-proceed-subset').prop('disabled', true);
+    var csrf_token = getCookie('csrftoken');
+    $.ajax({
+        type: 'POST',
+        //url: '/apps/nwm-forecasts/subset-watershed/',
+        url: '/apps/nwm-forecasts/api/submit-subsetting-job/',
+        headers: {'X-CSRFToken': csrf_token},
+        dataType: 'json',
+        contentType: 'application/json',
+        data: JSON.stringify(data),
+        success: function (data) {
+            $('#hydroshare-proceed-subset').prop('disabled', false);
+            check_job_timer =setInterval(_check_job_status, 2000, data.job_id);
+
+            // if (data.status == "success")
+            // {
+            //
+            //
+            //      var job_id = data.job_id;
+            //      check_job_timer =setInterval(_check_job_status, 500, job_id);
+            //      displayStatus.removeClass('uploading');
+            //      displayStatus.addClass('success');
+            //      displayStatus.html('<em>' + data.status.toUpperCase() + ' View in HydroShare <a href="https://www.hydroshare.org/resource/' + data.res_id +
+            //       '" target="_blank" style="color:red">HERE</a></em>');
+            // }
+            // else
+            // {
+            //     displayStatus.removeClass('uploading');
+            //     displayStatus.addClass('error');
+            //     displayStatus.html('<em>' + data.msg + '</em>');
+            // }
+            // $("#subsetBtn, #watershedBtn, #submitBtn").removeAttr('disabled');
+        },
+        error: function (jqXHR, textStatus, errorThrown) {
+            $('#subset_watershed_loading').prop('disabled', true).addClass('hidden');
+            $('#hydroshare-proceed-subset').prop('disabled', false);
+            displayStatus.removeClass('uploading');
+            displayStatus.addClass('error');
+            displayStatus.html('<em>' + errorThrown + '</em>');
+            $("#subsetBtn, #watershedBtn, #submitBtn").removeAttr('disabled');
+        }
+    });
+}
+
+function _set_ui_hydroshare_success(res_id)
+{
+    var displayStatus = $('#display-status-subset');
+    displayStatus.removeClass('uploading');
+    displayStatus.addClass('success');
+    displayStatus.html('<em>' + 'SUCCESS' + ' View in HydroShare <a href="https://www.hydroshare.org/resource/' + res_id +
+        '" target="_blank" style="color:red">HERE</a></em>');
+}
+
+function subset_watershed_download_old()
 {
     var data = _prepare_watershed_data();
 
@@ -2206,7 +2508,6 @@ function subset_watershed_download()
     }; //xhttp.onreadystatechange
     // Post data to URL which handles post request
     xhttp.open("POST", '/apps/nwm-forecasts/subset-watershed/');
-    //xhttp.open("POST", '/apps/nwm-forecasts/api/submit-subsetting-job/');
 
     xhttp.setRequestHeader("Content-Type", "application/json");
     var csrf_token = getCookie('csrftoken');
@@ -2214,6 +2515,113 @@ function subset_watershed_download()
     // You should set responseType as blob for binary responses
     xhttp.responseType = 'blob';
     xhttp.send(JSON.stringify(data));
+}
+
+function _download_job_result(job_id)
+{
+    xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+        var a;
+        if (xhttp.readyState === 4 && xhttp.status === 200)
+        {
+            // Trick for making downloadable link
+            a = document.createElement('a');
+            a.href = window.URL.createObjectURL(xhttp.response);
+            // Give filename you wish to download
+            a.download = xhttp.getResponseHeader('Content-Disposition').split(";")[1].split("=")[1].replace(/"/g, '');
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            $("#subsetBtn, #watershedBtn, #submitBtn").removeAttr('disabled');
+            $('#subset_watershed_loading').prop('disabled', true).addClass('hidden');
+        }
+        else if  (xhttp.status != 200 && xhttp.status != 0)
+        {
+            xhttp.abort();
+            alert("Failed to subset this watershed");
+            $("#subsetBtn, #watershedBtn, #submitBtn").removeAttr('disabled');
+            $('#subset_watershed_loading').prop('disabled', true).addClass('hidden');
+        }
+
+    }; //xhttp.onreadystatechange
+    // Post data to URL which handles post request
+    xhttp.open("GET", '/apps/nwm-forecasts/api/download-subsetting-results/?job_id=' + job_id);
+
+    // You should set responseType as blob for binary responses
+    xhttp.responseType = 'blob';
+    xhttp.send();
+}
+
+var check_job_timer;
+
+function subset_watershed_download()
+{
+    var data = _prepare_watershed_data();
+
+    //http://stackoverflow.com/questions/28165424/download-file-via-jquery-ajax-post
+    // Use XMLHttpRequest instead of Jquery $ajax
+    xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function() {
+
+        if (xhttp.readyState === 4 && xhttp.status === 200)
+        {
+            var body = xhttp.response;
+            var job_id = body.job_id;
+            check_job_timer =setInterval(_check_job_status, 2000, job_id);
+        }
+        else if  (xhttp.status != 200 && xhttp.status != 0)
+        {
+            xhttp.abort();
+            alert("Failed to subset this watershed");
+            $("#subsetBtn, #watershedBtn, #submitBtn").removeAttr('disabled');
+            $('#subset_watershed_loading').prop('disabled', true).addClass('hidden');
+        }
+
+    }; //xhttp.onreadystatechange
+    // Post data to URL which handles post request
+    //xhttp.open("POST", '/apps/nwm-forecasts/subset-watershed/');
+    xhttp.open("POST", '/apps/nwm-forecasts/api/submit-subsetting-job/');
+
+    xhttp.setRequestHeader("Content-Type", "application/json");
+    var csrf_token = getCookie('csrftoken');
+    xhttp.setRequestHeader("X-CSRFToken", csrf_token);
+    // You should set responseType as blob for binary responses
+    xhttp.responseType = 'json';
+    xhttp.send(JSON.stringify(data));
+}
+
+function _check_job_status(job_id)
+{
+    var csrf_token = getCookie('csrftoken');
+    $.ajax({
+        type: 'GET',
+        url: '/apps/nwm-forecasts/api/check-subsetting-job-status/?job_id=' + job_id,
+        headers: {'X-CSRFToken': csrf_token},
+        dataType: 'json',
+        success: function (data) {
+            console.log(data);
+            var job_status = data.status;
+            if (job_status.toLowerCase() == "success" || job_status.toLowerCase() == "failure")
+            {
+                clearInterval(check_job_timer);
+                if (job_status.toLowerCase() == "success")
+                {
+                    if (job_id.indexOf("hydroshare") !== -1)
+                    {
+                        console.log(data.res_id);
+                        _set_ui_hydroshare_success(data.res_id);
+                    }
+                    else {
+                        _download_job_result(job_id);
+                    }
+
+                }
+            }
+        },
+        error: function (jqXHR, textStatus, errorThrown) {
+            console.log("error");
+        }
+    });
 }
 
 function _check_datetime_range(startDate, endDate, delta_days)

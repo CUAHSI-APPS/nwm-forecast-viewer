@@ -27,6 +27,17 @@
 <form id="paramForm" method="get" action="{% url 'nwm_forecasts:home' %}">
 
     <div class="form-group ">
+        <label class="control-label" for="archive" data-toggle="tooltip"
+               data-placement="bottom" title="Select the archive to query">Archive</label>
+        <select id="archive" class="form-control" name="archive">
+            <option value="rolling" selected="selected" title="40-day rolling window archive">40-Day Rolling Window</option>
+            <option value="florence" title="historical archive for the Florence hurricane (20180901-20181019)">Florence (20180901-20181019)</option>
+            <option value="harvey" title="historical archive for the Harvey hurricane (20170818-20170906)">Harvey (20170818-20170906)</option>
+            <option value="irma" title="historical archive for Irma hurricane (20170829-20170915)">Irma (20170829-20170915)</option>
+        </select>
+    </div>
+
+    <div class="form-group ">
         <label class="control-label" for="config" data-toggle="tooltip"
                data-placement="bottom" title="NWM has 4 model configurations: Analysis & Assimilation, Short Range, Medium Range and Long Range">Model Configuration</label>
         <select id="config" class="form-control" name="config">
@@ -37,7 +48,7 @@
         </select>
     </div>
 
-    <div class="form-group ">
+    <div class="form-group">
         <label class="control-label" for="geom" data-toggle="tooltip"
                data-placement="top" title="NWM stores model outputs in different NetCDF files. This app can access Channel file, Land file, Reservoir file and Forcing file.">Model Output File</label>
         <select id="geom" class="form-control" name="geom">
@@ -45,6 +56,7 @@
             <option value="land" title="Land file stores land surface processing result (1km gridded NetCDF)">Land</option>
             <option value="reservoir" title="Reservoir file stores forecasts for 1260 reservoirs (point-type NetCDF)">Reservoir</option>
             <option value="forcing" title="Forcing file stores forcing variables (1km gridded NetCDF)">Forcing</option>
+            <option value="terrain" title="Terrain file stores routing variables (250m gridded NetCDF)">Terrain</option>
         </select>
     </div>
 
@@ -77,7 +89,8 @@
             <option id="t2dVar" value="T2D" class="hidden">2-m Air Temperature</option>
             <option id="u2dVar" value="U2D" class="hidden">10-m U-component of Wind</option>
             <option id="v2dVar" value="V2D" class="hidden">10-m V-component of Wind</option>
-
+            <option id="sfhVar" value="sfcheadsubrt" class="hidden">Surface Head</option>
+            <option id="wtdVar" value="zwattablrt" class="hidden">Water Table Depth</option>
         </select>
     </div>
 

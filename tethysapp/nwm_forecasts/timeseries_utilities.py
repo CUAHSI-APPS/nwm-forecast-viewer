@@ -4,9 +4,12 @@ import re
 import netCDF4 as nc
 import numpy as np
 import json
+import logging
 
 from configs import *
 from django.http import JsonResponse
+
+logger = logging.getLogger(__name__)
 
 def timestamp_early_than_transition_v11(fn, transition_timestamp):
 
@@ -32,6 +35,9 @@ def loopThroughFiles(localFileDir, q_out, nc_files, var, comidIndex=None, comidI
         elif var == 'SNOWH':
             q_outT = prediction_dataTemp.variables[var][0, comidIndexY, comidIndexX].tolist()
             q_out.append(round(q_outT * 3.28084, 4))
+        elif var == "zwattablrt" or var == "sfcheadsubrt":
+            q_outT = prediction_dataTemp.variables[var][0, comidIndexY, comidIndexX].tolist()
+            q_out.append(q_outT)
         elif var == 'SNEQV':
             q_outT = prediction_dataTemp.variables[var][0, comidIndexY, comidIndexX].tolist()
             q_out.append(round((q_outT / 1000) * 3.28084, 4))
@@ -79,7 +85,7 @@ def processNCFiles(localFileDir, nc_files, geom, comid, var, version="v1.1", con
             comidList = prediction_data.variables['feature_id'][:]
         comidIndex = int(np.where(comidList == comid)[0])
         loopThroughFiles(localFileDir, q_out, nc_files, var, comidIndex)
-    elif geom == 'land' or 'forcing':
+    elif geom == 'land' or geom =='forcing' or geom == "terrain":
         comidList = comid.split(',')
         comidIndexY = int(comidList[0])
         comidIndexX = int(comidList[1])
@@ -152,7 +158,9 @@ def get_site_name(config, geom, var, lat, lon, lag='', member=''):
     return conf_name + ', ' + geom_name + ' (' + var + '). ' + lag_name + mem_name + lat_name  + lon_name
 
 
-def getTimeSeries(config, geom, var, comid, date, endDate, time, member=''):
+def getTimeSeries(archive, config, geom, var, comid, date, endDate, time, member=''):
+
+    app_dir=nwm_data_path_dict["view"][archive]
 
     if config != 'long_range':
         timeCheck = ''.join(['t', time, 'z'])
@@ -225,11 +233,13 @@ def _get_netcdf_data(request):
         ts_pairs_data = {}
 
         try:
+            archive = get_data.get("archive", "rolling")
+            app_dir = nwm_data_path_dict["view"][archive]
             config = get_data['config']
             geom = get_data['geom']
             var = get_data['variable']
 
-            if geom != 'land' and geom != 'forcing':
+            if geom != 'land' and geom != 'forcing' and geom != 'terrain':
                 comid = int(get_data['COMID'])
             else:
                 comid = get_data['COMID']
@@ -521,7 +531,7 @@ def _get_netcdf_data(request):
                 })
 
         except Exception as e:
-            print str(e)
+            logger.error(str(e))
             return JsonResponse({'error': 'No data found for the selected reach.'})
     else:
         return JsonResponse({'error': "Bad request. Must be a GET request."})

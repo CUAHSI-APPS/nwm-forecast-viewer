@@ -23,7 +23,7 @@ def create_symbolic(src_path, dest_path, overwrite=True):
 def create_symbolic_for_AA(data_base_path=None, symbolic_base_path=None, date=None):
 
     date_folder_name = "nwm.{date}".format(date=date)
-    l_list = [{"src_name": "forcing_analysis_assim", "dest_name": "fe_analysis_assim"},
+    l_list = [{"src_name": "forcing_analysis_assim", "dest_name": "forcing_analysis_assim"},
               {"src_name": "analysis_assim", "dest_name": "analysis_assim"}]
 
     for l in l_list:
@@ -43,8 +43,8 @@ def create_symbolic_for_AA(data_base_path=None, symbolic_base_path=None, date=No
 def create_symbolic_for_SR_MR_LR(data_base_path=None, symbolic_base_path=None, date=None):
 
     date_folder_name = "nwm.{date}".format(date=date)
-    l_list = [{"src_name": "forcing_short_range", "dest_name": "fe_short_range"},
-              {"src_name": "forcing_medium_range", "dest_name": "fe_medium_range"},
+    l_list = [{"src_name": "forcing_short_range", "dest_name": "forcing_short_range"},
+              {"src_name": "forcing_medium_range", "dest_name": "forcing_medium_range"},
               {"src_name": "short_range", "dest_name": "short_range"},
               {"src_name": "medium_range", "dest_name": "medium_range"},
               {"src_name": "long_range_mem1", "dest_name": "long_range"},

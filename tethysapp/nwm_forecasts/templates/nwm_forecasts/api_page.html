@@ -12,9 +12,84 @@
 
 {% block app_content %}
 <h1>Developers API</h1>
+<h3 style="color:red;">Updates: </h3>
+
+    <p style="color:red;">
+     2018-11-02:
+        <ol style="color:red;">
+            <li> Subset over a simple Bounding Box</li>
+            <ol style="color:red;">
+                <li>Replace watershed polygon geojson string with a bounding box json string: '{"west": -100, "south": 38, "east": -99, "north": 39}'</li>
+                <li>Set 'bbox': True</li>
+            </ol>
+            <li> Query on Terrain output is supported</li>
+        </ol>
+    </p>
+    <p style="color:red;">
+     2018-06-12:
+        <ol style="color:red;">
+            <li> Hurricane archive has been integrated; Current release supports query and subsetting on Harvey and Irma data</li>
+            <li> A new optional parameter "archive" is added to both GetWaterML and submit-subsetting-job endpoints to differentiate archives (see Example 5 below)</li>
+            <ol style="color:red;">
+                <li>rolling: 40-day rolling window (default)</li>
+                <li>florence: Hurrican Florence (2018-09-01 to 2018-10-19)</li>
+                <li>harvey: Hurrican Harvey (2017-08-18 to 2017-09-06)</li>
+                <li>irma: Hurricane Irma (2017-08-29 to 2017-09-15)</li>
+            </ol>
+        </ol>
+    </p>
+    <p style="color:red;">
+     2018-04-20:
+        <ol style="color:red;">
+            <li> The domain of API endpoints has been temporarily changed to https://hs-apps.hydroshare.org/;</li>
+            <li> API Token and Rate Limiting are in place;</li>
+        </ol>
+    </p>
     <p>
         A Developers API is provided for those who wish to incorporate the National Water Model data into their own
         separate application or script.
+    </p>
+    <h3>Rate Limiting and API Token</h3>
+    <p>
+        Starting on 2018-04-20 release, anonymous/unauthenticated API calls are subject to stricter rate limiting. A HTTP status code 429 will be returned if too many API requests are made to the app once certain limit is exceeded.
+        For example, anonymous API calls on GetWaterML endpoint are only allowed at a rate no greater than 6/min or 180/day.
+        Authenticated API call (with a valid API Token in HTTP request header) are subject to less restricted rate limiting. For example, the rates of authenticated API calls on GetWaterML endpoint are 60/min and 1800/day.<br>
+<b>We encourage all developers to use API Token ASAP as anonymous/unauthenticated API calls will be fully forbidden in near future.</b>
+    </p>
+<p>
+<h3>Avoid Hitting the Limit</h3>
+There are two common ways to avoid hitting the rate limit.
+    <ol>
+        <li> Use API Token to make authenticated API calls as it gives you more allocation; </li>
+        <li> Understand how rate limiting works and make arrangement to control api call frequency. Current implementation of rate limiting uses a <b>Rolling Window</b> approach (not to be confused with 40-day rolling window data archive, rolling window approach is a rate limiting algorithm). For example, a endpoint has limit 6/min. Any call made to this endpoint will be blocked if 6 successful calls have already occurred in the preceding 60 seconds. So the window is rolling as new api call occurs.</li>
+    </ol>
+</p>
+
+    <h3>Obtain API Token</h3>
+    <p>
+         Developer should sign in Tethys portal with a valid HydroShare account. Click USER_NAME in the upper-right corner and select "User Settings" to open user's profile page.
+         API Token should be kept safe.
+        <ol>
+            <li> Sign in <a href="https://hs-apps.hydroshare.org">https://hs-apps.hydroshare.org</a> with HydroShare account (if needed)</li>
+            <li> Click USER_NAME in the upper-right corner</li>
+             <img height="50%" width="50%" src="{% static "nwm_forecasts/images/token1.png" %}">
+            <li> Copy the "Token" to your code and keep it safe</li>
+            <img height="50%" width="50%" src="{% static "nwm_forecasts/images/token2.png" %}">
+
+        </ol>
+    </p>
+    <h3>Add API Token to HTTP request header</h3>
+    <p>
+        API Token should be included in http request header in the following format.<br>
+        Header Name:        Header Value<br>
+        Authorization: Token API_TOKEN<br>
+        If use requests module in Python:<br>
+        <pre>
+        r = requests.get("https://.......api_endpoint/",
+                         headers={'Authorization': 'Token YOUR_API_TOKEN'},
+                        )
+        *Replace YOUR_API_TOKEN with a real token you got from user profile page
+        </pre>
     </p>
     <br>
 
@@ -38,12 +113,19 @@
             <td colspan="5">A WaterML file of the specified forecast.</td>
         </tr>
         <tr>
-            <td rowspan="12"><b>Params</b></td>
+            <td rowspan="13"><b>Params</b></td>
             <td><b>Name</b></td>
             <td><b>Description</b></td>
             <td><b>Valid Values</b></td>
             <td><b>Required</b></td>
             <td><b>Default if omitted</b></td>
+        </tr>
+        <tr>
+            <td>archive</td>
+            <td>The archive (data source) of the forecast.</td>
+            <td>Indicate the archive (data source) used for query; Accepted value: "rolling", "florence", "harvey" and "irma"</td>
+            <td>No</td>
+            <td>Default value: "rolling"</td>
         </tr>
         <tr>
             <td>config</td>
@@ -145,46 +227,60 @@
     </table>
     <br>
 <h5>Example 1:</h5>
-Configuration: Analysis & Assimilation<br>
+    Archive: 40-day rolling window<br>
+    Configuration: Analysis & Assimilation<br>
 Geometry: Land<br>
 Variable: SNOWH<br>
 Start Date:{{date_string_minus_2}}<br>
 End Date: {{date_string_minus_3}}<br>
 Cell Index/Location (south_north, west_east): 1635,2030<br>
- <a href="https://apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=analysis_assim&geom=land&variable=SNOWH&COMID=1635,2030&startDate={{date_string_minus_3}}&endDate={{date_string_minus_2}}" target="_blank">
-     <code>https://apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=analysis_assim&geom=land&variable=SNOWH&COMID=1635,2030&startDate={{date_string_minus_3}}&endDate={{date_string_minus_2}}</code>
+ <a href="https://hs-apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?archive=rolling&config=analysis_assim&geom=land&variable=SNOWH&COMID=1635,2030&startDate={{date_string_minus_3}}&endDate={{date_string_minus_2}}" target="_blank">
+     <code>https://hs-apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?archive=rolling&config=analysis_assim&geom=land&variable=SNOWH&COMID=1635,2030&startDate={{date_string_minus_3}}&endDate={{date_string_minus_2}}</code>
  </a>
 <br>
 <h5>Example 2:</h5>
+    Archive: 40-day rolling window<br>
 Configuration: Short Range <br>
 Geometry: Forcing <br>
 Variable: RAINRATE <br>
 Date:{{date_string_minus_2}} <br>
 Timestamp: 04 <br>
 Cell Index/Location (south_north, west_east): 1636,2036<br>
-<a href="https://apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=short_range&geom=forcing&variable=RAINRATE&COMID=1636,2036&startDate={{date_string_minus_2}}&time=04" target="_blank">
-    <code>https://apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=short_range&geom=forcing&variable=RAINRATE&COMID=1636,2036&startDate={{date_string_minus_2}}&time=04</code>
+<a href="https://hs-apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=short_range&geom=forcing&variable=RAINRATE&COMID=1636,2036&startDate={{date_string_minus_2}}&time=04" target="_blank">
+    <code>https://hs-apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=short_range&geom=forcing&variable=RAINRATE&COMID=1636,2036&startDate={{date_string_minus_2}}&time=04</code>
 </a>
 <br>
 <h5>Example 3:</h5>
+    Archive: 40-day rolling window<br>
 Configuration: Medium Range <br>
 Geometry: Channel <br>
 Variable: streamflow <br>
 Date:{{date_string_minus_2}} <br>
 Timestamp: 06 <br>
 Channel COMID: 11359107<br>
-<a href="https://apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=medium_range&geom=channel_rt&variable=streamflow&COMID=11359107&startDate={{date_string_minus_2}}&time=06" target="_blank">
-    <code>https://apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=medium_range&geom=channel_rt&variable=streamflow&COMID=11359107&startDate={{date_string_minus_2}}&time=06</code>
+<a href="https://hs-apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=medium_range&geom=channel_rt&variable=streamflow&COMID=11359107&startDate={{date_string_minus_2}}&time=06" target="_blank">
+    <code>https://hs-apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=medium_range&geom=channel_rt&variable=streamflow&COMID=11359107&startDate={{date_string_minus_2}}&time=06</code>
 </a>
 <h5>Example 4:</h5>
+    Archive: 40-day rolling window<br>
 Configuration: Long Range <br>
 Geometry: Reservoir <br>
 Variable: inflow <br>
 Date:{{date_string_minus_2}} <br>
 Reservoir COMID: 3501837<br>
 Lag: t00z <br>
-<a href="https://apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=long_range&geom=reservoir&variable=inflow&COMID=3501837&startDate={{date_string_minus_2}}&lag=t00z" target="_blank">
-    <code>https://apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=long_range&geom=reservoir&variable=inflow&COMID=3501837&startDate={{date_string_minus_2}}&lag=t00z</code>
+<a href="https://hs-apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=long_range&geom=reservoir&variable=inflow&COMID=3501837&startDate={{date_string_minus_2}}&lag=t00z" target="_blank">
+    <code>https://hs-apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?config=long_range&geom=reservoir&variable=inflow&COMID=3501837&startDate={{date_string_minus_2}}&lag=t00z</code>
+</a>
+    <h5>Example 5:</h5>
+    Archive: Hurricane Harvey (2017-08-23 to 2017-09-06)<br>
+Configuration: Short Range <br>
+Geometry: Channel <br>
+Variable: streamflow<br>
+Date:2017-08-27 <br>
+Reach COMID: 5781915<br>
+<a href="https://hs-apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?archive=harvey&config=short_range&geom=channel_rt&variable=streamflow&COMID=5781915&startDate=2017-08-27&time=04" target="_blank">
+    <code>https://hs-apps.hydroshare.org/apps/nwm-forecasts/api/GetWaterML/?archive=harvey&config=short_range&geom=channel_rt&variable=streamflow&COMID=5781915&startDate=2017-08-27&time=04</code>
 </a>
 <br>
 <h3>Subsetting</h3>
@@ -208,6 +304,7 @@ Send a <b>HTTP POST Request</b> with the following JSON payload to <b>/apps/nwm-
 <pre>
     # prepare the data sent to api endpoint
     JSON_payload = {
+        'archive': 'rolling'  # optional, Accepted value: rolling, florence, harvey, irma; Default is rolling
         'subset_parameter': {
             'config': "analysis_assim",  # AA: analysis_assim, SR: short_range, MR: medium_range, LR: long_range
             'startDate': "2017-09-20",  # YYYY-MM-DD for SR, MR & LR; Also set 'endDate' for AA
@@ -219,7 +316,8 @@ Send a <b>HTTP POST Request</b> with the following JSON payload to <b>/apps/nwm-
         },
         'watershed_epsg': 4326,  # keep this unchanged as latest GeoJSON standard requires coordinates in WGS84/EPSG:4326 projection
                                  # see: https://tools.ietf.org/html/rfc7946#section-4
-        'watershed_geometry': geojson_polygon_str_4326  # the polygon geojson string in WGS84/EPSG:4326 extracted from shapefile
+        'watershed_geometry': geojson_polygon_str_4326,  # the polygon geojson string or a bounding box json string in WGS84/EPSG:4326
+        'bbox': False,  # Optional, default: False; Set to True if watershed_geometry is a bounding box json string
     }
 
 </pre>
@@ -228,7 +326,7 @@ Expected response: <br>
 {"job_id": JOB_ID, "status": JOB_STATUS}
 <br>
 <pre>
-<b>Get "latest" data without specifying "startDate", "endDate" or "time"</b>
+<b>Get "latest" data without specifying "startDate", "endDate" or "time" (only works when archive='rolling')</b>
 
 <b>For AA:</b>
     a) Subset data starting from t00z of day "YYYY-MM-DD" to Today(UTC)'s latest data
@@ -389,7 +487,7 @@ Expected response:
 <br>
 5) <b>Spatial Query: check what NWM features are covered by a polygon</b>
 <br>
-Send a <b>HTTP POST Request</b> with the following JSON payload to <b>/apps/api/nwm-forecasts/spatial-query/</b>.
+Send a <b>HTTP POST Request</b> with the following JSON payload to <b>/apps/nwm-forecasts/api/spatial-query/</b>.
 <br>
 <pre>
     # prepare the data sent to api endpoint
