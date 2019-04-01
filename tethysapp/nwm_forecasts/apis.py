@@ -229,8 +229,10 @@ def subset_watershed_api(request):
         archive = request_dict.get("archive", "rolling")
         subset_parameter_dict = request_dict.get('subset_parameter', None)
         merge_results = False
+        wrfhydro_naming = True
         if subset_parameter_dict:
             merge_results = _string2bool(subset_parameter_dict.get('merge', 'False'))
+            wrfhydro_naming = _string2bool(subset_parameter_dict.get('wrfhydro_naming', 'True'))
 
         logger.info("------START: subset_watershed_api--------")
 
@@ -243,30 +245,8 @@ def subset_watershed_api(request):
         hs_job_id = None
         if "hydroshare" in request_dict:
             hs_job_id = "hydroshare-" + job_id
-        # task = _perform_subset.apply_async((watershed_geometry,
-        #                                    watershed_epsg,
-        #                                    subset_parameter_dict),
-        #                                    {"job_id":job_id,
-        #                                      "zip_results":True,
-        #                                      "query_only": spatial_query_only,
-        #                                      "merge_netcdfs": merge_results,
-        #                                      "archive": archive},
-        #                                    task_id=job_id,
-        #                                    countdown=3,)
-        #                                    # time_limit=nwm_viewer_subsetting_time_limit,  # 30 minutes
-        #                                    # soft_time_limit=nwm_viewer_subsetting_soft_time_limit,  # 20 minutes
-        #                                    # rate_limit=nwm_viewer_subsetting_rate_limit)  # 10 request/min
 
         if not hs_job_id:
-            # task = _perform_subset.apply_async((watershed_geometry,
-            #                                    watershed_epsg,
-            #                                    subset_parameter_dict),
-            #                                    {"job_id": job_id,
-            #                                      "zip_results": True,
-            #                                      "merge_netcdfs": merge_results,
-            #                                      "archive": archive},
-            #                                    task_id=job_id,
-            #                                    countdown=3,)
 
             task = chord(group(_perform_subset.s(watershed_geometry,
                                     watershed_epsg,
@@ -274,6 +254,7 @@ def subset_watershed_api(request):
                                     job_id=job_id,
                                     zip_results=False,
                                     merge_netcdfs=merge_results,
+                                    wrfhydro=wrfhydro_naming,
                                     archive=archive,
                                     ).set(task_id=job_id + "_data")
                   ,
@@ -306,13 +287,13 @@ def subset_watershed_api(request):
                              )
 
             # chained tasks
-
             task = chain(chord(group(_perform_subset.s(watershed_geometry,
                                               watershed_epsg,
                                               subset_parameter_dict,
                                               job_id=job_id,
                                               zip_results=False,
                                               merge_netcdfs=merge_results,
+                                              wrfhydro=wrfhydro_naming,
                                               archive=archive,
                                           ).set(task_id=job_id + "_data")
                                 ,
@@ -328,19 +309,6 @@ def subset_watershed_api(request):
                             .s(request_dict["hydroshare"], auth_info)
                         ).apply_async(task_id=hs_job_id,
                                       countdown=3)
-
-
-            # task = chain(_perform_subset.s(watershed_geometry,
-            #                                watershed_epsg,
-            #                                subset_parameter_dict,
-            #                                job_id=job_id,
-            #                                zip_results=True,
-            #                                merge_netcdfs=True,
-            #                                archive=archive).set(task_id=job_id, countdown=3),
-            #              _create_HS_resource
-            #                 .s(request_dict["hydroshare"], auth_info)
-            #                 .set(task_id=hs_job_id)
-            #              ).apply_async()
 
             response = JsonResponse({"job_id": hs_job_id, "status": task.state})
         logger.info("------END: subset_watershed_api--------")

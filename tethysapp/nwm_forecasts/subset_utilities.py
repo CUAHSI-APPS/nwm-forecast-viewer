@@ -183,7 +183,7 @@ def _create_HS_resource(task_result, hydroshare_dict, auth_info):
              soft_time_limit=nwm_viewer_subsetting_soft_time_limit,  # 20 minutes
              )
 def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None,
-                    merge_netcdfs=True, zip_results=False, query_only=False, archive="rolling"):
+                    merge_netcdfs=True, zip_results=False, query_only=False, wrfhydro=False, archive="rolling"):
 
     netcdf_folder_path = nwm_data_path_dict["subsetting"][archive]
     logger.info(netcdf_folder_path)
@@ -375,7 +375,8 @@ def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None,
                                 include_AA_tm12=False)
 
 
-    rename_nwm_AA_forcing(simulation_date_list, output_netcdf_folder_path, output_netcdf_folder_path)
+    if wrfhydro:
+        rename_nwm_AA_forcing(simulation_date_list, output_netcdf_folder_path, output_netcdf_folder_path)
 
     if merge_netcdfs:
         start_merge_nwm_netcdf_job(job_id=job_id,
