@@ -23,7 +23,7 @@ from celery.schedules import crontab
 from subset_nwm_netcdf.subset import start_subset_nwm_netcdf_job
 from subset_nwm_netcdf.merge import start_merge_nwm_netcdf_job
 from subset_nwm_netcdf.query import query_comids_and_grid_indices
-from wrf_renaming import rename_nwm_AA_forcing
+from .wrf_renaming import rename_nwm_AA_forcing
 
 from .configs import *
 
@@ -74,7 +74,7 @@ def _zip_up_files(file_list, target_zip_file_path=None):
     domain_subset_file = str(file_list[1])
     if os.path.isfile(domain_subset_file):
         print (domain_subset_file)
-        print (os.path.join(data_subset_folder, "wrfhydro_domain.tar.gz"))
+        print((os.path.join(data_subset_folder, "wrfhydro_domain.tar.gz")))
         shutil.move(domain_subset_file, os.path.join(data_subset_folder, "wrfhydro_domain.tar.gz"))
     # except Exception as e:
     #     pass
@@ -116,8 +116,8 @@ def _subset_domain_files(watershed_geometry, watershed_epsg, bag_fn_new=None, sk
                 r_job_status = requests.get(service_url + "/jobs/" + job_id)
                 job_status = json.loads(r_job_status.content)
             except Exception as e:
-                print(i, r_job_status.content, e)
-            print (i, job_status)
+                print((i, r_job_status.content, e))
+            print((i, job_status))
             if job_status["status"] == "finished":
                 domain_bag_url = str(job_status["file"])
                 break
@@ -343,7 +343,7 @@ def _perform_subset(geom_str, in_epsg, subset_parameter_dict, job_id=None,
                 lag_value = subset_parameter_dict.get(lag_name, None)
                 if lag_value.lower() == "on":
                     model_configuration_list.append("long_range_mem{0}".format(str(mem_index)))
-        elif isinstance(mem_parameter, basestring) and (1 <= int(mem_parameter) <= 4):
+        elif isinstance(mem_parameter, str) and (1 <= int(mem_parameter) <= 4):
             # request comes from API and is a list
             for i in mem_parameter:
                 model_configuration_list.append("long_range_mem{0}".format(str(i)))
@@ -440,8 +440,7 @@ def _check_latest_data():
 
     # get latest date:
     r = re.compile(r"nwm\.20\d\d\d\d\d\d")
-    dir_name_list = filter(lambda x: os.path.isdir(os.path.join(nomads_root, x)) and r.match(x),
-                           os.listdir(nomads_root))
+    dir_name_list = [x for x in os.listdir(nomads_root) if os.path.isdir(os.path.join(nomads_root, x)) and r.match(x)]
     dir_name_list.sort(key=lambda x: int(x.split('.')[1]), reverse=True)
     config_list = ["analysis_assim", "short_range", "medium_range", "long_range"]
     geom_list = ["forcing", "channel_rt", "reservoir", "land", "terrain_rt"]
@@ -484,7 +483,7 @@ def _build_latest_dict_info(rslt_list, filename_list, date_string, config, geom,
             r = re.compile("nwm.t\\d\\dz.{0}.{1}_{2}.*.conus.nc".format(config, geom, mem_i))
         else:
             r = re.compile("nwm.t\\d\\dz.{0}.{1}.*.conus.nc".format(config, geom))
-        newlist = filter(r.match, filename_list)
+        newlist = list(filter(r.match, filename_list))
         if len(newlist) > 0:
             newlist.sort(key=lambda x: int(x.split('.')[1][1:3]), reverse=True)
             max_item = newlist[0]

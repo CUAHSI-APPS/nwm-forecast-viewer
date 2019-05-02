@@ -22,7 +22,7 @@ if __name__ == "__main__":
     resp = requests.get('https://{0}/apps/nwm-forecasts/latest-data-info/'.format(server_name),
                          verify=False)
     resp_json_obj = json.loads(resp.content)
-    print resp_json_obj
+    print(resp_json_obj)
 
     ## Read polygon from GeoJSON file
     #json_filename = os.path.join('Harris.json')
@@ -63,17 +63,17 @@ if __name__ == "__main__":
                          data=json.dumps(JSON_payload),
                          verify=False)
     resp_json_obj = json.loads(resp.content)
-    print resp_json_obj
+    print(resp_json_obj)
 
     # Note: URL API endpoint must end with a slash '/'
     # 1) submit a job and get job_id
-    print "Submit job:"
+    print("Submit job:")
     resp = requests.post('https://{0}/apps/nwm-forecasts/submit-subsetting-job/'.format(server_name),
                             data=json.dumps(JSON_payload),
                             verify=False)
     resp_json_obj = json.loads(resp.content)
     job_id = resp_json_obj['job_id']
-    print "Job id: " + job_id
+    print("Job id: " + job_id)
 
     # 2) check job status
     retry_max = 200  # max retry times
@@ -88,22 +88,22 @@ if __name__ == "__main__":
             # data=json.dumps({"job_id": job_id}),
             verify=False)
         job_status = json.loads(resp_check_status.content)['status']
-        print "Job status {0}: {1}".format(retry_counter, job_status)
+        print("Job status {0}: {1}".format(retry_counter, job_status))
         if job_status.lower() == "success":
             job_done = True
             break
         elif job_status.lower() == "failure":
-            print "Job failed to complete."
+            print("Job failed to complete.")
             break
         elif retry_counter > retry_max:
-            print "Max retry reached. Script Terminated. Please check status manually."
+            print("Max retry reached. Script Terminated. Please check status manually.")
             break
         time.sleep(retry_interval)
 
     #  3) download job result
     #  save api response as a local zip file
     if job_done:
-        print "Downloading result:"
+        print("Downloading result:")
         resp = requests.get('https://{0}/apps/nwm-forecasts/download-subsetting-results/?job_id={1}'.format(server_name, job_id),
                                               verify=False)
         netcdf_file_list = []
@@ -117,6 +117,6 @@ if __name__ == "__main__":
                 for chunk in resp.content:
                     f.write(chunk)
 
-            print zip_path
+            print(zip_path)
         else:
-            print "Failed to subset watershed"
+            print("Failed to subset watershed")

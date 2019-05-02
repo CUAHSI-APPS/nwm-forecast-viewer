@@ -56,7 +56,7 @@ def _get_geojson_from_hs_resource(request, res_id, filename, shp_geojson_local_p
                 with open(shp_geojson_local_path) as geojson_data:
                     geojson_obj = geojson.load(geojson_data)
             else:
-                geojson_str = str(hs.getResourceFile(pid=res_id, filename=filename).next())
+                geojson_str = str(next(hs.getResourceFile(pid=res_id, filename=filename)))
                 geojson_obj = geojson.loads(geojson_str)
 
             geojson_geom_first = geojson_obj
@@ -76,7 +76,7 @@ def _get_geojson_from_hs_resource(request, res_id, filename, shp_geojson_local_p
                     proj_str = proj_str_raw.replace('\n', '')
                 shp_path = shp_geojson_local_path
             else:
-                proj_str_raw = str(hs.getResourceFile(pid=res_id, filename=filename.replace('.shp', '.prj')).next())
+                proj_str_raw = str(next(hs.getResourceFile(pid=res_id, filename=filename.replace('.shp', '.prj'))))
                 proj_str = proj_str_raw.replace('\n', '')
                 for ext in [".prj", ".dbf", ".shx", ".shp"]:
                     fn = filename.replace(".shp", ext)

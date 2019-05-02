@@ -78,7 +78,7 @@ if __name__ == "__main__":
         for date in date_list:
             create_symbolic_for_AA(data_base_path=data_base_path, symbolic_base_path=symbolic_base_path, date=date)
             create_symbolic_for_SR_MR_LR(data_base_path=data_base_path, symbolic_base_path=symbolic_base_path, date=date)
-        print "Done"
+        print("Done")
     except Exception as ex:
-        print ex.message, type(ex), str(ex)
+        print(ex.message, type(ex), str(ex))
 

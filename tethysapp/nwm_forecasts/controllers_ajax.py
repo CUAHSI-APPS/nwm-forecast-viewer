@@ -315,65 +315,65 @@ def subset_watershed2(request):
 @login_required()
 def upload_to_hydroshare(request):
     temp_dir = None
-    try:
-        if not request.session.get("hydroshare_ready", False):
-            raise Exception("not logged in via hydroshare")
-        return_json = {}
-        if request.method == 'POST':
-            post_data = request.POST
-
-            if request.is_secure():
-                front_end = 'https://'
-            else:
-                front_end = 'http://'
-
-            waterml_url = front_end + request.get_host() + post_data['waterml_link']
-
-            r_title = post_data['title']
-            r_abstract = post_data['abstract']
-            r_keywords_raw = post_data['keyword']
-            r_keywords = r_keywords_raw.split(',')
-            r_type = 'RefTimeSeriesResource'
-
-            r_public = post_data['public']
-            hs = get_oauth_hs(request)
-
-            ref_type = "rest"
-            metadata = []
-            metadata.append({"referenceurl": {"value": waterml_url, "type": ref_type}})
-
-            res_id = hs.createResource(r_type,
-                                       r_title,
-                                       resource_file=None,
-                                       keywords=r_keywords,
-                                       abstract=r_abstract,
-                                       metadata=json.dumps(metadata))
-
-            if res_id is not None:
-                if r_public.lower() == 'true':
-                    hs.setAccessRules(res_id, public=True)
-                return_json['success'] = 'File uploaded successfully!'
-                return_json['newResource'] = res_id
-            else:
-                raise
-
-    except ObjectDoesNotExist as e:
-        # print ("ObjectDoesNotExist")
-        # print str(e)
-        return_json['error'] = 'Login timed out! Please re-sign in with your HydroShare account.'
-    except TokenExpiredError as e:
-        # print str(e)
-        return_json['error'] = 'Login timed out! Please re-sign in with your HydroShare account.'
-    except Exception, err:
-        if "401 Unauthorized" in str(err):
-            return_json['error'] = 'Username or password invalid.'
-        elif "400 Bad Request" in str(err):
-            return_json['error'] = 'File uploaded successfully despite 400 Bad Request Error.'
-        else:
-            traceback.print_exc()
-            return_json['error'] = 'HydroShare rejected the upload for some reason.'
-    finally:
-        if temp_dir != None:
-            if os.path.exists(temp_dir):
-                shutil.rmtree(temp_dir)
-        return JsonResponse(return_json)
+    # try:
+    #     if not request.session.get("hydroshare_ready", False):
+    #         raise Exception("not logged in via hydroshare")
+    #     return_json = {}
+    #     if request.method == 'POST':
+    #         post_data = request.POST
+    #
+    #         if request.is_secure():
+    #             front_end = 'https://'
+    #         else:
+    #             front_end = 'http://'
+    #
+    #         waterml_url = front_end + request.get_host() + post_data['waterml_link']
+    #
+    #         r_title = post_data['title']
+    #         r_abstract = post_data['abstract']
+    #         r_keywords_raw = post_data['keyword']
+    #         r_keywords = r_keywords_raw.split(',')
+    #         r_type = 'RefTimeSeriesResource'
+    #
+    #         r_public = post_data['public']
+    #         hs = get_oauth_hs(request)
+    #
+    #         ref_type = "rest"
+    #         metadata = []
+    #         metadata.append({"referenceurl": {"value": waterml_url, "type": ref_type}})
+    #
+    #         res_id = hs.createResource(r_type,
+    #                                    r_title,
+    #                                    resource_file=None,
+    #                                    keywords=r_keywords,
+    #                                    abstract=r_abstract,
+    #                                    metadata=json.dumps(metadata))
+    #
+    #         if res_id is not None:
+    #             if r_public.lower() == 'true':
+    #                 hs.setAccessRules(res_id, public=True)
+    #             return_json['success'] = 'File uploaded successfully!'
+    #             return_json['newResource'] = res_id
+    #         else:
+    #             raise
+    #
+    # except ObjectDoesNotExist as e:
+    #     # print ("ObjectDoesNotExist")
+    #     # print str(e)
+    #     return_json['error'] = 'Login timed out! Please re-sign in with your HydroShare account.'
+    # except TokenExpiredError as e:
+    #     # print str(e)
+    #     return_json['error'] = 'Login timed out! Please re-sign in with your HydroShare account.'
+    # except Exception, err:
+    #     if "401 Unauthorized" in str(err):
+    #         return_json['error'] = 'Username or password invalid.'
+    #     elif "400 Bad Request" in str(err):
+    #         return_json['error'] = 'File uploaded successfully despite 400 Bad Request Error.'
+    #     else:
+    #         traceback.print_exc()
+    #         return_json['error'] = 'HydroShare rejected the upload for some reason.'
+    # finally:
+    #     if temp_dir != None:
+    #         if os.path.exists(temp_dir):
+    #             shutil.rmtree(temp_dir)
+    #     return JsonResponse(return_json)

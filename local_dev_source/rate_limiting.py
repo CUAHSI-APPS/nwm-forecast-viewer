@@ -23,4 +23,4 @@ for i in range(500):
     r = requests.get(test_url,
                      headers={'Authorization': 'Token {0}'.format(api_token)} if with_api_token else {},
                      )
-    print i, r.status_code
+    print(i, r.status_code)

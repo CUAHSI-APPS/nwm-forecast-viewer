@@ -35,7 +35,7 @@ def get_data_waterml(request):
     if request.GET:
         resp = _get_netcdf_data(request)
         resp_dict = json.loads(resp.content)
-        print resp_dict
+        print(resp_dict)
 
         archive = request.GET.get("archive", "rolling")
         config = request.GET["config"]
@@ -127,9 +127,9 @@ def get_data_waterml(request):
                     ts = json.loads(resp_dict['ts_pairs_data'])[str(comid)][1]
 
                     time_series = format_time_series(config, start, ts, time, nodata_value)
-                    print time_series
+                    print(time_series)
                     site_name = get_site_name(config, geom, var, lat, lon)
-                    print site_name
+                    print(site_name)
 
                     context = {
                         'config': config,
@@ -170,7 +170,7 @@ def get_data_waterml(request):
 
                 return xmlResponse
         except Exception as e:
-            print str(e)
+            print(str(e))
             raise Http404('An error occurred. Please verify parameters.')
 
 

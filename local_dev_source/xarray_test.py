@@ -10,7 +10,7 @@ fn = "/projects/water/nwm/data/nomads/nwm.2018031[0-1]/analysis_assim/nwm.t*z.an
 fn_template = "/projects/water/nwm/data/nomads/nwm.2018031{date}/medium_range/nwm.t00z.medium_range.channel_rt.f*.conus.nc"
 
 date_list = [fn_template.format(date=str(date)) for date in range(0,1)]
-print date_list
+print(date_list)
 
 s = datetime.now()
 
@@ -33,9 +33,9 @@ for d in date_list:
 #t2 = t + timedelta(hours=3)
 #print ds["streamflow"].loc[t:t2, 185].values
 
-print len(ts)
-print t
-print ts
+print(len(ts))
+print(t)
+print(ts)
 e = datetime.now()
-print e - s
+print(e - s)
 exit(0)

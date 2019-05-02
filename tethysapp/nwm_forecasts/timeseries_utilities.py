@@ -6,7 +6,7 @@ import numpy as np
 import json
 import logging
 
-from configs import *
+from .configs import *
 from django.http import JsonResponse
 
 logger = logging.getLogger(__name__)
@@ -93,10 +93,10 @@ def processNCFiles(localFileDir, nc_files, geom, comid, var, version="v1.1", con
     else:
         return JsonResponse({'error': "Invalid netCDF file"})
 
-    variables = prediction_data.variables.keys()
+    variables = list(prediction_data.variables.keys())
     if 'time' in variables:
         time = [int(nc.num2date(prediction_data.variables["time"][0], prediction_data.variables['time'].units).strftime('%s'))]
-        print "start epoch time: {0}".format(time[0])
+        print("start epoch time: {0}".format(time[0]))
     elif config == "analysis_assim" and geom == "forcing" and version == 'v1.0':
         # extract values from v1.0 AA forcing file name
         # nwm.20170508.t11z.fe_analysis_assim.tm00.conus.nc_georeferenced.nc
@@ -104,8 +104,8 @@ def processNCFiles(localFileDir, nc_files, geom, comid, var, version="v1.1", con
         if pattern.match(nc_files[0]):
             t_obj = datetime.datetime.strptime(nc_files[0], "nwm.%Y%m%d.t%Hz.fe_analysis_assim.tm00.conus.nc_georeferenced.nc")
             time = [int(t_obj.strftime('%s'))]
-            print "Parsing start epoch time from v1.0 file name {0}".format(nc_files[0])
-            print "start epoch time: {0}".format(time[0])
+            print("Parsing start epoch time from v1.0 file name {0}".format(nc_files[0]))
+            print("start epoch time: {0}".format(time[0]))
         else:
             raise Exception({"Invalid netCDF file name: " + nc_files[0]})
     else:
@@ -304,7 +304,7 @@ def _get_netcdf_data(request):
                                        and (int(x.split('.')[1]) <= int(endDate) if int(endDate) < int(transition_date_v11) else int(x.split('.')[1]) <= int(transition_date_v11) and (timestamp_early_than_transition_v11(x, transition_timestamp_v11_AA) if transition_date_v11 in x else True))
                                        ])
 
-                print nc_files_v10
+                print(nc_files_v10)
 
                 nc_files_v11 = sorted([x for x in os.listdir(localFileDir_v11) if geom in x
                                        and (int(x.split('.')[1]) >= int(dateDir) if int(dateDir) > int(transition_date_v11) else int(x.split('.')[1]) >= int(transition_date_v11) and ((not timestamp_early_than_transition_v11(x, transition_timestamp_v11_AA)) if transition_date_v11 in x else True))
@@ -313,7 +313,7 @@ def _get_netcdf_data(request):
                                        and 'tm00' in x
                                        and "georeferenced" not in x
                                        and x.endswith('.nc')])
-                print nc_files_v11
+                print(nc_files_v11)
 
                 nc_files_v12 = sorted([x for x in os.listdir(localFileDir_v11) if geom in x
                                        and (int(x.split('.')[1]) >= int(dateDir) if int(dateDir) > int(transition_date_v12) else int(x.split('.')[1]) >= int(transition_date_v12) and ((
@@ -325,7 +325,7 @@ def _get_netcdf_data(request):
                                        and "georeferenced" not in x
                                        and x.endswith('.nc')])
 
-                print nc_files_v12
+                print(nc_files_v12)
 
                 start_time = None
                 q_list = []
@@ -516,7 +516,7 @@ def _get_netcdf_data(request):
                     else:
                         return JsonResponse({'error': "Invalid netCDF file"})
 
-                    variables = prediction_data.variables.keys()
+                    variables = list(prediction_data.variables.keys())
                     if 'time' in variables:
                         time = [int(nc.num2date(prediction_data.variables['time'][0], prediction_data.variables['time'].units).strftime('%s'))]
                     else:

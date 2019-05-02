@@ -6,7 +6,7 @@ from .app import nwmForecasts as app
 app_workspace = app.get_app_workspace()
 # comid = 18228725
 
-local_vm_test = False
+local_vm_test = True
 local_vm_test_data_date = "20170419"
 
 #app_dir = '/projects/water/nwm/data/'

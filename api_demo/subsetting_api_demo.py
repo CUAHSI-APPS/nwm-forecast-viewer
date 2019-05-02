@@ -77,13 +77,13 @@ if __name__ == "__main__":
                          #auth=HTTPBasicAuth('admin', 'pass'),
                         )
     resp_json_obj = json.loads(resp.content)
-    print resp_json_obj
+    print(resp_json_obj)
 
 
 
     # Note: URL API endpoint must end with a slash '/'
     # 1) submit a job and get job_id
-    print "Submit job:"
+    print("Submit job:")
     resp = requests.post('{0}://{1}/apps/nwm-forecasts/api/submit-subsetting-job/'.format(http_protocl, server_name),
                             data=json.dumps(JSON_payload),
                             verify=False,
@@ -91,7 +91,7 @@ if __name__ == "__main__":
                          )
     resp_json_obj = json.loads(resp.content)
     job_id = resp_json_obj['job_id']
-    print "Job id: " + job_id
+    print("Job id: " + job_id)
 
     # 2) check job status
     retry_max = 500  # max retry times
@@ -107,22 +107,22 @@ if __name__ == "__main__":
               #headers={'Authorization': 'Token {0}'.format(api_token)},
         )
         job_status = json.loads(resp_check_status.content)['status']
-        print "Job status {0}: {1}".format(retry_counter, job_status)
+        print("Job status {0}: {1}".format(retry_counter, job_status))
         if job_status.lower() == "success":
             job_done = True
             break
         elif job_status.lower() == "failure":
-            print "Job failed to complete."
+            print("Job failed to complete.")
             break
         elif retry_counter > retry_max:
-            print "Max retry reached. Script Terminated. Please check status manually."
+            print("Max retry reached. Script Terminated. Please check status manually.")
             break
         time.sleep(retry_interval)
 
     #  3) download job result
     #  save api response as a local zip file
     if job_done:
-        print "Downloading result:"
+        print("Downloading result:")
         resp = requests.get('{0}://{1}/apps/nwm-forecasts/api/download-subsetting-results/?job_id={2}'.format(http_protocl,server_name, job_id),
                             verify=False,
                             headers={'Authorization': 'Token {0}'.format(api_token)},)
@@ -137,6 +137,6 @@ if __name__ == "__main__":
                 for chunk in resp.content:
                     f.write(chunk)
 
-            print zip_path
+            print(zip_path)
         else:
-            print "Failed to subset watershed"
+            print("Failed to subset watershed")
