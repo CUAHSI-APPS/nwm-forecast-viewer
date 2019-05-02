@@ -1,6 +1,5 @@
 from django.core.exceptions import ImproperlyConfigured
 from rest_framework.throttling import UserRateThrottle, AnonRateThrottle
-from rest_framework.compat import is_authenticated
 
 
 class UserRateThrottle_modified(UserRateThrottle):
@@ -16,7 +15,7 @@ class UserRateThrottle_modified(UserRateThrottle):
         self.num_requests, self.duration = self.parse_rate(self.rate)
 
     def get_cache_key(self, request, view):
-        if is_authenticated(request.user):
+        if request.user.is_authenticated:
             ident = request.user.pk
         else:
             # only throttle authenticated user

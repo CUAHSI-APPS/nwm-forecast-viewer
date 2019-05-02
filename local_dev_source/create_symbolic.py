@@ -1,5 +1,8 @@
 import os
-import exceptions
+try:
+    import exceptions
+except ImportError:
+    import builtins as exceptions
 
 
 def create_folder(folder_path):

@@ -56,7 +56,11 @@ def _get_geojson_from_hs_resource(request, res_id, filename, shp_geojson_local_p
                 with open(shp_geojson_local_path) as geojson_data:
                     geojson_obj = geojson.load(geojson_data)
             else:
-                geojson_str = str(next(hs.getResourceFile(pid=res_id, filename=filename)))
+                content = next(hs.getResourceFile(pid=res_id, filename=filename))
+                if type(content) is bytes:
+                    geojson_str = content.decode('utf-8')
+                else:
+                    geojson_str = str(next(hs.getResourceFile(pid=res_id, filename=filename)))
                 geojson_obj = geojson.loads(geojson_str)
 
             geojson_geom_first = geojson_obj
