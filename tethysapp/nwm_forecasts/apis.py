@@ -197,8 +197,8 @@ def spatial_query_api(request):
         return response
     except Exception as ex:
         logger.error("------ERROR: subset_watershed_api--------")
-        logger.exception(ex.message)
-        return HttpResponse(status=500, content=ex.message)
+        logger.exception(str(ex))
+        return HttpResponse(status=500, content=str(ex))
 
 
 @api_view(['POST'])
@@ -315,9 +315,9 @@ def subset_watershed_api(request):
         return response
 
     except Exception as ex:
-        logger.exception(ex.message)
+        logger.exception(str(ex))
         logger.error("------ERROR: subset_watershed_api--------")
-        return HttpResponse(status=500, content=ex.message)
+        return HttpResponse(status=500, content=str(ex))
 
 
 @api_view(['GET'])
@@ -340,7 +340,7 @@ def check_subsetting_job_status(request):
             JsonResponse({"error": "No job_id is provided"})
     except Exception as ex:
         logger.exception(str(ex))
-        return HttpResponse(status=500, content=ex.message)
+        return HttpResponse(status=500, content=str(ex))
 
 
 @api_view(['GET'])
@@ -366,8 +366,8 @@ def download_subsetting_results(request):
         else:
             JsonResponse({"error": "No job_id is provided"})
     except Exception as ex:
-        logger.exception(str(ex))
-        return HttpResponse(status=500, content=ex.message)
+        logger.exception(str(str(ex)))
+        return HttpResponse(status=500, content=str(ex))
 
 
 @api_view(['GET'])

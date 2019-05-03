@@ -91,7 +91,7 @@ def get_hs_watershed_list(request):
                                     })
 
                     except Exception as ex:
-                        logger.exception(ex)
+                        logger.exception(str(ex))
                         logger.error("Failed res in get_hs_watershed_list: " + str(resource))
 
                 resources_json = json.dumps(resources_list)
@@ -103,7 +103,7 @@ def get_hs_watershed_list(request):
             raise Exception("not a ajax GET request")
 
     except Exception as ex:
-        logger.exception(ex)
+        logger.exception(str(ex))
         response_obj = {"error": "Failed to load resources from HydroShare. Did you sign in with your HydroShare account?"}
     finally:
         return JsonResponse(response_obj)
@@ -153,7 +153,7 @@ def load_watershed(request):
             return JsonResponse(response_obj)
 
     except Exception as ex:
-        logger.exception(ex)
+        logger.exception(str(ex))
         return JsonResponse({'error': "Failed to load watershed"})
     finally:
         if tmp_dir is not None and os.path.exists(tmp_dir):
@@ -254,11 +254,11 @@ def subset_watershed(request):
                 return HttpResponse(status=500, content="Not a POST request")
     except Exception as ex:
         logger.exception(type(ex))
-        logger.exception(ex)
+        logger.exception(str(ex))
         if upload_to_hydroshare:
-            return JsonResponse({"status": "error", "msg": ex.message})
+            return JsonResponse({"status": "error", "msg": str(ex)})
         else:
-            return HttpResponse(status=500, content=ex.message)
+            return HttpResponse(status=500, content=str(ex))
     finally:
         if job_folder_path is not None:
             if os.path.exists(job_folder_path + ".zip"):
@@ -299,11 +299,11 @@ def subset_watershed2(request):
             return HttpResponse(status=500, content="Not a POST request")
     except Exception as ex:
         logger.exception(type(ex))
-        logger.exception(ex)
+        logger.exception(str(ex))
         if upload_to_hydroshare:
-            return JsonResponse({"status": "error", "msg": ex.message})
+            return JsonResponse({"status": "error", "msg": str(ex)})
         else:
-            return HttpResponse(status=500, content=ex.message)
+            return HttpResponse(status=500, content=str(ex))
     finally:
         if job_folder_path is not None:
             if os.path.exists(job_folder_path + ".zip"):

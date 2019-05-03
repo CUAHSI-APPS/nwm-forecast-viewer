@@ -14,16 +14,20 @@ if __name__ == "__main__":
     # Up to this writing, some newly added API features are not yet deployed on apps.hydroshare.org server.
     # Try appsdev.hydroshare.org server if needed
 
-    http_protocl = "https"
-    #server_name = "apps.hydroshare.org"
-    server_name = "hs-apps-dev.hydroshare.org"
 
-    #server_name = "127.0.0.1:8000"
     workspace_path = "/tmp"
-    # hs-apps-dev
-    api_token = "aae49ba0d71d6ea25333cb8070f47f8b7fe68de3"
+    #http_protocl = "https"
+    #server_name = "apps.hydroshare.org"
+    #api_token = "aae49ba0d71d6ea25333cb8070f47f8b7fe68de3"
 
-    #api_token = '1fe3417b23b85a8d34dc0ba33f8c6d9e44227766'
+    # hs-apps-dev
+    # http_protocl = "https"
+    # server_name = "hs-apps-dev.hydroshare.org"
+    # api_token = "aae49ba0d71d6ea25333cb8070f47f8b7fe68de3"
+
+    http_protocl = "http"
+    server_name = "127.0.0.1:8888"
+    api_token = '727b6488f90bc290276f1f499b0005bcd4d2e42e'
 
     # #Check "latest" data list (Optional)
     # resp = requests.get('https://{0}/apps/nwm-forecasts/latest-data-info/'.format(server_name),
@@ -48,17 +52,17 @@ if __name__ == "__main__":
     end_date_string = end_date_obj.strftime("%Y-%m-%d")
 
 
-    start_date_string = "2017-08-26"
-    end_date_string = "2017-09-01"
+    start_date_string = "2018-03-05"
+    end_date_string = "2018-03-08"
 
     # prepare the data sent to api endpoint
     JSON_payload = {
-        'archive': "irma",
+        'archive': "rolling",
         'subset_parameter': {
             'config': "analysis_assim",  # AA: analysis_assim, SR: short_range, MR: medium_range, LR: long_range
             'startDate': start_date_string,  # YYYY-MM-DD for SR, MR & LR; Also set 'endDate' for AA;  Also accept "latest", see Help page
             'endDate': end_date_string,  # YYYY-MM-DD (only for AA); Also accept "latest", see Help page
-            'geom': "channel_rt",  # forcing, channel_rt, reservoir, land
+            'geom': "forcing",  # forcing, channel_rt, reservoir, land
             'time': "00",  # 00, 01 ...23 (only for SR, MR and LR)
             'mem': "1",  # 1, 2, 3, 4 (LR ensemble member)
             'merge': "True"  # True or False
@@ -73,7 +77,7 @@ if __name__ == "__main__":
     resp = requests.post('{0}://{1}/apps/nwm-forecasts/api/spatial-query/'.format(http_protocl, server_name),
                          data=json.dumps(JSON_payload),
                          verify=False,
-                         #headers={'Authorization': 'Token {0}'.format(api_token)},
+                         headers={'Authorization': 'Token {0}'.format(api_token)},
                          #auth=HTTPBasicAuth('admin', 'pass'),
                         )
     resp_json_obj = json.loads(resp.content)
@@ -87,7 +91,7 @@ if __name__ == "__main__":
     resp = requests.post('{0}://{1}/apps/nwm-forecasts/api/submit-subsetting-job/'.format(http_protocl, server_name),
                             data=json.dumps(JSON_payload),
                             verify=False,
-                            #headers={'Authorization': 'Token {0}'.format(api_token)},
+                            headers={'Authorization': 'Token {0}'.format(api_token)},
                          )
     resp_json_obj = json.loads(resp.content)
     job_id = resp_json_obj['job_id']
@@ -104,7 +108,7 @@ if __name__ == "__main__":
         resp_check_status = requests.get(
             '{0}://{1}/apps/nwm-forecasts/api/check-subsetting-job-status/?job_id={2}'.format(http_protocl, server_name, job_id),
               verify=False,
-              #headers={'Authorization': 'Token {0}'.format(api_token)},
+              headers={'Authorization': 'Token {0}'.format(api_token)},
         )
         job_status = json.loads(resp_check_status.content)['status']
         print("Job status {0}: {1}".format(retry_counter, job_status))
@@ -133,8 +137,8 @@ if __name__ == "__main__":
             job_id_folder_path = os.path.join(workspace_path, job_id)
             os.mkdir(job_id_folder_path)
             zip_path = os.path.join(job_id_folder_path, zip_filename)
-            with open(zip_path, 'wb+') as f:
-                for chunk in resp.content:
+            with open(zip_path, 'wb') as f:
+                for chunk in resp.iter_content(chunk_size=4096):
                     f.write(chunk)
 
             print(zip_path)

@@ -425,11 +425,11 @@ def clean_up_subsetting_results():
                     task_i.save(update_fields=['traceback'])
                     logger.error("Deleted celery result @ " + task_i.task_id)
             except Exception as ex:
-                logger.exception("Failed to delete {0}: {1}".format(task_i.task_id, ex))
+                logger.exception("Failed to delete {0}: {1}".format(task_i.task_id, str(ex)))
         return "Clean up subset results done"
 
     except Exception as ex:
-        logger.exception(ex)
+        logger.exception(str(ex))
         return str(ex)
 
 
@@ -592,7 +592,7 @@ def reproject_wkt_gdal(in_proj_type,
         logger.error("in_proj_value: {0}".format(in_proj_value))
         logger.error("out_proj_type: {0}".format(out_proj_type))
         logger.error("out_proj_value: {0}".format(out_proj_value))
-        logger.error(str(type(ex)) + " " + ex.message)
+        logger.error(str(type(ex)) + " " + str(ex))
         raise ex
 
 

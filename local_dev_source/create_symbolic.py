@@ -83,5 +83,5 @@ if __name__ == "__main__":
             create_symbolic_for_SR_MR_LR(data_base_path=data_base_path, symbolic_base_path=symbolic_base_path, date=date)
         print("Done")
     except Exception as ex:
-        print(ex.message, type(ex), str(ex))
+        print(ex, type(ex), str(ex))
 
