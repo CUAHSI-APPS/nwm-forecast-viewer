@@ -166,7 +166,7 @@ def _create_HS_resource(task_result, hydroshare_dict, auth_info):
                                     keywords=hydroshare_dict["keywords"].split(','),
                                     abstract=hydroshare_dict["abstract"])
     zip_file_path = str(zip_file_path)
-    resource_id = hs.addResourceFile(resource_id, zip_file_path)
+    resource_id = hs.addResourceFile(resource_id, zip_file_path)["resource_id"]
 
     options = {
         "zip_with_rel_path": os.path.basename(zip_file_path),

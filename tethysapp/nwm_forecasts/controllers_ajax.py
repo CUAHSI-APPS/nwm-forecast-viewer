@@ -46,8 +46,8 @@ def get_hs_watershed_list(request):
                 # loop through all Generic and Feature res current user owns
                 valid_res_types = ['GenericResource', 'GeographicFeatureResource']
 
-                for resource in hs.getResourceList(types=valid_res_types, owner=owner):
-                #for resource in hs.getResourceList(types=valid_res_types):
+                #for resource in hs.getResourceList(types=valid_res_types, owner=owner):
+                for resource in hs.resources(types=valid_res_types, owner=owner):
                     res_id = resource['resource_id']
                     try:
                         # generic res has "watershed" in keywords
