@@ -80,7 +80,7 @@ def _get_geojson_from_hs_resource(request, res_id, filename, shp_geojson_local_p
                     proj_str = proj_str_raw.replace('\n', '')
                 shp_path = shp_geojson_local_path
             else:
-                proj_str_raw = str(next(hs.getResourceFile(pid=res_id, filename=filename.replace('.shp', '.prj'))))
+                proj_str_raw = next(hs.getResourceFile(pid=res_id, filename=filename.replace('.shp', '.prj'))).decode("utf-8")
                 proj_str = proj_str_raw.replace('\n', '')
                 for ext in [".prj", ".dbf", ".shx", ".shp"]:
                     fn = filename.replace(".shp", ext)
